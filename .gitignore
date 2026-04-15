@@ -21,6 +21,7 @@ build/
 *.log
 *.pid
 .superpowers/
+.conda/
 
 # Local agent / MCP caches (do not commit)
 .playwright-mcp/
