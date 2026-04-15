@@ -1,0 +1,12 @@
+{#
+  @node: knowledge
+  @role: user
+  @output: json
+  @contract: application.ai.knowledge_llm_contract:LlmInitialKnowledgePayload
+  @vars:
+    title: str — Novel title
+    context_section: str — Bible summary section (may be empty)
+#}
+小说标题：《{{ title }}》{{ context_section }}
+
+请生成初始知识图谱。只输出 JSON。

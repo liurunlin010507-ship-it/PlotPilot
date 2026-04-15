@@ -1,0 +1,112 @@
+{
+  "pack_id": "builtin",
+  "name": "内置模板",
+  "version": "1.0.0",
+  "author": "PlotPilot",
+  "description": "PlotPilot 内置 prompt 模板集",
+  "category": "builtin",
+  "templates": {
+    "llm_default": {
+      "description": "LLM 客户端默认系统提示",
+      "domain": "shared",
+      "output_format": "text"
+    },
+    "chapter_summarizer": {
+      "description": "章节摘要生成",
+      "domain": "shared",
+      "output_format": "text"
+    },
+    "ai_generation": {
+      "description": "章节正文生成",
+      "domain": "generation",
+      "output_format": "text"
+    },
+    "scene_generation": {
+      "description": "场景正文生成",
+      "domain": "generation",
+      "output_format": "text"
+    },
+    "dialogue": {
+      "description": "沙盒角色对话生成",
+      "domain": "generation",
+      "output_format": "text"
+    },
+    "tension_scoring": {
+      "description": "多维张力评分",
+      "domain": "analysis",
+      "output_format": "json",
+      "contract_module": "application.ai.tension_scoring_contract",
+      "contract_model": "TensionScoringLlmPayload"
+    },
+    "tension_analyzer": {
+      "description": "卡文诊断与破局建议",
+      "domain": "analysis",
+      "output_format": "json",
+      "contract_module": "application.ai.tension_analyzer_llm_contract",
+      "contract_model": "TensionAnalyzerLlmPayload"
+    },
+    "chapter_state": {
+      "description": "章节状态结构化提取",
+      "domain": "extraction",
+      "output_format": "json",
+      "contract_module": "application.ai.chapter_state_llm_contract",
+      "contract_model": "ChapterStateLlmPayload"
+    },
+    "knowledge": {
+      "description": "初始知识图谱生成",
+      "domain": "extraction",
+      "output_format": "json",
+      "contract_module": "application.ai.knowledge_llm_contract",
+      "contract_model": "LlmInitialKnowledgePayload"
+    },
+    "beat_sheet": {
+      "description": "节拍表（场景列表）生成",
+      "domain": "blueprint",
+      "output_format": "json",
+      "contract_module": "application.ai.beat_sheet_llm_contract",
+      "contract_model": "BeatSheetLlmPayload"
+    },
+    "main_plot": {
+      "description": "主线剧情候选方案",
+      "domain": "blueprint",
+      "output_format": "json",
+      "contract_module": "application.ai.main_plot_llm_contract",
+      "contract_model": "MainPlotLlmPayload"
+    },
+    "bible_all": {
+      "description": "完整 Bible 生成（人物+地点+风格+世界观）",
+      "domain": "world",
+      "output_format": "json",
+      "contract_module": "application.ai.bible_llm_contract",
+      "contract_model": "BibleAllLlmPayload"
+    },
+    "bible_worldbuilding": {
+      "description": "世界观与文风生成",
+      "domain": "world",
+      "output_format": "json",
+      "contract_module": "application.ai.bible_llm_contract",
+      "contract_model": "BibleWorldbuildingLlmPayload"
+    },
+    "bible_characters": {
+      "description": "人物生成",
+      "domain": "world",
+      "output_format": "json",
+      "contract_module": "application.ai.bible_llm_contract",
+      "contract_model": "BibleCharactersLlmPayload"
+    },
+    "bible_locations": {
+      "description": "地点生成",
+      "domain": "world",
+      "output_format": "json",
+      "contract_module": "application.ai.bible_llm_contract",
+      "contract_model": "BibleLocationsLlmPayload"
+    },
+    "refactor_proposal": {
+      "description": "宏观重构提案",
+      "domain": "audit",
+      "output_format": "json",
+      "contract_module": "application.ai.refactor_proposal_llm_contract",
+      "contract_model": "RefactorProposalLlmPayload"
+    }
+  }
+}

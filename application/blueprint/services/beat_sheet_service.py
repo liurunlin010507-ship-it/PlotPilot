@@ -16,6 +16,11 @@ from domain.novel.repositories.chapter_repository import ChapterRepository
 from domain.novel.repositories.storyline_repository import StorylineRepository
 from domain.ai.services.llm_service import LLMService, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
+from application.ai.beat_sheet_llm_contract import (
+    beat_sheet_payload_to_domain,
+)
+from application.ai.structured_json_pipeline import structured_json_generate
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 if TYPE_CHECKING:
     from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
@@ -69,12 +74,30 @@ class BeatSheetService:
         # 2. 构建提示词
         prompt = self._build_beat_sheet_prompt(outline, context)
 
-        # 3. 调用 LLM 生成节拍表
-        config = GenerationConfig(max_tokens=2048, temperature=0.7)
-        response = await self.llm_service.generate(prompt, config)
+        # 3. 调用结构化 JSON 管线生成节拍表
+        loader = PromptTemplateLoader.get_instance()
+        contract_model = loader.get_contract_for("beat_sheet")
+        config = GenerationConfig(
+            max_tokens=2048,
+            temperature=0.7,
+            response_format=loader.get_response_format_for("beat_sheet"),
+        )
 
-        # 4. 解析响应
-        scenes = self._parse_llm_response(response)
+        payload = await structured_json_generate(
+            llm=self.llm_service,
+            prompt=prompt,
+            config=config,
+            schema_model=contract_model,
+        )
+
+        if payload is None:
+            raise ValueError("结构化 JSON 管线未能生成有效的节拍表")
+
+        # 4. 将校验后的 payload 转为 Scene 领域值对象列表
+        scenes = beat_sheet_payload_to_domain(payload)
+
+        if not scenes:
+            raise ValueError("No scenes generated")
 
         # 5. 创建节拍表实体
         beat_sheet = BeatSheet(
@@ -335,7 +358,63 @@ class BeatSheetService:
     ) -> Prompt:
         """构建节拍表生成提示词（使用增强的上下文）"""
 
-        system_prompt = """你是一位专业的小说编剧，擅长将章节大纲拆解为具体的场景（Scene）。
+        # 构建各段落的字符串（保留在 Python 中处理条件逻辑）
+        characters_section = ""
+        if context.get("characters"):
+            characters_section = "\n=== 主要人物 ===\n" + "\n".join(
+                f"- {char['name']} ({char['role']}): {char['brief']}"
+                for char in context["characters"]
+            )
+
+        storylines_section = ""
+        if context.get("storylines"):
+            storylines_section = "\n=== 活跃故事线 ===\n" + "\n".join(
+                f"- {sl['name']} ({sl['type']}): {sl['progress']}"
+                for sl in context["storylines"]
+            )
+
+        previous_chapter_section = ""
+        if context.get("previous_chapter"):
+            prev = context["previous_chapter"]
+            previous_chapter_section = (
+                f"\n=== 前一章节 ===\n"
+                f"第 {prev['number']} 章《{prev['title']}》: {prev['summary']}\n"
+            )
+
+        foreshadowings_section = ""
+        if context.get("foreshadowings"):
+            foreshadowings_section = "\n=== 相关伏笔（可以在场景中呼应） ===\n" + "\n".join(
+                f"- {foreshadowing['description']} (第 {foreshadowing['chapter']} 章)"
+                for foreshadowing in context["foreshadowings"]
+            )
+
+        locations_section = ""
+        if context.get("locations"):
+            locations_section = "\n=== 可用地点 ===\n" + "\n".join(
+                f"- {loc['name']}: {loc['description']}"
+                for loc in context["locations"]
+            )
+
+        timeline_section = ""
+        if context.get("timeline_events"):
+            timeline_section = "\n=== 时间线（最近事件） ===\n" + "\n".join(
+                f"- 第 {event['chapter']} 章: {event['description']} ({event['time_type']})"
+                for event in context["timeline_events"]
+            )
+
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "beat_sheet",
+            user_vars={
+                "outline": outline,
+                "characters_section": characters_section,
+                "storylines_section": storylines_section,
+                "previous_chapter_section": previous_chapter_section,
+                "foreshadowings_section": foreshadowings_section,
+                "locations_section": locations_section,
+                "timeline_section": timeline_section,
+            },
+            fallback_system="""你是一位专业的小说编剧，擅长将章节大纲拆解为具体的场景（Scene）。
 
 你的任务是将章节大纲拆解为 3-5 个场景，每个场景应该：
 1. 有明确的场景目标（Scene Goal）
@@ -345,7 +424,7 @@ class BeatSheetService:
 5. 预估字数（每个场景 500-1000 字）
 
 请以 JSON 格式返回场景列表，格式如下：
-{
+{% raw %}{
   "scenes": [
     {
       "title": "场景标题",
@@ -356,7 +435,7 @@ class BeatSheetService:
       "estimated_words": 800
     }
   ]
-}
+}{% endraw %}
 
 注意事项：
 - 场景之间要有逻辑连贯性
@@ -364,103 +443,19 @@ class BeatSheetService:
 - POV 角色应该是章节中的主要角色
 - 预估字数总和应该在 2000-4000 字之间
 - 充分利用提供的上下文信息（人物、故事线、伏笔、地点、时间线）
-"""
+""",
+            fallback_user="""章节大纲：
+{{ outline }}
 
-        # 构建用户提示词
-        user_prompt = f"""章节大纲：
-{outline}
+{{ characters_section }}
+{{ storylines_section }}
+{{ previous_chapter_section }}
+{{ foreshadowings_section }}
+{{ locations_section }}
+{{ timeline_section }}
 
-"""
-
-        # 添加主要人物信息
-        if context.get("characters"):
-            user_prompt += "\n=== 主要人物 ===\n"
-            for char in context["characters"]:
-                user_prompt += f"- {char['name']} ({char['role']}): {char['brief']}\n"
-
-        # 添加活跃故事线
-        if context.get("storylines"):
-            user_prompt += "\n=== 活跃故事线 ===\n"
-            for sl in context["storylines"]:
-                user_prompt += f"- {sl['name']} ({sl['type']}): {sl['progress']}\n"
-
-        # 添加前置章节状态
-        if context.get("previous_chapter"):
-            prev = context["previous_chapter"]
-            user_prompt += f"\n=== 前一章节 ===\n"
-            user_prompt += f"第 {prev['number']} 章《{prev['title']}》: {prev['summary']}\n"
-
-        # 添加相关伏笔
-        if context.get("foreshadowings"):
-            user_prompt += "\n=== 相关伏笔（可以在场景中呼应） ===\n"
-            for foreshadowing in context["foreshadowings"]:
-                user_prompt += f"- {foreshadowing['description']} (第 {foreshadowing['chapter']} 章)\n"
-
-        # 添加相关地点
-        if context.get("locations"):
-            user_prompt += "\n=== 可用地点 ===\n"
-            for loc in context["locations"]:
-                user_prompt += f"- {loc['name']}: {loc['description']}\n"
-
-        # 添加时间线事件
-        if context.get("timeline_events"):
-            user_prompt += "\n=== 时间线（最近事件） ===\n"
-            for event in context["timeline_events"]:
-                user_prompt += f"- 第 {event['chapter']} 章: {event['description']} ({event['time_type']})\n"
-
-        user_prompt += "\n请基于以上信息生成场景列表（JSON 格式）："
-
-        return Prompt(
-            system=system_prompt,
-            user=user_prompt
+请基于以上信息生成场景列表（JSON 格式）：""",
         )
-
-    def _parse_llm_response(self, response) -> List[Scene]:
-        """解析 LLM 响应，提取场景列表"""
-        try:
-            # 提取响应文本（处理 GenerationResult 对象）
-            if hasattr(response, 'content'):
-                response_text = response.content
-            elif hasattr(response, 'text'):
-                response_text = response.text
-            else:
-                response_text = str(response)
-
-            # 尝试提取 JSON（可能被包裹在 markdown 代码块中）
-            response_text = response_text.strip()
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.startswith("```"):
-                response_text = response_text[3:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-            response_text = response_text.strip()
-
-            data = json.loads(response_text)
-            scenes_data = data.get("scenes", [])
-
-            scenes = []
-            for i, scene_data in enumerate(scenes_data):
-                scene = Scene(
-                    title=scene_data.get("title", f"场景 {i+1}"),
-                    goal=scene_data.get("goal", ""),
-                    pov_character=scene_data.get("pov_character", "未知"),
-                    location=scene_data.get("location"),
-                    tone=scene_data.get("tone"),
-                    estimated_words=scene_data.get("estimated_words", 800),
-                    order_index=i
-                )
-                scenes.append(scene)
-
-            if not scenes:
-                raise ValueError("No scenes generated")
-
-            return scenes
-
-        except Exception as e:
-            logger.error(f"Failed to parse LLM response: {e}")
-            logger.error(f"Response: {response_text if 'response_text' in locals() else response}")
-            raise ValueError(f"Failed to parse beat sheet response: {e}")
 
     async def get_beat_sheet(self, chapter_id: str) -> Optional[BeatSheet]:
         """获取章节的节拍表"""

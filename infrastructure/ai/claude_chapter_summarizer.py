@@ -3,6 +3,7 @@ import os
 from domain.ai.services.chapter_summarizer import ChapterSummarizer
 from domain.ai.services.llm_service import LLMService, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 
 class ClaudeChapterSummarizer(ChapterSummarizer):
@@ -44,24 +45,30 @@ class ClaudeChapterSummarizer(ChapterSummarizer):
         if not content or not content.strip():
             raise ValueError("Content cannot be empty")
 
-        # 构建提示词
-        system_prompt = f"""You are a professional chapter summarizer. Your task is to create concise, informative summaries of chapter content.
+        # 构建提示词（通过模板加载器）
+        loader = PromptTemplateLoader.get_instance()
 
-Requirements:
-- Maximum length: {max_length} characters
-- Focus on key plot points, character developments, and important events
-- Write in a clear, engaging style
-- Maintain the narrative flow
-- Do not include meta-commentary or analysis"""
+        fallback_system = (
+            "You are a professional chapter summarizer. Your task is to create "
+            "concise, informative summaries of chapter content.\n\n"
+            "Requirements:\n"
+            "- Maximum length: {{ max_length }} characters\n"
+            "- Focus on key plot points, character developments, and important events\n"
+            "- Write in a clear, engaging style\n"
+            "- Maintain the narrative flow\n"
+            "- Do not include meta-commentary or analysis"
+        )
+        fallback_user = "Please summarize the following chapter content:\n\n{{ content }}"
 
-        user_prompt = f"""Please summarize the following chapter content:
-
-{content}"""
+        prompt = loader.render_to_prompt(
+            "chapter_summarizer",
+            system_vars={"max_length": max_length},
+            user_vars={"content": content},
+            fallback_system=fallback_system,
+            fallback_user=fallback_user,
+        )
 
         try:
-            # 创建提示词对象
-            prompt = Prompt(system=system_prompt, user=user_prompt)
-
             # 配置生成参数
             config = GenerationConfig(
                 model=os.getenv("WRITING_MODEL", ""),

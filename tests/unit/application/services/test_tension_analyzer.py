@@ -1,8 +1,26 @@
 """TensionAnalyzer 单元测试"""
 import pytest
 from unittest.mock import Mock, AsyncMock
-from application.services.tension_analyzer import TensionAnalyzer
-from application.dtos.writer_block_dto import TensionSlingshotRequest, TensionDiagnosis
+from application.analyst.services.tension_analyzer import TensionAnalyzer
+from application.workbench.dtos.writer_block_dto import TensionSlingshotRequest, TensionDiagnosis
+from domain.ai.services.llm_service import GenerationResult
+from domain.ai.value_objects.token_usage import TokenUsage
+
+
+def _make_llm_client(json_response: str):
+    """创建 mock LLM 客户端，其 provider.generate 返回指定 JSON。
+
+    TensionAnalyzer 内部使用 structured_json_generate(llm=self.llm_client.provider, ...)，
+    因此需要 mock provider.generate 返回 GenerationResult。
+    """
+    provider = Mock()
+    provider.generate = AsyncMock(return_value=GenerationResult(
+        content=json_response,
+        token_usage=TokenUsage(input_tokens=100, output_tokens=200),
+    ))
+    client = Mock()
+    client.provider = provider
+    return client
 
 
 class TestTensionAnalyzer:
@@ -15,19 +33,13 @@ class TestTensionAnalyzer:
         return repo
 
     @pytest.fixture
-    def mock_llm_client(self):
-        """创建 mock LLM 客户端"""
-        client = Mock()
-        client.generate = AsyncMock()
-        return client
-
-    @pytest.fixture
-    def analyzer(self, mock_event_repo, mock_llm_client):
-        """创建 TensionAnalyzer 实例"""
-        return TensionAnalyzer(mock_event_repo, mock_llm_client)
+    def analyzer(self, mock_event_repo):
+        """创建 TensionAnalyzer 实例（使用通用 mock LLM 客户端）"""
+        llm_client = _make_llm_client('{}')
+        return TensionAnalyzer(mock_event_repo, llm_client)
 
     @pytest.mark.asyncio
-    async def test_analyze_low_tension(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_low_tension(self, mock_event_repo):
         """测试分析低张力场景（无冲突标签）"""
         # 准备测试数据：无冲突标签的事件
         mock_event_repo.list_up_to_chapter.return_value = [
@@ -47,13 +59,13 @@ class TestTensionAnalyzer:
             }
         ]
 
-        # Mock LLM 响应
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "当前章节缺乏冲突和张力，情节过于平淡",
             "tension_level": "low",
             "missing_elements": ["conflict", "stakes"],
             "suggestions": ["引入外部冲突", "提高事件的利害关系", "增加角色内心矛盾"]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",
@@ -67,7 +79,7 @@ class TestTensionAnalyzer:
         assert len(result.suggestions) > 0
 
     @pytest.mark.asyncio
-    async def test_analyze_with_stuck_reason(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_with_stuck_reason(self, mock_event_repo):
         """测试提供卡文原因时的分析"""
         mock_event_repo.list_up_to_chapter.return_value = [
             {
@@ -79,13 +91,13 @@ class TestTensionAnalyzer:
             }
         ]
 
-        # Mock LLM 响应包含对 stuck_reason 的分析
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "作者提到不知道如何推进情节。当前问题在于秘密发现后缺乏后续反应和行动。",
             "tension_level": "medium",
             "missing_elements": ["action", "consequence"],
             "suggestions": ["让主角对秘密做出具体反应", "引入秘密带来的直接后果", "增加时间压力"]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",
@@ -95,13 +107,15 @@ class TestTensionAnalyzer:
 
         result = await analyzer.analyze_tension(request)
 
-        assert "不知道如何推进情节" in mock_llm_client.generate.call_args[0][0] or \
-               "不知道如何推进情节" in str(mock_llm_client.generate.call_args)
+        # 验证 prompt 中包含卡文原因
+        call_args = llm_client.provider.generate.call_args
+        prompt_text = str(call_args)
+        assert "不知道如何推进情节" in prompt_text
         assert result.diagnosis is not None
         assert len(result.diagnosis) > 0
 
     @pytest.mark.asyncio
-    async def test_analyze_suggests_concrete_actions(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_suggests_concrete_actions(self, mock_event_repo):
         """测试建议包含可操作的具体行动"""
         mock_event_repo.list_up_to_chapter.return_value = [
             {
@@ -113,8 +127,7 @@ class TestTensionAnalyzer:
             }
         ]
 
-        # Mock LLM 响应包含具体可操作的建议
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "章节过于内省，缺乏外部行动",
             "tension_level": "low",
             "missing_elements": ["external_conflict", "action"],
@@ -123,7 +136,8 @@ class TestTensionAnalyzer:
                 "让配角出现并提出挑战",
                 "设置一个必须立即解决的问题"
             ]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",
@@ -142,7 +156,7 @@ class TestTensionAnalyzer:
         assert has_action
 
     @pytest.mark.asyncio
-    async def test_analyze_considers_context(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_considers_context(self, mock_event_repo):
         """测试分析考虑前后章节上下文"""
         # 准备多章节数据
         mock_event_repo.list_up_to_chapter.return_value = [
@@ -169,12 +183,13 @@ class TestTensionAnalyzer:
             }
         ]
 
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "第1章建立了紧张感，但第2-3章节奏放缓，张力下降",
             "tension_level": "medium",
             "missing_elements": ["rising_tension"],
             "suggestions": ["在准备过程中加入障碍", "引入时间限制"]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",
@@ -188,7 +203,7 @@ class TestTensionAnalyzer:
         assert result.tension_level in ["low", "medium", "high"]
 
     @pytest.mark.asyncio
-    async def test_analyze_high_tension(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_high_tension(self, mock_event_repo):
         """测试分析高张力场景"""
         mock_event_repo.list_up_to_chapter.return_value = [
             {
@@ -200,12 +215,13 @@ class TestTensionAnalyzer:
             }
         ]
 
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "当前章节张力充足，冲突激烈",
             "tension_level": "high",
             "missing_elements": [],
             "suggestions": ["保持当前节奏", "注意张力的持续性"]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",
@@ -218,16 +234,17 @@ class TestTensionAnalyzer:
         assert len(result.missing_elements) == 0
 
     @pytest.mark.asyncio
-    async def test_analyze_empty_events(self, analyzer, mock_event_repo, mock_llm_client):
+    async def test_analyze_empty_events(self, mock_event_repo):
         """测试处理空事件列表"""
         mock_event_repo.list_up_to_chapter.return_value = []
 
-        mock_llm_client.generate.return_value = """{
+        llm_client = _make_llm_client("""{
             "diagnosis": "没有找到相关事件数据",
             "tension_level": "low",
             "missing_elements": ["events"],
             "suggestions": ["开始创建叙事事件"]
-        }"""
+        }""")
+        analyzer = TensionAnalyzer(mock_event_repo, llm_client)
 
         request = TensionSlingshotRequest(
             novel_id="novel-001",

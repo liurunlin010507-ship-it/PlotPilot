@@ -6,47 +6,21 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Optional
-
 from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
 from domain.novel.value_objects.tension_dimensions import TensionDimensions
 from application.ai.tension_scoring_contract import (
-    TensionScoringLlmPayload,
     tension_scoring_payload_to_domain,
-    tension_scoring_response_format,
 )
 from application.ai.structured_json_pipeline import structured_json_generate
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 logger = logging.getLogger(__name__)
 
 # 章节正文最大长度（与 llm_chapter_extract_bundle 保持一致）
 _MAX_CONTENT_LENGTH = 24000
 
-# Prompt 模板文件路径（可独立修改，无需改代码）
-_PROMPT_FILE = Path(__file__).resolve().parent.parent.parent / "infrastructure" / "ai" / "prompts" / "tension_scoring.txt"
-
-# 模板缓存
-_cached_template: Optional[str] = None
-
-
-def _load_prompt_template() -> str:
-    """加载 prompt 模板文件（首次读盘，后续用缓存）。"""
-    global _cached_template
-    if _cached_template is not None:
-        return _cached_template
-    try:
-        _cached_template = _PROMPT_FILE.read_text(encoding="utf-8")
-        logger.debug("张力评分 prompt 模板已加载: %s", _PROMPT_FILE)
-    except FileNotFoundError:
-        logger.warning("张力评分 prompt 模板未找到: %s，使用内置兜底", _PROMPT_FILE)
-        _cached_template = _FALLBACK_TEMPLATE
-    return _cached_template
-
-
-# 仅在模板文件丢失时使用的兜底 prompt
-_FALLBACK_TEMPLATE = """你是专业的网文叙事张力分析师。你的任务是分析章节正文的多维张力。
+# 内联 fallback（模板文件缺失时使用）
+_FALLBACK_SYSTEM = """你是专业的网文叙事张力分析师。你的任务是分析章节正文的多维张力。
 
 ## 评分维度（每项 0-100 整数）
 
@@ -57,9 +31,13 @@ _FALLBACK_TEMPLATE = """你是专业的网文叙事张力分析师。你的任�
 ### 3. 节奏张力 (pacing_tension)
 衡量场景切换频率、叙述节奏和信息密度。
 
-前章综合张力约为 {prev_tension}/100。
+前章综合张力约为 {{ prev_tension }}/100。
 
-输出 JSON：{{"plot_tension": 0, "emotional_tension": 0, "pacing_tension": 0, "plot_justification": "", "emotional_justification": "", "pacing_justification": ""}}"""
+输出 JSON：{% raw %}{{"plot_tension": 0, "emotional_tension": 0, "pacing_tension": 0, "plot_justification": "", "emotional_justification": "", "pacing_justification": ""}}{% endraw %}"""
+
+_FALLBACK_USER = """第 {{ chapter_number }} 章正文如下：
+
+{{ body }}"""
 
 
 class TensionScoringService:
@@ -94,14 +72,19 @@ class TensionScoringService:
         if len(body) > _MAX_CONTENT_LENGTH:
             body = body[:_MAX_CONTENT_LENGTH] + "\n\n…（正文过长已截断）"
 
-        prompt = Prompt(
-            system=self._build_system_prompt(prev_chapter_tension),
-            user=f"第 {chapter_number} 章正文如下：\n\n{body}",
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "tension_scoring",
+            system_vars={"prev_tension": f"{prev_chapter_tension:.0f}"},
+            user_vars={"chapter_number": chapter_number, "body": body},
+            fallback_system=_FALLBACK_SYSTEM,
+            fallback_user=_FALLBACK_USER,
         )
+        contract_model = loader.get_contract_for("tension_scoring")
         config = GenerationConfig(
             max_tokens=512,
             temperature=0.3,
-            response_format=tension_scoring_response_format(),
+            response_format=loader.get_response_format_for("tension_scoring"),
         )
 
         try:
@@ -109,7 +92,7 @@ class TensionScoringService:
                 llm=self._llm,
                 prompt=prompt,
                 config=config,
-                schema_model=TensionScoringLlmPayload,
+                schema_model=contract_model,
             )
         except Exception as e:
             logger.warning("张力评分管线异常: %s", e)
@@ -127,12 +110,3 @@ class TensionScoringService:
             dims.composite_score,
         )
         return dims
-
-    # ------------------------------------------------------------------
-    # Prompt 构建
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _build_system_prompt(prev_tension: float) -> str:
-        template = _load_prompt_template()
-        return template.format(prev_tension=f"{prev_tension:.0f}")

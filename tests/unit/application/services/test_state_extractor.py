@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, AsyncMock
-from application.services.state_extractor import StateExtractor
+from application.analyst.services.state_extractor import StateExtractor
 from domain.ai.services.llm_service import LLMService, GenerationConfig, GenerationResult
 from domain.ai.value_objects.prompt import Prompt
 from domain.ai.value_objects.token_usage import TokenUsage
@@ -122,7 +122,7 @@ class TestStateExtractor:
 
     @pytest.mark.asyncio
     async def test_extract_chapter_state_calls_llm_service(self):
-        """测试提取时调用 LLM 服务"""
+        """测试提取时调用 LLM 服务（通过 structured_json_generate 管线）"""
         content = "测试内容"
 
         self.llm_service.generate = AsyncMock(return_value=GenerationResult(
@@ -132,16 +132,20 @@ class TestStateExtractor:
 
         await self.extractor.extract_chapter_state(content=content)
 
-        # 验证 LLM 服务被调用
+        # 验证 LLM 服务被调用（structured_json_generate 内部调用 llm.generate(prompt, config)）
         self.llm_service.generate.assert_called_once()
         call_args = self.llm_service.generate.call_args
 
+        # 管线以位置参数传递 prompt 和 config
+        prompt = call_args[0][0]
+        config = call_args[0][1]
+
         # 验证传入的 prompt 包含内容
-        assert isinstance(call_args[1]['prompt'], Prompt)
-        assert content in call_args[1]['prompt'].user
+        assert isinstance(prompt, Prompt)
+        assert content in prompt.user
 
         # 验证传入的 config
-        assert isinstance(call_args[1]['config'], GenerationConfig)
+        assert isinstance(config, GenerationConfig)
 
     @pytest.mark.asyncio
     async def test_extract_chapter_state_invalid_contract_returns_empty(self):

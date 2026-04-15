@@ -4,10 +4,11 @@ from typing import Dict, Any
 from domain.ai.services.llm_service import LLMService, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
 from application.ai.knowledge_llm_contract import (
-    build_initial_knowledge_system_prompt,
-    parse_initial_knowledge_llm_response,
+    INITIAL_KNOWLEDGE_SYSTEM_FALLBACK,
     to_knowledge_service_update_dict,
 )
+from application.ai.structured_json_pipeline import structured_json_generate
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 from application.world.services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
@@ -58,19 +59,34 @@ class AutoKnowledgeGenerator:
 
         context_section = f"\n\n**小说设定摘要：**\n{bible_summary}" if bible_summary.strip() else ""
 
-        system_prompt = build_initial_knowledge_system_prompt()
-        user_prompt = f"小说标题：《{title}》{context_section}\n\n请生成初始知识图谱。只输出 JSON。"
+        # 通过 loader 加载模板，消除间接调用
+        loader = PromptTemplateLoader.get_instance()
+        system = loader.render_with_fallback(
+            "knowledge", "system", fallback=INITIAL_KNOWLEDGE_SYSTEM_FALLBACK,
+        )
+        user = loader.render_with_fallback(
+            "knowledge", "user",
+            fallback=f"小说标题：《{title}》{context_section}\n\n请生成初始知识图谱。只输出 JSON。",
+            title=title, bible_summary=bible_summary,
+        )
+        prompt = Prompt(system=system, user=user)
 
-        prompt = Prompt(system=system_prompt, user=user_prompt)
-        config = GenerationConfig(max_tokens=2048, temperature=0.4)
+        # 获取合约模型与 response_format
+        contract_model = loader.get_contract_for("knowledge")
+        response_format = loader.get_response_format_for("knowledge")
 
-        result = await self.llm_service.generate(prompt, config)
+        config = GenerationConfig(
+            max_tokens=2048, temperature=0.4,
+            response_format=response_format,
+        )
 
-        payload, errors = parse_initial_knowledge_llm_response(result.content)
+        payload = await structured_json_generate(
+            llm=self.llm_service, prompt=prompt, config=config,
+            schema_model=contract_model,
+        )
         if payload is None:
             logger.warning(
-                "AutoKnowledgeGenerator: LLM 输出未通过契约校验: %s",
-                "; ".join(errors) if errors else "unknown",
+                "AutoKnowledgeGenerator: 结构化 JSON 管线返回 None，使用空回退"
             )
             return {
                 "version": 1,

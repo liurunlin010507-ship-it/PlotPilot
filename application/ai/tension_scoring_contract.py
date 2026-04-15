@@ -7,11 +7,10 @@
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
-from application.ai.llm_json_extract import parse_llm_json_to_dict
 from domain.novel.value_objects.tension_dimensions import TensionDimensions
 
 
@@ -35,34 +34,6 @@ class TensionScoringLlmPayload(BaseModel):
     plot_justification: str = Field(default="", max_length=500)
     emotional_justification: str = Field(default="", max_length=500)
     pacing_justification: str = Field(default="", max_length=500)
-
-
-# ---------------------------------------------------------------------------
-# 解析 + 校验
-# ---------------------------------------------------------------------------
-
-
-def parse_tension_scoring_llm_response(
-    raw: str,
-) -> Tuple[Optional[TensionScoringLlmPayload], List[str]]:
-    """解析并校验 LLM 返回文本。
-
-    Returns:
-        (payload, []) 成功；  (None, [错误…]) 失败。
-    """
-    data, errs = parse_llm_json_to_dict(raw)
-    if data is None:
-        return None, errs
-    try:
-        payload = TensionScoringLlmPayload.model_validate(data)
-        return payload, []
-    except ValidationError as e:
-        err_list = e.errors()
-        msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
-        )
-        return None, [msg or str(e)]
 
 
 def tension_scoring_payload_to_domain(

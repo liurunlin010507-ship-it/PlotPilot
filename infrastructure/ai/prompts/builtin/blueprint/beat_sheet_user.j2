@@ -1,0 +1,18 @@
+{#
+  @node: beat_sheet
+  @role: user
+  @output: json
+  @vars:
+    outline: str — Chapter outline text
+    characters_section: str — Pre-formatted main characters block (may be empty)
+    storylines_section: str — Pre-formatted active storylines block (may be empty)
+    previous_chapter_section: str — Pre-formatted previous chapter block (may be empty)
+    foreshadowings_section: str — Pre-formatted foreshadowings block (may be empty)
+    locations_section: str — Pre-formatted locations block (may be empty)
+    timeline_section: str — Pre-formatted timeline events block (may be empty)
+#}
+章节大纲：
+{{ outline }}
+
+{{ characters_section }}{{ storylines_section }}{{ previous_chapter_section }}{{ foreshadowings_section }}{{ locations_section }}{{ timeline_section }}
+请基于以上信息生成场景列表（JSON 格式）：

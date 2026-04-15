@@ -1,0 +1,32 @@
+{# @node: dialogue
+   @role: user
+   @output: user prompt for character dialogue generation
+   @vars: character_name, description, public_profile, mental_state, verbal_tic, idle_behavior, relationship_block, related_block, history_block, scene_text
+#}
+目标角色：{{ character_name }}
+
+【角色基础设定】
+- 人设描述：{{ description or "暂无" }}
+- 公开档案：{{ public_profile or "暂无" }}
+- 当前心理状态：{{ mental_state or "NORMAL" }}
+- 口头禅：{{ verbal_tic or "无" }}
+- 常见动作：{{ idle_behavior or "无" }}
+
+【角色关系】
+{{ relationship_block }}
+
+【场景点名的相关角色】
+{{ related_block }}
+
+【历史对白样本（模仿语气，不要照抄）】
+{{ history_block }}
+
+【当前场景】
+{{ scene_text }}
+
+请直接生成这名角色在当前场景中的一小段对白，要求：
+1. 只写成品台词，可夹带极少量动作描写；
+2. 重点保持这个角色自己的语气、身份位置和情绪，不要串成别的角色；
+3. 若场景里有其他角色，可以被提及或简短回应，但不要让其他角色成为主说话人；
+4. 长度控制在 2-4 句话；
+5. 不要输出角色名标签、分析说明、引号外注释。

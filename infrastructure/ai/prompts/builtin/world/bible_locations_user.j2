@@ -1,0 +1,14 @@
+{# @node: bible_locations
+   @role: user
+   @output: user prompt for location generation based on worldbuilding and characters
+   @vars: premise, wb_summary, char_summary
+#}
+故事创意：{{ premise }}
+
+已有世界观：
+{{ wb_summary }}
+
+已有人物：
+{{ char_summary }}
+
+请基于世界观和人物生成完整地图。只输出 JSON，不要有任何解释文字。

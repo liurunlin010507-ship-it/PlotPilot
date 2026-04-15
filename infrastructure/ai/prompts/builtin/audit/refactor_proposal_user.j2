@@ -1,0 +1,20 @@
+{# @node: refactor_proposal
+   @role: user
+   @output: user prompt for macro refactor proposal generation
+   @vars: author_intent, current_event_summary, current_tags, event_id
+#}
+请分析以下事件并提供修复建议：
+
+**作者意图：**
+{{ author_intent }}
+
+**当前事件摘要：**
+{{ current_event_summary }}
+
+**当前标签：**
+{{ current_tags }}
+
+**事件 ID：**
+{{ event_id }}
+
+请提供修复建议（JSON 格式）：

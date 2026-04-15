@@ -10,6 +10,7 @@ from domain.novel.value_objects.scene import Scene
 from domain.ai.services.llm_service import LLMService, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
 from application.engine.services.scene_director_service import SceneDirectorService
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 if TYPE_CHECKING:
     from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
@@ -126,58 +127,74 @@ class SceneGenerationService:
     ) -> Prompt:
         """构建场景生成提示词"""
 
-        system_prompt = """你是一位专业的小说作家，擅长根据场景大纲生成生动的正文。
-
-你的任务是根据场景信息生成 500-1000 字的正文，要求：
-1. 严格遵循场景目标（Scene Goal）
-2. 使用指定的 POV 角色视角叙述
-3. 体现场景的情绪基调（Tone）
-4. 与前置场景自然衔接
-5. 文笔流畅，细节生动
-
-注意事项：
-- 不要偏离场景目标
-- 不要引入场景大纲中未提及的重大情节
-- 保持与前置场景的连贯性
-- 字数控制在 500-1000 字之间
-"""
-
-        # 构建用户提示词
-        user_prompt = f"""场景信息：
-标题：{scene.title}
-目标：{scene.goal}
-POV 角色：{scene.pov_character}
-地点：{scene.location or '未指定'}
-情绪基调：{scene.tone or '未指定'}
-预估字数：{scene.estimated_words}
-
-"""
-
-        # 添加场记分析结果
+        # 构建场记分析部分
+        analysis_section = ""
         if scene_analysis.characters:
-            user_prompt += f"\n涉及角色：{', '.join(scene_analysis.characters)}"
+            analysis_section += f"\n涉及角色：{', '.join(scene_analysis.characters)}"
         if scene_analysis.locations:
-            user_prompt += f"\n涉及地点：{', '.join(scene_analysis.locations)}"
+            analysis_section += f"\n涉及地点：{', '.join(scene_analysis.locations)}"
         if scene_analysis.emotional_state:
-            user_prompt += f"\n情绪状态：{scene_analysis.emotional_state}"
+            analysis_section += f"\n情绪状态：{scene_analysis.emotional_state}"
 
-        # 添加前置场景上下文
+        # 构建前置场景上下文
+        previous_scenes_section = ""
         if previous_scenes:
-            user_prompt += "\n\n前置场景摘要：\n"
+            previous_scenes_section = "\n\n前置场景摘要：\n"
             for i, prev_scene in enumerate(previous_scenes[-2:], 1):  # 最多显示最近 2 个场景
                 # 截取前 200 字作为摘要
                 summary = prev_scene[:200] + "..." if len(prev_scene) > 200 else prev_scene
-                user_prompt += f"\n场景 {i}：\n{summary}\n"
+                previous_scenes_section += f"\n场景 {i}：\n{summary}\n"
 
-        # 添加相关上下文（如果有）
+        # 构建伏笔部分
+        foreshadowings_section = ""
         if relevant_context.get("foreshadowings"):
-            user_prompt += "\n\n相关伏笔（可以在场景中呼应）：\n"
+            foreshadowings_section = "\n\n相关伏笔（可以在场景中呼应）：\n"
             for foreshadowing in relevant_context["foreshadowings"][:3]:
-                user_prompt += f"- {foreshadowing.get('description', 'N/A')}\n"
+                foreshadowings_section += f"- {foreshadowing.get('description', 'N/A')}\n"
 
-        user_prompt += "\n\n请生成场景正文："
-
-        return Prompt(
-            system=system_prompt,
-            user=user_prompt
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "scene_generation",
+            system_vars={},
+            user_vars={
+                "scene_title": scene.title,
+                "scene_goal": scene.goal,
+                "pov_character": scene.pov_character,
+                "location": scene.location or '未指定',
+                "tone": scene.tone or '未指定',
+                "estimated_words": scene.estimated_words,
+                "analysis_section": analysis_section,
+                "previous_scenes_section": previous_scenes_section,
+                "foreshadowings_section": foreshadowings_section,
+            },
+            fallback_system=(
+                "你是一位专业的小说作家，擅长根据场景大纲生成生动的正文。\n"
+                "\n"
+                "你的任务是根据场景信息生成 500-1000 字的正文，要求：\n"
+                "1. 严格遵循场景目标（Scene Goal）\n"
+                "2. 使用指定的 POV 角色视角叙述\n"
+                "3. 体现场景的情绪基调（Tone）\n"
+                "4. 与前置场景自然衔接\n"
+                "5. 文笔流畅，细节生动\n"
+                "\n"
+                "注意事项：\n"
+                "- 不要偏离场景目标\n"
+                "- 不要引入场景大纲中未提及的重大情节\n"
+                "- 保持与前置场景的连贯性\n"
+                "- 字数控制在 500-1000 字之间"
+            ),
+            fallback_user=(
+                "场景信息：\n"
+                "标题：{{ scene_title }}\n"
+                "目标：{{ scene_goal }}\n"
+                "POV 角色：{{ pov_character }}\n"
+                "地点：{{ location }}\n"
+                "情绪基调：{{ tone }}\n"
+                "预估字数：{{ estimated_words }}\n"
+                "\n"
+                "{{ analysis_section }}"
+                "{{ previous_scenes_section }}"
+                "{{ foreshadowings_section }}"
+                "\n\n请生成场景正文："
+            ),
         )

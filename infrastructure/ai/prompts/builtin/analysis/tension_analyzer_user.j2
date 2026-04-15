@@ -1,0 +1,18 @@
+{#
+  @node: tension_analyzer
+  @role: user
+  @output: json
+  @vars:
+    novel_id: str — Novel identifier
+    chapter_number: int — Chapter number where the author is stuck
+    stuck_reason_text: str — Author's description of writer's block reason (may be empty)
+    events_text: str — Formatted list of narrative events
+    stats_text: str — Formatted statistics block
+#}
+当前小说ID: {{ novel_id }}
+卡文章节: 第{{ chapter_number }}章
+{{ stuck_reason_text }}
+事件列表:
+{{ events_text }}
+
+{{ stats_text }}

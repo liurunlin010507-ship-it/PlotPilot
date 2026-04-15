@@ -8,11 +8,9 @@
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
-
-from application.ai.llm_json_extract import parse_llm_json_to_dict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
 # 与 LLM 约定的形状（字段越少越好，其余由持久化层补全）
@@ -49,7 +47,7 @@ class LlmInitialKnowledgePayload(BaseModel):
 # 提示词（角色 + 契约说明；与校验模型同源维护）
 # ---------------------------------------------------------------------------
 
-_INITIAL_KNOWLEDGE_INSTRUCTIONS = """你是专业的小说知识图谱构建助手。根据小说标题和设定，生成核心知识。
+INITIAL_KNOWLEDGE_SYSTEM_FALLBACK = """你是专业的小说知识图谱构建助手。根据小说标题和设定，生成核心知识。
 
 **只输出一个 JSON 对象，不要 markdown 代码块、不要前后解释文字。**
 
@@ -61,11 +59,6 @@ _INITIAL_KNOWLEDGE_INSTRUCTIONS = """你是专业的小说知识图谱构建助�
 - 提取 5～10 条核心设定三元组：主要角色身份、核心地点、关键规则/能力；只写确定设定，不要推测
 
 **source_type、推断溯源由服务端写入；模型不要编造。**"""
-
-
-def build_initial_knowledge_system_prompt() -> str:
-    """供 AutoKnowledgeGenerator 等拼接 system prompt（单一真源）。"""
-    return _INITIAL_KNOWLEDGE_INSTRUCTIONS
 
 
 def initial_knowledge_openai_function_tool() -> Dict[str, Any]:
@@ -82,30 +75,6 @@ def initial_knowledge_openai_function_tool() -> Dict[str, Any]:
             "parameters": schema,
         },
     }
-
-
-# ---------------------------------------------------------------------------
-# 从模型原始文本解析 → 校验
-# ---------------------------------------------------------------------------
-
-
-def parse_initial_knowledge_llm_response(
-    raw: str,
-) -> Tuple[Optional[LlmInitialKnowledgePayload], List[str]]:
-    """解析并校验 LLM 返回文本。成功返回 (payload, [])；失败返回 (None, [人类可读错误…])。"""
-    data, errs = parse_llm_json_to_dict(raw)
-    if data is None:
-        return None, errs
-    try:
-        payload = LlmInitialKnowledgePayload.model_validate(data)
-        return payload, []
-    except ValidationError as e:
-        err_list = e.errors()
-        msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
-        )
-        return None, [msg or str(e)]
 
 
 def to_knowledge_service_update_dict(

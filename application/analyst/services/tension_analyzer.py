@@ -1,9 +1,15 @@
 """张力分析器服务"""
-import json
 import os
 from typing import Dict, List
 from application.workbench.dtos.writer_block_dto import TensionSlingshotRequest, TensionDiagnosis
+from application.ai.tension_analyzer_llm_contract import (
+    tension_analyzer_payload_to_domain,
+)
+from application.ai.structured_json_pipeline import structured_json_generate
 from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
+from domain.ai.value_objects.prompt import Prompt
+from domain.ai.services.llm_service import GenerationConfig
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 
 class TensionAnalyzer:
@@ -40,13 +46,36 @@ class TensionAnalyzer:
         # 3. 构建 LLM prompt
         prompt = self._build_prompt(events, stats, request)
 
-        # 4. 调用 LLM
-        response = await self.llm_client.generate(prompt, model=os.getenv("SYSTEM_MODEL", ""))
+        # 4. 调用结构化 JSON 管线
+        loader = PromptTemplateLoader.get_instance()
+        contract_model = loader.get_contract_for("tension_analyzer")
+        config = GenerationConfig(
+            model=os.getenv("SYSTEM_MODEL", ""),
+            max_tokens=4096,
+            temperature=1.0,
+            response_format=loader.get_response_format_for("tension_analyzer"),
+        )
 
-        # 5. 解析响应
-        diagnosis = self._parse_response(response)
+        try:
+            payload = await structured_json_generate(
+                llm=self.llm_client.provider,
+                prompt=prompt,
+                config=config,
+                schema_model=contract_model,
+            )
+        except Exception as e:
+            payload = None
 
-        return diagnosis
+        if payload is None:
+            return TensionDiagnosis(
+                diagnosis="LLM 结构化输出解析失败",
+                tension_level="low",
+                missing_elements=["parse_error"],
+                suggestions=["请检查 LLM 响应格式"],
+            )
+
+        # 5. 将校验后的 payload 转为领域 DTO
+        return tension_analyzer_payload_to_domain(payload)
 
     def _analyze_statistics(self, events: List[dict], target_chapter: int) -> Dict:
         """统计分析事件数据
@@ -90,7 +119,7 @@ class TensionAnalyzer:
         events: List[dict],
         stats: Dict,
         request: TensionSlingshotRequest
-    ) -> str:
+    ) -> Prompt:
         """构建 LLM prompt
 
         Args:
@@ -99,7 +128,7 @@ class TensionAnalyzer:
             request: 请求对象
 
         Returns:
-            prompt 字符串
+            Prompt 对象
         """
         # 构建事件摘要
         event_summaries = []
@@ -127,15 +156,18 @@ class TensionAnalyzer:
         if request.stuck_reason:
             stuck_reason_text = f"\n作者自述的卡文原因: {request.stuck_reason}\n"
 
-        prompt = f"""你是小说创作顾问，专门帮助作者突破卡文。
-
-当前小说ID: {request.novel_id}
-卡文章节: 第{request.chapter_number}章
-{stuck_reason_text}
-事件列表:
-{events_text}
-
-{stats_text}
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "tension_analyzer",
+            system_vars={},
+            user_vars={
+                "novel_id": request.novel_id,
+                "chapter_number": request.chapter_number,
+                "stuck_reason_text": stuck_reason_text,
+                "events_text": events_text,
+                "stats_text": stats_text,
+            },
+            fallback_system="""你是小说创作顾问，专门帮助作者突破卡文。
 
 请分析当前章节的张力水平，诊断卡文原因，并提供具体可操作的建议。
 
@@ -147,39 +179,18 @@ class TensionAnalyzer:
 5. 建议要具体，不要泛泛而谈
 
 请以 JSON 格式返回结果:
-{{
+{% raw %}{
     "diagnosis": "诊断结果（2-3句话）",
     "tension_level": "low/medium/high",
     "missing_elements": ["缺失元素1", "缺失元素2"],
     "suggestions": ["具体建议1", "具体建议2", "具体建议3"]
-}}
-"""
+}{% endraw %}""",
+            fallback_user="""当前小说ID: {{ novel_id }}
+卡文章节: 第{{ chapter_number }}章
+{{ stuck_reason_text }}
+事件列表:
+{{ events_text }}
 
-        return prompt
+{{ stats_text }}""",
+        )
 
-    def _parse_response(self, response: str) -> TensionDiagnosis:
-        """解析 LLM 响应
-
-        Args:
-            response: LLM 响应字符串
-
-        Returns:
-            TensionDiagnosis 对象
-        """
-        try:
-            # 尝试解析 JSON
-            data = json.loads(response)
-            return TensionDiagnosis(
-                diagnosis=data["diagnosis"],
-                tension_level=data["tension_level"],
-                missing_elements=data["missing_elements"],
-                suggestions=data["suggestions"]
-            )
-        except (json.JSONDecodeError, KeyError) as e:
-            # 如果解析失败，返回默认结果
-            return TensionDiagnosis(
-                diagnosis=f"解析响应失败: {str(e)}",
-                tension_level="low",
-                missing_elements=["parse_error"],
-                suggestions=["请检查 LLM 响应格式"]
-            )

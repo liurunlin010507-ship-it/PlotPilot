@@ -5,11 +5,10 @@
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
-from application.ai.llm_json_extract import parse_llm_json_to_dict
 from domain.novel.value_objects.chapter_state import ChapterState
 
 # 防止异常大响应拖垮下游；正常章节提取远小于此
@@ -32,7 +31,7 @@ class ChapterStateLlmPayload(BaseModel):
     new_storylines: List[Dict[str, Any]] = Field(default_factory=list, max_length=_MAX_ITEMS)
 
 
-_CHAPTER_STATE_SYSTEM = """你是一个专业的小说内容分析助手。你的任务是从章节内容中提取结构化信息。
+CHAPTER_STATE_SYSTEM_FALLBACK = """你是一个专业的小说内容分析助手。你的任务是从章节内容中提取结构化信息。
 
 请提取以下信息并以 JSON 格式返回（根对象**仅允许**下列九个键，不要增加其他顶层字段）：
 
@@ -63,27 +62,6 @@ _CHAPTER_STATE_SYSTEM = """你是一个专业的小说内容分析助手。你�
    注意：只在真正开启新线索时提取，不要过度解读
 
 只返回一个 JSON 对象，不要 markdown 代码块、不要前后解释文字。"""
-
-
-def build_chapter_state_extraction_system_prompt() -> str:
-    return _CHAPTER_STATE_SYSTEM
-
-
-def parse_chapter_state_llm_response(
-    raw: str,
-) -> Tuple[Optional[ChapterStateLlmPayload], List[str]]:
-    data, errs = parse_llm_json_to_dict(raw)
-    if data is None:
-        return None, errs
-    try:
-        return ChapterStateLlmPayload.model_validate(data), []
-    except ValidationError as e:
-        err_list = e.errors()
-        msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
-        )
-        return None, [msg or str(e)]
 
 
 def chapter_state_payload_to_domain(payload: ChapterStateLlmPayload) -> ChapterState:
@@ -122,7 +100,7 @@ def chapter_state_openai_function_tool() -> Dict[str, Any]:
         "type": "function",
         "function": {
             "name": "submit_chapter_state_extraction",
-            "description": "提交从章节正文提取的结构化状态；根对象仅含六个约定数组键。",
+            "description": "提交从章节正文提取的结构化状态；根对象仅含九个约定数组键。",
             "parameters": schema,
         },
     }

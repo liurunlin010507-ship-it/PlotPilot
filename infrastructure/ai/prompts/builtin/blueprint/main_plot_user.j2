@@ -1,0 +1,14 @@
+{#
+  @node: main_plot
+  @role: user
+  @output: json
+  @vars:
+    task_marker: str — Task identifier string (e.g. "setup_main_plot_options_v1")
+    user_blob: str — Novel settings summary as JSON string
+#}
+{{ task_marker }}
+
+以下为小说设定简报（JSON）：
+{{ user_blob }}
+
+请输出仅包含 plot_options 数组的 JSON 对象。

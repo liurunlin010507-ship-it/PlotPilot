@@ -1,10 +1,25 @@
 """application.ai.knowledge_llm_contract 解析与校验。"""
 
 from application.ai.knowledge_llm_contract import (
+    LlmInitialKnowledgeFact,
+    LlmInitialKnowledgePayload,
     initial_knowledge_openai_function_tool,
-    parse_initial_knowledge_llm_response,
     to_knowledge_service_update_dict,
 )
+from application.ai.structured_json_pipeline import (
+    sanitize_llm_output,
+    parse_and_repair_json,
+    validate_json_schema,
+)
+
+
+def _parse(raw: str):
+    """解析 + 校验（复用管线组件）。"""
+    cleaned = sanitize_llm_output(raw)
+    data, errs = parse_and_repair_json(cleaned)
+    if data is None:
+        return None, errs
+    return validate_json_schema(data, LlmInitialKnowledgePayload)
 
 
 def test_parse_valid_with_fences_and_trailing_junk():
@@ -14,7 +29,7 @@ def test_parse_valid_with_fences_and_trailing_junk():
 ```
 谢谢
 """
-    payload, errs = parse_initial_knowledge_llm_response(raw)
+    payload, errs = _parse(raw)
     assert errs == []
     assert payload is not None
     assert payload.premise_lock == "主角寻亲"
@@ -24,7 +39,7 @@ def test_parse_valid_with_fences_and_trailing_junk():
 
 def test_parse_rejects_extra_root_field():
     data = '{"premise_lock": "x", "facts": [], "provenance": []}'
-    payload, errs = parse_initial_knowledge_llm_response(data)
+    payload, errs = _parse(data)
     assert payload is None
     assert errs and "extra" in errs[0].lower()
 
@@ -35,13 +50,13 @@ def test_parse_rejects_extra_fact_field():
         '{"id": "f1", "subject": "a", "predicate": "p", "object": "b", "source_type": "manual"}'
         "]}"
     )
-    payload, errs = parse_initial_knowledge_llm_response(data)
+    payload, errs = _parse(data)
     assert payload is None
 
 
 def test_parse_object_alias_obj():
     raw = '{"premise_lock": "", "facts": [{"id": "f1", "subject": "a", "predicate": "p", "obj": "b"}]}'
-    payload, errs = parse_initial_knowledge_llm_response(raw)
+    payload, errs = _parse(raw)
     assert errs == []
     assert payload is not None
     assert payload.facts[0].obj == "b"

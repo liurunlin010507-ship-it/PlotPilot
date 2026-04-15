@@ -9,6 +9,7 @@ from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.entities.novel import Novel
 from domain.bible.entities.bible import Bible
 from domain.shared.exceptions import EntityNotFoundError
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 logger = logging.getLogger(__name__)
 
@@ -104,24 +105,32 @@ class AIGenerationService:
         Returns:
             Prompt 对象
         """
-        system_message = f"你是一位专业的小说作家，正在创作《{novel.title}》。"
-
-        # 添加人物信息
+        # 构建人物和世界设定信息
+        char_info = ""
         if bible and bible.characters:
             char_info = "\n".join([
                 f"- {char.name}: {char.description}"
                 for char in bible.characters
             ])
-            system_message += f"\n\n主要人物：\n{char_info}"
 
-        # 添加世界设定
+        setting_info = ""
         if bible and bible.world_settings:
             setting_info = "\n".join([
                 f"- {setting.name}: {setting.description}"
                 for setting in bible.world_settings
             ])
-            system_message += f"\n\n世界设定：\n{setting_info}"
 
-        user_message = f"请根据以下大纲创作第{chapter_number}章：\n\n{outline}"
-
-        return Prompt(system=system_message, user=user_message)
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "ai_generation",
+            system_vars={"novel_title": novel.title, "char_info": char_info, "setting_info": setting_info},
+            user_vars={"chapter_number": chapter_number, "outline": outline},
+            fallback_system=(
+                "你是一位专业的小说作家，正在创作《{{ novel_title }}》。"
+                "{% if char_info %}\n\n主要人物：\n{{ char_info }}{% endif %}"
+                "{% if setting_info %}\n\n世界设定：\n{{ setting_info }}{% endif %}"
+            ),
+            fallback_user=(
+                "请根据以下大纲创作第{{ chapter_number }}章：\n\n{{ outline }}"
+            ),
+        )

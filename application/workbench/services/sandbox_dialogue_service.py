@@ -6,6 +6,7 @@ from typing import Any, Iterable, Optional
 
 from application.workbench.dtos.sandbox_dto import DialogueEntry, DialogueWhitelistResponse
 from domain.ai.value_objects.prompt import Prompt
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 
 class SandboxDialogueService:
@@ -94,48 +95,65 @@ class SandboxDialogueService:
             all_characters=all_characters,
         )
 
-        system = (
-            "你是长篇小说的角色对白润色器。"
-            "你的任务是让指定角色在给定场景里说出符合其人设、关系位置、历史声线和当前心理锚点的话。"
-            "优先级：历史对白习惯 > 角色设定 > 当前心理状态/口头禅/动作 > 场景目标。"
-            "不要输出分析、设定说明、JSON、标题或额外注释。"
-            "如果场景里出现其他角色，他们只能作为陪衬，不能抢走目标角色的口吻与主导发言权。"
-        )
-
+        # Pre-format dynamic sections in Python
         relationship_block = self._format_relationships(relationships)
         history_block = self._format_recent_dialogues(recent_dialogues)
         related_block = self._format_scene_related_characters(scene_related_characters)
         scene_text = self._stringify(scene_prompt) or "（未提供场景）"
 
-        user = f"""目标角色：{character_name}
-
-【角色基础设定】
-- 人设描述：{description or "暂无"}
-- 公开档案：{public_profile or "暂无"}
-- 当前心理状态：{mental_state or "NORMAL"}
-- 口头禅：{verbal_tic or "无"}
-- 常见动作：{idle_behavior or "无"}
-
-【角色关系】
-{relationship_block}
-
-【场景点名的相关角色】
-{related_block}
-
-【历史对白样本（模仿语气，不要照抄）】
-{history_block}
-
-【当前场景】
-{scene_text}
-
-请直接生成这名角色在当前场景中的一小段对白，要求：
-1. 只写成品台词，可夹带极少量动作描写；
-2. 重点保持这个角色自己的语气、身份位置和情绪，不要串成别的角色；
-3. 若场景里有其他角色，可以被提及或简短回应，但不要让其他角色成为主说话人；
-4. 长度控制在 2-4 句话；
-5. 不要输出角色名标签、分析说明、引号外注释。"""
-
-        return Prompt(system=system, user=user)
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "dialogue",
+            system_vars={},
+            user_vars={
+                "character_name": character_name,
+                "description": description or "暂无",
+                "public_profile": public_profile or "暂无",
+                "mental_state": mental_state or "NORMAL",
+                "verbal_tic": verbal_tic or "无",
+                "idle_behavior": idle_behavior or "无",
+                "relationship_block": relationship_block,
+                "related_block": related_block,
+                "history_block": history_block,
+                "scene_text": scene_text,
+            },
+            fallback_system=(
+                "你是长篇小说的角色对白润色器。"
+                "你的任务是让指定角色在给定场景里说出符合其人设、关系位置、历史声线和当前心理锚点的话。"
+                "优先级：历史对白习惯 > 角色设定 > 当前心理状态/口头禅/动作 > 场景目标。"
+                "不要输出分析、设定说明、JSON、标题或额外注释。"
+                "如果场景里出现其他角色，他们只能作为陪衬，不能抢走目标角色的口吻与主导发言权。"
+            ),
+            fallback_user=(
+                "目标角色：{{ character_name }}\n"
+                "\n"
+                "【角色基础设定】\n"
+                "- 人设描述：{{ description }}\n"
+                "- 公开档案：{{ public_profile }}\n"
+                "- 当前心理状态：{{ mental_state }}\n"
+                "- 口头禅：{{ verbal_tic }}\n"
+                "- 常见动作：{{ idle_behavior }}\n"
+                "\n"
+                "【角色关系】\n"
+                "{{ relationship_block }}\n"
+                "\n"
+                "【场景点名的相关角色】\n"
+                "{{ related_block }}\n"
+                "\n"
+                "【历史对白样本（模仿语气，不要照抄）】\n"
+                "{{ history_block }}\n"
+                "\n"
+                "【当前场景】\n"
+                "{{ scene_text }}\n"
+                "\n"
+                "请直接生成这名角色在当前场景中的一小段对白，要求：\n"
+                "1. 只写成品台词，可夹带极少量动作描写；\n"
+                "2. 重点保持这个角色自己的语气、身份位置和情绪，不要串成别的角色；\n"
+                "3. 若场景里有其他角色，可以被提及或简短回应，但不要让其他角色成为主说话人；\n"
+                "4. 长度控制在 2-4 句话；\n"
+                "5. 不要输出角色名标签、分析说明、引号外注释。"
+            ),
+        )
 
     def clean_generated_dialogue(self, content: str, character_name: str) -> str:
         """Normalize generated dialogue for UI rendering."""

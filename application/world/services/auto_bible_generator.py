@@ -12,6 +12,8 @@ from application.world.services.worldbuilding_service import WorldbuildingServic
 from domain.bible.triple import Triple, SourceType
 from infrastructure.persistence.database.triple_repository import TripleRepository
 from domain.shared.exceptions import EntityNotFoundError
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
+from application.ai.structured_json_pipeline import structured_json_generate
 
 logger = logging.getLogger(__name__)
 
@@ -264,150 +266,96 @@ class AutoBibleGenerator:
     async def _generate_bible_data(self, premise: str, target_chapters: int) -> Dict[str, Any]:
         """使用 LLM 生成 Bible 数据和世界观"""
 
-        system_prompt = """你是资深网文策划编辑。根据用户提供的故事创意/梗概，生成完整的人物、世界设定和世界观。
-
-**重要：只输出有效的 JSON，不要有任何其他文字。description 字段必须是单行文本，不能有换行符。**
-
-要求：
-1. 深入理解故事梗概，提取核心冲突、主题、世界观
-2. 至少 3-5 个主要人物（主角、配角、对手、导师等），确保人物之间有冲突和互动
-3. 每个人物：姓名、定位（主角/配角/对手/导师）、性格特点、目标动机
-4. 至少 2-3 个重要地点，符合故事背景；地点须含稳定 `id`，若有层级则填 `parent_id` 指向父地点的 `id`（根为 null）
-5. 明确的文风公约（叙事视角、人称、基调、节奏）
-6. 完整的世界观（5维度框架）：核心法则、地理生态、社会结构、历史文化、沉浸感细节
-7. 人物和地点要符合故事类型（现代都市/古代/玄幻/科幻等）
-8. **所有 description 字段必须是单行文本，用逗号或分号分隔不同要点，不要使用换行符**
-
-JSON 格式（不要有其他文字）：
-{
-  "characters": [
-    {
-      "name": "人物名",
-      "role": "主角/配角/对手/导师",
-      "description": "性格、背景、目标、特点，所有内容在一行内，用逗号分隔"
-    }
-  ],
-  "locations": [
-    {
-      "id": "稳定id如 loc-continent-1",
-      "name": "地点名",
-      "type": "城市/建筑/区域",
-      "description": "地点描述，单行文本",
-      "parent_id": null
-    }
-  ],
-  "style": "第三人称有限视角，以XX视角为主。基调XX，节奏XX。避免XX。营造XX氛围。",
-  "worldbuilding": {
-    "core_rules": {
-      "power_system": "力量体系/科技树的描述",
-      "physics_rules": "物理规律的特殊之处",
-      "magic_tech": "魔法或科技的运作机制"
-    },
-    "geography": {
-      "terrain": "地形特征",
-      "climate": "气候特点",
-      "resources": "资源分布",
-      "ecology": "生态系统"
-    },
-    "society": {
-      "politics": "政治体制",
-      "economy": "经济模式",
-      "class_system": "阶级系统"
-    },
-    "culture": {
-      "history": "关键历史事件",
-      "religion": "宗教信仰",
-      "taboos": "文化禁忌"
-    },
-    "daily_life": {
-      "food_clothing": "衣食住行",
-      "language_slang": "俚语与口音",
-      "entertainment": "娱乐方式"
-    }
-  }
-}"""
-
-        user_prompt = f"""故事创意：{premise}
-
-目标章节数：{target_chapters}章
-
-请根据这个故事创意，生成完整的人物、世界设定和世界观。注意：
-1. 从故事创意中提取关键信息（主角身份、核心能力、故事背景、主要冲突）
-2. 人物要有层次，不能只有主角，要有配角、对手、导师等
-3. 要有明确的冲突和对立面
-4. 世界观要清晰，地点要符合故事类型
-5. 文风公约要具体，明确叙事视角、基调、节奏
-6. 世界观5个维度都要填写，符合故事类型和背景
-7. 适合网文读者，有代入感
-
-只输出 JSON，不要有任何解释文字。"""
-
-        prompt = Prompt(system=system_prompt, user=user_prompt)
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "bible_all",
+            user_vars={"premise": premise, "target_chapters": target_chapters},
+            fallback_system=(
+                "你是资深网文策划编辑。根据用户提供的故事创意/梗概，生成完整的人物、世界设定和世界观。\n"
+                "\n"
+                "**重要：只输出有效的 JSON，不要有任何其他文字。description 字段必须是单行文本，不能有换行符。**\n"
+                "\n"
+                "要求：\n"
+                "1. 深入理解故事梗概，提取核心冲突、主题、世界观\n"
+                "2. 至少 3-5 个主要人物（主角、配角、对手、导师等），确保人物之间有冲突和互动\n"
+                "3. 每个人物：姓名、定位（主角/配角/对手/导师）、性格特点、目标动机\n"
+                "4. 至少 2-3 个重要地点，符合故事背景；地点须含稳定 `id`，若有层级则填 `parent_id` 指向父地点的 `id`（根为 null）\n"
+                "5. 明确的文风公约（叙事视角、人称、基调、节奏）\n"
+                "6. 完整的世界观（5维度框架）：核心法则、地理生态、社会结构、历史文化、沉浸感细节\n"
+                "7. 人物和地点要符合故事类型（现代都市/古代/玄幻/科幻等）\n"
+                "8. **所有 description 字段必须是单行文本，用逗号或分号分隔不同要点，不要使用换行符**\n"
+                "\n"
+                "JSON 格式（不要有其他文字）：\n"
+                "{% raw %}\n"
+                "{\n"
+                '  "characters": [\n'
+                "    {\n"
+                '      "name": "人物名",\n'
+                '      "role": "主角/配角/对手/导师",\n'
+                '      "description": "性格、背景、目标、特点，所有内容在一行内，用逗号分隔"\n'
+                "    }\n"
+                "  ],\n"
+                '  "locations": [\n'
+                "    {\n"
+                '      "id": "稳定id如 loc-continent-1",\n'
+                '      "name": "地点名",\n'
+                '      "type": "城市/建筑/区域",\n'
+                '      "description": "地点描述，单行文本",\n'
+                '      "parent_id": null\n'
+                "    }\n"
+                "  ],\n"
+                '  "style": "第三人称有限视角，以XX视角为主。基调XX，节奏XX。避免XX。营造XX氛围。",\n'
+                '  "worldbuilding": {\n'
+                '    "core_rules": {\n'
+                '      "power_system": "力量体系/科技树的描述",\n'
+                '      "physics_rules": "物理规律的特殊之处",\n'
+                '      "magic_tech": "魔法或科技的运作机制"\n'
+                "    },\n"
+                '    "geography": {\n'
+                '      "terrain": "地形特征",\n'
+                '      "climate": "气候特点",\n'
+                '      "resources": "资源分布",\n'
+                '      "ecology": "生态系统"\n'
+                "    },\n"
+                '    "society": {\n'
+                '      "politics": "政治体制",\n'
+                '      "economy": "经济模式",\n'
+                '      "class_system": "阶级系统"\n'
+                "    },\n"
+                '    "culture": {\n'
+                '      "history": "关键历史事件",\n'
+                '      "religion": "宗教信仰",\n'
+                '      "taboos": "文化禁忌"\n'
+                "    },\n"
+                '    "daily_life": {\n'
+                '      "food_clothing": "衣食住行",\n'
+                '      "language_slang": "俚语与口音",\n'
+                '      "entertainment": "娱乐方式"\n'
+                "    }\n"
+                "  }\n"
+                "}\n"
+                "{% endraw %}"
+            ),
+            fallback_user=(
+                "故事创意：{{ premise }}\n"
+                "\n"
+                "目标章节数：{{ target_chapters }}章\n"
+                "\n"
+                "请根据这个故事创意，生成完整的人物、世界设定和世界观。注意：\n"
+                "1. 从故事创意中提取关键信息（主角身份、核心能力、故事背景、主要冲突）\n"
+                "2. 人物要有层次，不能只有主角，要有配角、对手、导师等\n"
+                "3. 要有明确的冲突和对立面\n"
+                "4. 世界观要清晰，地点要符合故事类型\n"
+                "5. 文风公约要具体，明确叙事视角、基调、节奏\n"
+                "6. 世界观5个维度都要填写，符合故事类型和背景\n"
+                "7. 适合网文读者，有代入感\n"
+                "\n"
+                "只输出 JSON，不要有任何解释文字。"
+            ),
+        )
         config = GenerationConfig(max_tokens=2048, temperature=0.7)
 
-        result = await self.llm_service.generate(prompt, config)
-
-        # 解析 JSON
-        try:
-            content = result.content.strip()
-
-            # 移除可能的 markdown 代码块标记
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
-
-            content = content.strip()
-
-            # 尝试找到第一个 { 和最后一个 }
-            start = content.find('{')
-            end = content.rfind('}')
-            if start != -1 and end != -1:
-                content = content[start:end+1]
-
-            logger.info(f"Attempting to parse Bible JSON (length: {len(content)})")
-
-            # 尝试直接解析
-            try:
-                bible_data = json.loads(content)
-                logger.info(f"Successfully parsed Bible JSON")
-                return bible_data
-            except json.JSONDecodeError as e:
-                # 如果失败，尝试修复常见问题
-                logger.warning(f"First parse attempt failed: {e}, trying to repair JSON...")
-
-                # 使用 json.loads 的 strict=False 模式
-                import re
-                # 移除字符串中的控制字符和多余的空白
-                content = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', content)
-
-                bible_data = json.loads(content, strict=False)
-                logger.info(f"Successfully parsed Bible JSON after repair")
-                return bible_data
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse Bible JSON: {e}")
-            logger.error(f"Raw content (first 1000 chars): {content[:1000]}")
-            # 返回默认结构
-            return {
-                "characters": [
-                    {
-                        "name": "主角",
-                        "role": "主角",
-                        "description": "待补充"
-                    }
-                ],
-                "locations": [
-                    {
-                        "id": "loc-default-1",
-                        "name": "主要场景",
-                        "type": "城市",
-                        "description": "待补充",
-                        "parent_id": None,
-                    }
-                ],
-                "style": "第三人称有限视角，轻松幽默"
-            }
+        return await self._call_llm_and_parse(prompt, node_name="bible_all")
 
     async def _save_to_bible(self, novel_id: str, bible_data: Dict[str, Any]) -> None:
         """保存到 Bible"""
@@ -585,145 +533,175 @@ JSON 格式（不要有其他文字）：
 
     async def _generate_worldbuilding_and_style(self, premise: str, target_chapters: int) -> Dict[str, Any]:
         """只生成世界观和文风"""
-        system_prompt = """你是资深网文策划编辑。根据故事创意生成世界观和文风公约。
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "bible_worldbuilding",
+            user_vars={"premise": premise, "target_chapters": target_chapters},
+            fallback_system=(
+                "你是资深网文策划编辑。根据故事创意生成世界观和文风公约。\n"
+                "\n"
+                "**重要：只输出有效的 JSON，不要有任何其他文字。**\n"
+                "\n"
+                "要求：\n"
+                "1. 完整的世界观（5维度框架）：核心法则、地理生态、社会结构、历史文化、沉浸感细节\n"
+                "2. 明确的文风公约（叙事视角、人称、基调、节奏）\n"
+                "3. 符合故事类型（现代都市/古代/玄幻/科幻等）\n"
+                "\n"
+                "JSON 格式：\n"
+                "{% raw %}\n"
+                "{\n"
+                '  "style": "第三人称有限视角，以XX视角为主。基调XX，节奏XX。避免XX。营造XX氛围。",\n'
+                '  "worldbuilding": {\n'
+                '    "core_rules": {\n'
+                '      "power_system": "力量体系/科技树的描述",\n'
+                '      "physics_rules": "物理规律的特殊之处",\n'
+                '      "magic_tech": "魔法或科技的运作机制"\n'
+                "    },\n"
+                '    "geography": {\n'
+                '      "terrain": "地形特征",\n'
+                '      "climate": "气候特点",\n'
+                '      "resources": "资源分布",\n'
+                '      "ecology": "生态系统"\n'
+                "    },\n"
+                '    "society": {\n'
+                '      "politics": "政治体制",\n'
+                '      "economy": "经济模式",\n'
+                '      "class_system": "阶级系统"\n'
+                "    },\n"
+                '    "culture": {\n'
+                '      "history": "关键历史事件",\n'
+                '      "religion": "宗教信仰",\n'
+                '      "taboos": "文化禁忌"\n'
+                "    },\n"
+                '    "daily_life": {\n'
+                '      "food_clothing": "衣食住行",\n'
+                '      "language_slang": "俚语与口音",\n'
+                '      "entertainment": "娱乐方式"\n'
+                "    }\n"
+                "  }\n"
+                "}\n"
+                "{% endraw %}"
+            ),
+            fallback_user=(
+                "故事创意：{{ premise }}\n"
+                "\n"
+                "目标章节数：{{ target_chapters }}章\n"
+                "\n"
+                "请生成世界观和文风公约。只输出 JSON，不要有任何解释文字。"
+            ),
+        )
 
-**重要：只输出有效的 JSON，不要有任何其他文字。**
-
-要求：
-1. 完整的世界观（5维度框架）：核心法则、地理生态、社会结构、历史文化、沉浸感细节
-2. 明确的文风公约（叙事视角、人称、基调、节奏）
-3. 符合故事类型（现代都市/古代/玄幻/科幻等）
-
-JSON 格式：
-{
-  "style": "第三人称有限视角，以XX视角为主。基调XX，节奏XX。避免XX。营造XX氛围。",
-  "worldbuilding": {
-    "core_rules": {
-      "power_system": "力量体系/科技树的描述",
-      "physics_rules": "物理规律的特殊之处",
-      "magic_tech": "魔法或科技的运作机制"
-    },
-    "geography": {
-      "terrain": "地形特征",
-      "climate": "气候特点",
-      "resources": "资源分布",
-      "ecology": "生态系统"
-    },
-    "society": {
-      "politics": "政治体制",
-      "economy": "经济模式",
-      "class_system": "阶级系统"
-    },
-    "culture": {
-      "history": "关键历史事件",
-      "religion": "宗教信仰",
-      "taboos": "文化禁忌"
-    },
-    "daily_life": {
-      "food_clothing": "衣食住行",
-      "language_slang": "俚语与口音",
-      "entertainment": "娱乐方式"
-    }
-  }
-}"""
-
-        user_prompt = f"""故事创意：{premise}
-
-目标章节数：{target_chapters}章
-
-请生成世界观和文风公约。只输出 JSON，不要有任何解释文字。"""
-
-        return await self._call_llm_and_parse(system_prompt, user_prompt)
+        return await self._call_llm_and_parse(prompt, node_name="bible_worldbuilding")
 
     async def _generate_characters(self, premise: str, target_chapters: int, worldbuilding: Dict[str, Any]) -> Dict[str, Any]:
         """基于世界观生成人物"""
         wb_summary = self._summarize_worldbuilding(worldbuilding)
 
-        system_prompt = """你是资深网文策划编辑。基于已有世界观生成主要人物。
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "bible_characters",
+            user_vars={"premise": premise, "target_chapters": target_chapters, "wb_summary": wb_summary},
+            fallback_system=(
+                "你是资深网文策划编辑。基于已有世界观生成主要人物。\n"
+                "\n"
+                "**重要：只输出有效的 JSON，不要有任何其他文字。description 字段必须是单行文本。**\n"
+                "\n"
+                "要求：\n"
+                "1. 至少 3-5 个主要人物（主角、配角、对手、导师等）\n"
+                "2. 人物要符合世界观设定\n"
+                "3. 确保人物之间有冲突和互动\n"
+                "4. 每个人物：姓名、定位、性格特点、目标动机\n"
+                "5. 明确定义人物之间的关系（敌对、合作、师徒、亲属、暧昧等）\n"
+                "\n"
+                "JSON 格式：\n"
+                "{% raw %}\n"
+                "{\n"
+                '  "characters": [\n'
+                "    {\n"
+                '      "name": "人物名",\n'
+                '      "role": "主角/配角/对手/导师",\n'
+                '      "description": "性格、背景、目标、特点，所有内容在一行内，用逗号分隔",\n'
+                '      "relationships": [\n'
+                "        {\n"
+                '          "target": "目标人物名",\n'
+                '          "relation": "关系类型（师徒/敌对/合作/亲属/暧昧等）",\n'
+                '          "description": "关系的详细描述"\n'
+                "        }\n"
+                "      ]\n"
+                "    }\n"
+                "  ]\n"
+                "}\n"
+                "{% endraw %}"
+            ),
+            fallback_user=(
+                "故事创意：{{ premise }}\n"
+                "\n"
+                "已有世界观：\n"
+                "{{ wb_summary }}\n"
+                "\n"
+                "请基于这个世界观生成主要人物。只输出 JSON，不要有任何解释文字。"
+            ),
+        )
 
-**重要：只输出有效的 JSON，不要有任何其他文字。description 字段必须是单行文本。**
-
-要求：
-1. 至少 3-5 个主要人物（主角、配角、对手、导师等）
-2. 人物要符合世界观设定
-3. 确保人物之间有冲突和互动
-4. 每个人物：姓名、定位、性格特点、目标动机
-5. 明确定义人物之间的关系（敌对、合作、师徒、亲属、暧昧等）
-
-JSON 格式：
-{
-  "characters": [
-    {
-      "name": "人物名",
-      "role": "主角/配角/对手/导师",
-      "description": "性格、背景、目标、特点，所有内容在一行内，用逗号分隔",
-      "relationships": [
-        {
-          "target": "目标人物名",
-          "relation": "关系类型（师徒/敌对/合作/亲属/暧昧等）",
-          "description": "关系的详细描述"
-        }
-      ]
-    }
-  ]
-}"""
-
-        user_prompt = f"""故事创意：{premise}
-
-已有世界观：
-{wb_summary}
-
-请基于这个世界观生成主要人物。只输出 JSON，不要有任何解释文字。"""
-
-        return await self._call_llm_and_parse(system_prompt, user_prompt)
+        return await self._call_llm_and_parse(prompt, node_name="bible_characters")
 
     async def _generate_locations(self, premise: str, target_chapters: int, worldbuilding: Dict[str, Any], characters: list) -> Dict[str, Any]:
         """基于世界观和人物生成地点"""
         wb_summary = self._summarize_worldbuilding(worldbuilding)
         char_summary = "\n".join([f"- {c['name']}: {c['description'][:50]}..." for c in characters])
 
-        system_prompt = """你是资深网文策划编辑。基于已有世界观和人物生成完整地图。
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "bible_locations",
+            user_vars={"premise": premise, "target_chapters": target_chapters, "wb_summary": wb_summary, "char_summary": char_summary},
+            fallback_system=(
+                "你是资深网文策划编辑。基于已有世界观和人物生成完整地图。\n"
+                "\n"
+                "**重要：只输出有效的 JSON，不要有任何其他文字。**\n"
+                "\n"
+                "要求：\n"
+                "1. 至少 5-10 个重要地点，构成完整地图\n"
+                "2. 地点要符合世界观设定\n"
+                "3. 考虑人物的活动范围和故事需要\n"
+                "4. 包含不同类型：城市、建筑、区域、特殊场所等\n"
+                "5. 空间层级用 `parent_id` 表达（子地点 id 指向父地点 id）；非父子关系用 `connections`（不要用 relation=位于）\n"
+                "\n"
+                "JSON 格式：\n"
+                "{% raw %}\n"
+                "{\n"
+                '  "locations": [\n'
+                "    {\n"
+                '      "id": "稳定id，全书唯一",\n'
+                '      "name": "地点名",\n'
+                '      "type": "城市/建筑/区域/特殊场所",\n'
+                '      "description": "地点描述，单行文本",\n'
+                '      "parent_id": null,\n'
+                '      "connections": [\n'
+                "        {\n"
+                '          "target": "目标地点名",\n'
+                '          "relation": "连接类型（包含/相邻/通往等，勿用位于）",\n'
+                '          "description": "连接的详细描述"\n'
+                "        }\n"
+                "      ]\n"
+                "    }\n"
+                "  ]\n"
+                "}\n"
+                "{% endraw %}"
+            ),
+            fallback_user=(
+                "故事创意：{{ premise }}\n"
+                "\n"
+                "已有世界观：\n"
+                "{{ wb_summary }}\n"
+                "\n"
+                "已有人物：\n"
+                "{{ char_summary }}\n"
+                "\n"
+                "请基于世界观和人物生成完整地图。只输出 JSON，不要有任何解释文字。"
+            ),
+        )
 
-**重要：只输出有效的 JSON，不要有任何其他文字。**
-
-要求：
-1. 至少 5-10 个重要地点，构成完整地图
-2. 地点要符合世界观设定
-3. 考虑人物的活动范围和故事需要
-4. 包含不同类型：城市、建筑、区域、特殊场所等
-5. 空间层级用 `parent_id` 表达（子地点 id 指向父地点 id）；非父子关系用 `connections`（不要用 relation=位于）
-
-JSON 格式：
-{
-  "locations": [
-    {
-      "id": "稳定id，全书唯一",
-      "name": "地点名",
-      "type": "城市/建筑/区域/特殊场所",
-      "description": "地点描述，单行文本",
-      "parent_id": null,
-      "connections": [
-        {
-          "target": "目标地点名",
-          "relation": "连接类型（包含/相邻/通往等，勿用位于）",
-          "description": "连接的详细描述"
-        }
-      ]
-    }
-  ]
-}"""
-
-        user_prompt = f"""故事创意：{premise}
-
-已有世界观：
-{wb_summary}
-
-已有人物：
-{char_summary}
-
-请基于世界观和人物生成完整地图。只输出 JSON，不要有任何解释文字。"""
-
-        return await self._call_llm_and_parse(system_prompt, user_prompt)
+        return await self._call_llm_and_parse(prompt, node_name="bible_locations")
 
     def _summarize_worldbuilding(self, wb: Dict[str, Any]) -> str:
         """总结世界观为文本"""
@@ -737,43 +715,47 @@ JSON 格式：
                 parts.append(f"{key}: {items}")
         return "\n".join(parts)
 
-    async def _call_llm_and_parse(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
-        """调用 LLM 并解析 JSON"""
-        print(f"[DEBUG] _call_llm_and_parse: Creating prompt", file=sys.stderr, flush=True)
-        prompt = Prompt(system=system_prompt, user=user_prompt)
-        config = GenerationConfig(max_tokens=2048, temperature=0.7)
-        print(f"[DEBUG] _call_llm_and_parse: Calling LLM service", file=sys.stderr, flush=True)
-        result = await self.llm_service.generate(prompt, config)
-        print(f"[DEBUG] _call_llm_and_parse: LLM returned result", file=sys.stderr, flush=True)
+    async def _call_llm_and_parse(self, prompt: Prompt, node_name: str) -> Dict[str, Any]:
+        """Call LLM via structured_json_generate pipeline."""
+        loader = PromptTemplateLoader.get_instance()
+        contract_model = loader.get_contract_for(node_name)
+        response_format = loader.get_response_format_for(node_name)
 
+        config = GenerationConfig(
+            max_tokens=2048, temperature=0.7,
+            response_format=response_format,
+        )
+
+        if contract_model is not None:
+            payload = await structured_json_generate(
+                llm=self.llm_service, prompt=prompt, config=config,
+                schema_model=contract_model,
+            )
+            if payload is not None:
+                return payload.model_dump()
+
+            logger.warning(
+                "AutoBibleGenerator: structured_json_generate 返回 None "
+                "(node=%s), 回退到原始 LLM 调用", node_name,
+            )
+
+        # Fallback: 无合约模型时走原始路径
+        result = await self.llm_service.generate(prompt, config)
         try:
             content = result.content.strip()
-            print(f"[DEBUG] Raw LLM content length: {len(content)}", file=sys.stderr, flush=True)
-
-            # 移除可能的 markdown 代码块标记
             if "```json" in content:
                 content = content.split("```json")[1].split("```")[0]
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0]
-
             content = content.strip()
-
-            # 尝试找到第一个 { 和最后一个 }
             start = content.find('{')
             end = content.rfind('}')
             if start != -1 and end != -1:
                 content = content[start:end+1]
-
-            print(f"[DEBUG] Cleaned content length: {len(content)}", file=sys.stderr, flush=True)
             parsed = json.loads(content)
-            print(f"[DEBUG] Successfully parsed JSON with keys: {list(parsed.keys())}", file=sys.stderr, flush=True)
             return parsed
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON: {e}")
-            logger.error(f"Content length: {len(content)}")
-            logger.error(f"Raw content (first 1000 chars): {content[:1000]}")
-            logger.error(f"Raw content (last 500 chars): {content[-500:]}")
-            print(f"[DEBUG] JSON parse failed, returning empty dict", file=sys.stderr, flush=True)
+            logger.error(f"Failed to parse JSON (fallback): {e}")
             return {}
 
     async def _generate_character_triples(self, novel_id: str, character_ids: list):

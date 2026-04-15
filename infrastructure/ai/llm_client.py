@@ -1,4 +1,5 @@
 """LLM 客户端包装器"""
+import logging
 import os
 from typing import Optional, AsyncIterator
 from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
@@ -7,6 +8,11 @@ from infrastructure.ai.providers.mock_provider import MockProvider
 from infrastructure.ai.config.settings import Settings
 from domain.ai.value_objects.prompt import Prompt
 from domain.ai.services.llm_service import GenerationConfig
+
+logger = logging.getLogger(__name__)
+
+# 内联 fallback（模板文件缺失时使用）
+_DEFAULT_SYSTEM_FALLBACK = "你是一个专业的小说创作助手。"
 
 
 class LLMClient:
@@ -54,21 +60,30 @@ class LLMClient:
         u = os.getenv("ANTHROPIC_BASE_URL")
         return u.strip() if u and u.strip() else None
 
-    async def generate(self, prompt: str, **kwargs) -> str:
+    async def generate(self, prompt, **kwargs) -> str:
         """生成文本
 
         Args:
-            prompt: 提示词字符串
+            prompt: 提示词字符串或 Prompt 对象
             **kwargs: 其他参数（model, max_tokens, temperature等）
 
         Returns:
             生成的文本
         """
-        # 创建 Prompt 对象
-        prompt_obj = Prompt(
-            system="你是一个专业的小说创作助手。",
-            user=prompt
-        )
+        # 支持 Prompt 对象和字符串两种输入
+        if isinstance(prompt, Prompt):
+            prompt_obj = prompt
+        else:
+            # 通过模板加载器获取默认系统提示
+            try:
+                from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
+                loader = PromptTemplateLoader.get_instance()
+                default_system = loader.render_with_fallback(
+                    "llm_default", "system", _DEFAULT_SYSTEM_FALLBACK,
+                )
+            except Exception:
+                default_system = _DEFAULT_SYSTEM_FALLBACK
+            prompt_obj = Prompt(system=default_system, user=prompt)
 
         # 创建 GenerationConfig 对象
         config = GenerationConfig(
@@ -90,10 +105,15 @@ class LLMClient:
         """流式生成，代理到底层 provider"""
         # 如果是字符串，转换为 Prompt 对象
         if isinstance(prompt, str):
-            prompt_obj = Prompt(
-                system="你是一个专业的小说创作助手。",
-                user=prompt
-            )
+            try:
+                from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
+                loader = PromptTemplateLoader.get_instance()
+                default_system = loader.render_with_fallback(
+                    "llm_default", "system", _DEFAULT_SYSTEM_FALLBACK,
+                )
+            except Exception:
+                default_system = _DEFAULT_SYSTEM_FALLBACK
+            prompt_obj = Prompt(system=default_system, user=prompt)
         else:
             prompt_obj = prompt
 

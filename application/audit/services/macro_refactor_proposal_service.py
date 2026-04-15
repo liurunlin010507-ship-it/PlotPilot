@@ -3,9 +3,13 @@ import logging
 import os
 from typing import Dict, Any
 from application.audit.dtos.macro_refactor_dto import RefactorProposalRequest, RefactorProposal
-from application.ai.llm_json_extract import parse_llm_json_to_dict
+from application.ai.refactor_proposal_llm_contract import (
+    refactor_proposal_payload_to_domain,
+)
+from application.ai.structured_json_pipeline import structured_json_generate
 from domain.ai.services.llm_service import LLMService, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 logger = logging.getLogger(__name__)
 
@@ -34,29 +38,29 @@ class MacroRefactorProposalService:
             # 构建 LLM prompt
             prompt = self._build_prompt(request)
 
+            # 调用结构化 JSON 管线
+            loader = PromptTemplateLoader.get_instance()
+            contract_model = loader.get_contract_for("refactor_proposal")
             config = GenerationConfig(
                 model=os.getenv("SYSTEM_MODEL", ""),
                 max_tokens=2048,
-                temperature=0.7
+                temperature=0.7,
+                response_format=loader.get_response_format_for("refactor_proposal"),
             )
 
-            # 调用 LLM
-            result = await self.llm_service.generate(prompt, config)
+            payload = await structured_json_generate(
+                llm=self.llm_service,
+                prompt=prompt,
+                config=config,
+                schema_model=contract_model,
+            )
 
-            # 解析 JSON 响应
-            data, errors = parse_llm_json_to_dict(result.content)
-
-            if errors or not data:
-                logger.warning(f"Failed to parse LLM response: {errors}")
+            if payload is None:
+                logger.warning("结构化 JSON 管线返回 None，使用降级提案")
                 return self._create_fallback_proposal()
 
-            # 构建提案对象
-            return RefactorProposal(
-                natural_language_suggestion=data.get("natural_language_suggestion", ""),
-                suggested_mutations=data.get("suggested_mutations", []),
-                suggested_tags=data.get("suggested_tags", []),
-                reasoning=data.get("reasoning", "")
-            )
+            # 将校验后的 payload 转为领域 DTO
+            return refactor_proposal_payload_to_domain(payload)
 
         except Exception as e:
             logger.error(f"Error generating proposal: {e}", exc_info=True)
@@ -71,7 +75,16 @@ class MacroRefactorProposalService:
         Returns:
             Prompt: 构建的提示词
         """
-        system_prompt = """你是一个专业的小说编辑助手，帮助作者修复人设冲突和叙事不一致问题。
+        loader = PromptTemplateLoader.get_instance()
+        return loader.render_to_prompt(
+            "refactor_proposal",
+            user_vars={
+                "author_intent": request.author_intent,
+                "current_event_summary": request.current_event_summary,
+                "current_tags": ", ".join(request.current_tags),
+                "event_id": request.event_id,
+            },
+            fallback_system="""你是一个专业的小说编辑助手，帮助作者修复人设冲突和叙事不一致问题。
 
 你的任务是分析当前事件，根据作者意图提供修复建议。
 
@@ -85,7 +98,7 @@ class MacroRefactorProposalService:
 - reasoning: 推理过程（解释为什么这样修改）
 
 示例输出：
-{
+{% raw %}{
     "natural_language_suggestion": "建议将角色的冲动行为改为理性决策",
     "suggested_mutations": [
         {"type": "replace_tag", "old": "动机:冲动", "new": "动机:理性"},
@@ -93,25 +106,23 @@ class MacroRefactorProposalService:
     ],
     "suggested_tags": ["动机:理性", "性格:冷酷"],
     "reasoning": "冷酷的角色不会冲动行事，应该基于理性判断"
-}"""
-
-        user_prompt = f"""请分析以下事件并提供修复建议：
+}{% endraw %}""",
+            fallback_user="""请分析以下事件并提供修复建议：
 
 **作者意图：**
-{request.author_intent}
+{{ author_intent }}
 
 **当前事件摘要：**
-{request.current_event_summary}
+{{ current_event_summary }}
 
 **当前标签：**
-{', '.join(request.current_tags)}
+{{ current_tags }}
 
 **事件 ID：**
-{request.event_id}
+{{ event_id }}
 
-请提供修复建议（JSON 格式）："""
-
-        return Prompt(system=system_prompt, user=user_prompt)
+请提供修复建议（JSON 格式）：""",
+        )
 
     def _create_fallback_proposal(self) -> RefactorProposal:
         """创建降级提案（当 LLM 失败时）

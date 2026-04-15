@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from typing import Any, Dict, List, Optional
 
 from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
+from application.ai.main_plot_llm_contract import (
+    main_plot_payload_to_domain,
+)
+from application.ai.structured_json_pipeline import structured_json_generate
 from application.world.services.bible_service import BibleService
 from application.core.services.novel_service import NovelService
+from infrastructure.ai.prompt_template_loader import PromptTemplateLoader
 
 logger = logging.getLogger(__name__)
 
@@ -110,44 +114,6 @@ class SetupMainPlotSuggestionService:
             "style_hint": style_hint[:1200],
         }
 
-    @staticmethod
-    def _parse_plot_json(raw: str) -> List[Dict[str, Any]]:
-        content = raw.strip()
-        if "```json" in content:
-            content = content.split("```json", 1)[1].split("```", 1)[0]
-        elif "```" in content:
-            content = content.split("```", 1)[1].split("```", 1)[0]
-        content = content.strip()
-        start = content.find("{")
-        end = content.rfind("}")
-        if start != -1 and end != -1:
-            content = content[start : end + 1]
-        content = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", content)
-        data = json.loads(content, strict=False)
-        opts = data.get("plot_options")
-        if not isinstance(opts, list):
-            raise ValueError("plot_options must be a list")
-        return opts
-
-    @staticmethod
-    def _normalize_options(raw_list: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-        out: List[Dict[str, str]] = []
-        for i, item in enumerate(raw_list[:5]):
-            if not isinstance(item, dict):
-                continue
-            oid = str(item.get("id") or f"option_{chr(ord('a') + i)}")
-            out.append(
-                {
-                    "id": oid,
-                    "type": str(item.get("type") or "")[:120],
-                    "title": str(item.get("title") or f"主线方案 {i + 1}")[:200],
-                    "logline": str(item.get("logline") or "")[:2000],
-                    "core_conflict": str(item.get("core_conflict") or "")[:2000],
-                    "starting_hook": str(item.get("starting_hook") or "")[:2000],
-                }
-            )
-        return out
-
     def _fallback_options(self, ctx: Dict[str, Any]) -> List[Dict[str, str]]:
         name = (ctx.get("protagonist") or {}).get("name") or "主角"
         return [
@@ -181,7 +147,11 @@ class SetupMainPlotSuggestionService:
         ctx = self._build_context(novel_id)
         user_blob = json.dumps(ctx, ensure_ascii=False, indent=2)
 
-        system_prompt = """你是一位拥有十年经验的华语网络小说白金级编辑。作者已完成世界观与人物等静态设定，你需要推演 3 个截然不同、但都具有强商业张力与可读性的主线故事轴（Main Plot Options）。
+        loader = PromptTemplateLoader.get_instance()
+        prompt = loader.render_to_prompt(
+            "main_plot",
+            user_vars={"task_marker": SETUP_TASK_MARKER, "user_blob": user_blob},
+            fallback_system="""你是一位拥有十年经验的华语网络小说白金级编辑。作者已完成世界观与人物等静态设定，你需要推演 3 个截然不同、但都具有强商业张力与可读性的主线故事轴（Main Plot Options）。
 
 推演原则：
 1. 切入点差异化：
@@ -193,7 +163,7 @@ class SetupMainPlotSuggestionService:
 4. 输出必须是合法 JSON，不要 Markdown、不要代码围栏、不要解释文字。
 
 JSON Schema：
-{
+{% raw %}{
   "plot_options": [
     {
       "id": "option_a_xxx",
@@ -204,30 +174,38 @@ JSON Schema：
       "starting_hook": "开篇钩子场景或事件"
     }
   ]
-}
-必须恰好包含 3 个元素，顺序对应 A/B/C 三类切入点。"""
-
-        user_prompt = f"""{SETUP_TASK_MARKER}
+}{% endraw %}
+必须恰好包含 3 个元素，顺序对应 A/B/C 三类切入点。""",
+            fallback_user="""{{ task_marker }}
 
 以下为小说设定简报（JSON）：
-{user_blob}
+{{ user_blob }}
 
-请输出仅包含 plot_options 数组的 JSON 对象。"""
+请输出仅包含 plot_options 数组的 JSON 对象。""",
+        )
 
-        prompt = Prompt(system=system_prompt, user=user_prompt)
-        config = GenerationConfig(max_tokens=2048, temperature=0.85)
+        contract_model = loader.get_contract_for("main_plot")
+        config = GenerationConfig(
+            max_tokens=2048,
+            temperature=0.85,
+            response_format=loader.get_response_format_for("main_plot"),
+        )
 
         try:
-            result = await self._llm.generate(prompt, config)
-            raw_list = self._parse_plot_json(result.content)
-            normalized = self._normalize_options(raw_list)
-            if len(normalized) >= 3:
-                return normalized[:3]
-            if len(normalized) > 0:
-                # 不足 3 条时用本地模板补足
-                fb = self._fallback_options(ctx)
-                merged = normalized + [x for x in fb if x["id"] not in {n["id"] for n in normalized}]
-                return merged[:3]
+            payload = await structured_json_generate(
+                llm=self._llm,
+                prompt=prompt,
+                config=config,
+                schema_model=contract_model,
+            )
+            if payload is not None:
+                normalized = main_plot_payload_to_domain(payload)
+                if len(normalized) >= 3:
+                    return normalized[:3]
+                if len(normalized) > 0:
+                    fb = self._fallback_options(ctx)
+                    merged = normalized + [x for x in fb if x["id"] not in {n["id"] for n in normalized}]
+                    return merged[:3]
         except Exception as e:
             logger.warning("Main plot suggestion LLM parse failed: %s", e)
 

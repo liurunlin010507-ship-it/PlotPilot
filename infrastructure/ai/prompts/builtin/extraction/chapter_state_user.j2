@@ -1,0 +1,11 @@
+{#
+  @node: chapter_state
+  @role: user
+  @output: json
+  @contract: application.ai.chapter_state_llm_contract:ChapterStateLlmPayload
+  @vars:
+    content: str — Chapter content to extract from
+#}
+请从以下章节内容中提取结构化信息：
+
+{{ content }}

@@ -1,0 +1,15 @@
+{# @node: scene_generation
+   @role: user
+   @output: user prompt for scene generation
+   @vars: scene_title, scene_goal, pov_character, location, tone, estimated_words, analysis_section, previous_scenes_section, foreshadowings_section
+#}
+场景信息：
+标题：{{ scene_title }}
+目标：{{ scene_goal }}
+POV 角色：{{ pov_character }}
+地点：{{ location or '未指定' }}
+情绪基调：{{ tone or '未指定' }}
+预估字数：{{ estimated_words }}
+{{ analysis_section }}{{ previous_scenes_section }}{{ foreshadowings_section }}
+
+请生成场景正文：
