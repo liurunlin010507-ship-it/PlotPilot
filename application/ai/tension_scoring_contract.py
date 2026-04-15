@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from domain.novel.value_objects.tension_dimensions import TensionDimensions
 
@@ -26,7 +26,7 @@ class TensionScoringLlmPayload(BaseModel):
     composite_score 由服务端加权计算，不由模型输出。
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     plot_tension: float = Field(ge=0, le=100, description="情节张力 0-100")
     emotional_tension: float = Field(ge=0, le=100, description="情绪张力 0-100")
@@ -34,6 +34,16 @@ class TensionScoringLlmPayload(BaseModel):
     plot_justification: str = Field(default="", max_length=500)
     emotional_justification: str = Field(default="", max_length=500)
     pacing_justification: str = Field(default="", max_length=500)
+
+    @field_validator("plot_tension", "emotional_tension", "pacing_tension", mode="before")
+    @classmethod
+    def coerce_to_float(cls, v):
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                raise ValueError(f"无法将 '{v}' 转为数字")
+        return v
 
 
 def tension_scoring_payload_to_domain(
