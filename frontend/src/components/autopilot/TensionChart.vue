@@ -107,6 +107,11 @@ const maxTension = computed(() => {
 async function loadTensionData() {
   loading.value = true
   error.value = null
+  // 销毁旧图表实例，防止 loading 切换导致 DOM 重建后实例失效
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
   try {
     // 使用 apiClient（走 Vite proxy）而非裸 fetch
     const data = await monitorApi.getTensionCurve(props.novelId)
