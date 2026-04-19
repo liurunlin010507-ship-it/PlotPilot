@@ -1,12 +1,13 @@
 """轻量级网络搜索工具，供 Agent 查证资料使用。"""
+
 import logging
 import time
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
 try:
     from ddgs import DDGS
+
     _DDGS_AVAILABLE = True
 except ImportError:
     _DDGS_AVAILABLE = False
@@ -31,7 +32,7 @@ class WebSearchTool:
         try:
             results: list[dict] = []
             with DDGS(timeout=8) as ddgs:
-                for r in ddgs.text(query, region='wt-wt', max_results=max_results):
+                for r in ddgs.text(query, region="wt-wt", max_results=max_results):
                     if isinstance(r, dict):
                         results.append(
                             {
@@ -51,16 +52,10 @@ class WebSearchTool:
                 else:
                     parts.append(f"【{title}】\n{body}")
 
-            logger.info(
-                f"Web search done for: '{query}', results={len(results)}, "
-                f"elapsed={time.time() - start:.2f}s"
-            )
+            logger.info(f"Web search done for: '{query}', results={len(results)}, elapsed={time.time() - start:.2f}s")
             return "\n\n".join(parts)
         except Exception as e:
-            logger.error(
-                f"Web search failed for query '{query}' "
-                f"(elapsed={time.time() - start:.2f}s): {e}"
-            )
+            logger.error(f"Web search failed for query '{query}' (elapsed={time.time() - start:.2f}s): {e}")
             return f"搜索失败（{e}）。"
 
     @staticmethod
@@ -71,7 +66,7 @@ class WebSearchTool:
         try:
             results: list[dict] = []
             with DDGS(timeout=8) as ddgs:
-                for r in ddgs.text(query, region='wt-wt', max_results=max_results):
+                for r in ddgs.text(query, region="wt-wt", max_results=max_results):
                     if isinstance(r, dict):
                         results.append(
                             {
@@ -81,13 +76,9 @@ class WebSearchTool:
                             }
                         )
             logger.info(
-                f"Web search(raw) done for: '{query}', results={len(results)}, "
-                f"elapsed={time.time() - start:.2f}s"
+                f"Web search(raw) done for: '{query}', results={len(results)}, elapsed={time.time() - start:.2f}s"
             )
             return results
         except Exception as e:
-            logger.error(
-                f"Web search(raw) failed for query '{query}' "
-                f"(elapsed={time.time() - start:.2f}s): {e}"
-            )
+            logger.error(f"Web search(raw) failed for query '{query}' (elapsed={time.time() - start:.2f}s): {e}")
             return []

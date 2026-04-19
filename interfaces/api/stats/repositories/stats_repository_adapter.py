@@ -4,10 +4,11 @@ This adapter bridges the gap between the legacy stats API (which expects
 manifest.json files and slug-based identifiers) and the new DDD architecture
 (which uses JSON files with UUID-based identifiers).
 """
-from pathlib import Path
-from typing import Optional, Dict, List
+
 import json
 import logging
+from pathlib import Path
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class StatsRepositoryAdapter:
                 logger.warning(f"Novel not found: {slug}")
                 return None
 
-            with open(novel_path, 'r', encoding='utf-8') as f:
+            with open(novel_path, encoding="utf-8") as f:
                 novel_data = json.load(f)
 
             # Convert new format to legacy manifest format
@@ -77,7 +78,7 @@ class StatsRepositoryAdapter:
                 "slug": slug,
                 "stage": novel_data.get("stage", "planning"),
                 "target_chapters": novel_data.get("target_chapters", 0),
-                "chapters": novel_data.get("chapters", [])
+                "chapters": novel_data.get("chapters", []),
             }
 
             logger.debug(f"Successfully read manifest for novel: {slug}")
@@ -115,10 +116,12 @@ class StatsRepositoryAdapter:
                 chapter_num = int(num)
             except (TypeError, ValueError):
                 continue
-            outline_chapters.append({
-                "id": chapter_num,
-                "title": (ch.get("title") or "").strip(),
-            })
+            outline_chapters.append(
+                {
+                    "id": chapter_num,
+                    "title": (ch.get("title") or "").strip(),
+                }
+            )
         if not outline_chapters:
             outline_chapters = self._outline_chapters_from_disk(slug)
         return {"chapters": outline_chapters}
@@ -134,7 +137,7 @@ class StatsRepositoryAdapter:
         out: List[Dict] = []
         for p in sorted(ch_dir.glob("*.json")):
             try:
-                with open(p, "r", encoding="utf-8") as f:
+                with open(p, encoding="utf-8") as f:
                     data = json.load(f)
                 num = data.get("number")
                 if num is None:
@@ -158,7 +161,7 @@ class StatsRepositoryAdapter:
             return None
         for p in ch_dir.glob("*.json"):
             try:
-                with open(p, "r", encoding="utf-8") as f:
+                with open(p, encoding="utf-8") as f:
                     data = json.load(f)
                 num = data.get("number")
                 if num is None:
@@ -238,13 +241,13 @@ class StatsRepositoryAdapter:
         import re
 
         # Count Chinese characters (including CJK Unified Ideographs and Extension blocks)
-        chinese_pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]'
+        chinese_pattern = r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]"
         chinese_chars = len(re.findall(chinese_pattern, text))
 
         # Count English words (ASCII letters sequences)
         # Remove Chinese text first to avoid double-counting
-        english_text = re.sub(chinese_pattern, '', text)
-        english_words = len(re.findall(r'\b[a-zA-Z]+\b', english_text))
+        english_text = re.sub(chinese_pattern, "", text)
+        english_words = len(re.findall(r"\b[a-zA-Z]+\b", english_text))
 
         total_words = chinese_chars + english_words
         logger.debug(f"Word count: {total_words} (Chinese: {chinese_chars}, English: {english_words})")

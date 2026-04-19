@@ -5,6 +5,7 @@ from typing import Any
 @dataclass(frozen=True)
 class CharacterId:
     """人物 ID 值对象"""
+
     value: str
 
     def __post_init__(self):

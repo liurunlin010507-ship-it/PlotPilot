@@ -1,8 +1,9 @@
 from typing import List, Optional
-from domain.shared.base_entity import BaseEntity
+
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.plot_point import PlotPoint
 from domain.novel.value_objects.tension_level import TensionLevel
+from domain.shared.base_entity import BaseEntity
 
 
 class PlotArc(BaseEntity):

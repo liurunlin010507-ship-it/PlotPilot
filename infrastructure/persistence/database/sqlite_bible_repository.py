@@ -1,4 +1,5 @@
 """SQLite Bible 仓储：Bible 聚合与子表全部落库。"""
+
 from __future__ import annotations
 
 import logging
@@ -251,10 +252,7 @@ class SqliteBibleRepository(BibleRepository):
             "SELECT id, category, content FROM bible_style_notes WHERE novel_id = ? ORDER BY id",
             (novel_id,),
         )
-        style_notes = [
-            {"id": r["id"], "category": r["category"], "content": r["content"] or ""}
-            for r in sn_rows
-        ]
+        style_notes = [{"id": r["id"], "category": r["category"], "content": r["content"] or ""} for r in sn_rows]
 
         return {
             "id": bible_id,
@@ -278,9 +276,7 @@ class SqliteBibleRepository(BibleRepository):
             return None
 
     def get_by_novel_id(self, novel_id: NovelId) -> Optional[Bible]:
-        row = self.db.fetch_one(
-            "SELECT * FROM bibles WHERE novel_id = ?", (novel_id.value,)
-        )
+        row = self.db.fetch_one("SELECT * FROM bibles WHERE novel_id = ?", (novel_id.value,))
         if not row:
             return None
         data = self._to_mapper_dict(row["id"], row["novel_id"])

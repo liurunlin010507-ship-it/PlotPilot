@@ -2,23 +2,25 @@
 章节元素管理 API 路由
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+import uuid
 from typing import List, Optional
 
-from domain.structure.chapter_element import ElementType, RelationType, Importance
-from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
-from application.paths import get_db_path
-import uuid
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
+from application.paths import get_db_path
+from domain.structure.chapter_element import ElementType, Importance, RelationType
+from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
 
 router = APIRouter(prefix="/api/v1/chapters", tags=["chapter-elements"])
 
 
 # ==================== DTOs ====================
 
+
 class ChapterElementCreate(BaseModel):
     """创建章节元素关联"""
+
     element_type: str = Field(..., description="元素类型: character/location/item/organization/event")
     element_id: str = Field(..., description="元素 ID")
     relation_type: str = Field(..., description="关联类型: appears/mentioned/scene/uses/involved/occurs")
@@ -29,10 +31,12 @@ class ChapterElementCreate(BaseModel):
 
 class ChapterElementBatchUpdate(BaseModel):
     """批量更新章节元素"""
+
     elements: List[ChapterElementCreate] = Field(..., description="元素列表")
 
 
 # ==================== 依赖注入 ====================
+
 
 def get_chapter_element_repo() -> ChapterElementRepository:
     """获取章节元素仓储"""
@@ -41,11 +45,10 @@ def get_chapter_element_repo() -> ChapterElementRepository:
 
 # ==================== API 端点 ====================
 
+
 @router.post("/{chapter_id}/elements")
 async def add_chapter_element(
-    chapter_id: str,
-    request: ChapterElementCreate,
-    repo: ChapterElementRepository = Depends(get_chapter_element_repo)
+    chapter_id: str, request: ChapterElementCreate, repo: ChapterElementRepository = Depends(get_chapter_element_repo)
 ):
     """
     添加章节元素关联
@@ -53,15 +56,13 @@ async def add_chapter_element(
     为章节添加一个 Bible 元素关联（人物、地点、道具等）。
     """
     try:
-        from domain.structure.chapter_element import ChapterElement
         from datetime import datetime
+
+        from domain.structure.chapter_element import ChapterElement
 
         # 检查是否已存在
         exists = await repo.exists(
-            chapter_id,
-            ElementType(request.element_type),
-            request.element_id,
-            RelationType(request.relation_type)
+            chapter_id, ElementType(request.element_type), request.element_id, RelationType(request.relation_type)
         )
 
         if exists:
@@ -77,15 +78,15 @@ async def add_chapter_element(
             importance=Importance(request.importance),
             appearance_order=request.appearance_order,
             notes=request.notes,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         await repo.save(element)
 
         # 触发知识图谱推断
         from application.world.services.knowledge_graph_service import KnowledgeGraphService
-        from infrastructure.persistence.database.triple_repository import TripleRepository
         from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+        from infrastructure.persistence.database.triple_repository import TripleRepository
 
         kg_service = KnowledgeGraphService(
             TripleRepository(),
@@ -94,10 +95,7 @@ async def add_chapter_element(
         )
         await kg_service.infer_from_chapter(chapter_id)
 
-        return {
-            "success": True,
-            "data": element.to_dict()
-        }
+        return {"success": True, "data": element.to_dict()}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -108,7 +106,7 @@ async def add_chapter_element(
 async def get_chapter_elements(
     chapter_id: str,
     element_type: Optional[str] = None,
-    repo: ChapterElementRepository = Depends(get_chapter_element_repo)
+    repo: ChapterElementRepository = Depends(get_chapter_element_repo),
 ):
     """
     获取章节的所有元素关联
@@ -117,17 +115,11 @@ async def get_chapter_elements(
     """
     try:
         if element_type:
-            elements = await repo.get_by_chapter_and_type(
-                chapter_id,
-                ElementType(element_type)
-            )
+            elements = await repo.get_by_chapter_and_type(chapter_id, ElementType(element_type))
         else:
             elements = await repo.get_by_chapter(chapter_id)
 
-        return {
-            "success": True,
-            "data": [elem.to_dict() for elem in elements]
-        }
+        return {"success": True, "data": [elem.to_dict() for elem in elements]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取元素关联失败: {str(e)}")
 
@@ -136,7 +128,7 @@ async def get_chapter_elements(
 async def batch_update_chapter_elements(
     chapter_id: str,
     request: ChapterElementBatchUpdate,
-    repo: ChapterElementRepository = Depends(get_chapter_element_repo)
+    repo: ChapterElementRepository = Depends(get_chapter_element_repo),
 ):
     """
     批量更新章节元素关联
@@ -144,8 +136,9 @@ async def batch_update_chapter_elements(
     先删除章节的所有元素关联，再批量添加新的关联。
     """
     try:
-        from domain.structure.chapter_element import ChapterElement
         from datetime import datetime
+
+        from domain.structure.chapter_element import ChapterElement
 
         # 删除现有关联
         await repo.delete_by_chapter(chapter_id)
@@ -162,7 +155,7 @@ async def batch_update_chapter_elements(
                 importance=Importance(elem_data.importance),
                 appearance_order=elem_data.appearance_order,
                 notes=elem_data.notes,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             elements.append(element)
 
@@ -170,8 +163,8 @@ async def batch_update_chapter_elements(
 
         # 触发知识图谱推断
         from application.world.services.knowledge_graph_service import KnowledgeGraphService
-        from infrastructure.persistence.database.triple_repository import TripleRepository
         from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+        from infrastructure.persistence.database.triple_repository import TripleRepository
 
         kg_service = KnowledgeGraphService(
             TripleRepository(),
@@ -182,10 +175,7 @@ async def batch_update_chapter_elements(
 
         return {
             "success": True,
-            "data": {
-                "updated_count": len(elements),
-                "elements": [elem.to_dict() for elem in elements]
-            }
+            "data": {"updated_count": len(elements), "elements": [elem.to_dict() for elem in elements]},
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"批量更新元素关联失败: {str(e)}")
@@ -193,9 +183,7 @@ async def batch_update_chapter_elements(
 
 @router.delete("/{chapter_id}/elements/{element_id}")
 async def delete_chapter_element(
-    chapter_id: str,
-    element_id: str,
-    repo: ChapterElementRepository = Depends(get_chapter_element_repo)
+    chapter_id: str, element_id: str, repo: ChapterElementRepository = Depends(get_chapter_element_repo)
 ):
     """
     删除章节元素关联
@@ -206,10 +194,7 @@ async def delete_chapter_element(
         if not success:
             raise HTTPException(status_code=404, detail="元素关联不存在")
 
-        return {
-            "success": True,
-            "message": "删除成功"
-        }
+        return {"success": True, "message": "删除成功"}
     except HTTPException:
         raise
     except Exception as e:
@@ -218,9 +203,7 @@ async def delete_chapter_element(
 
 @router.get("/elements/{element_type}/{element_id}/chapters")
 async def get_element_chapters(
-    element_type: str,
-    element_id: str,
-    repo: ChapterElementRepository = Depends(get_chapter_element_repo)
+    element_type: str, element_id: str, repo: ChapterElementRepository = Depends(get_chapter_element_repo)
 ):
     """
     查询某个元素在哪些章节出现
@@ -228,23 +211,18 @@ async def get_element_chapters(
     反向查询，用于分析人物出场频率、地点使用情况等。
     """
     try:
-        elements = await repo.get_by_element(
-            ElementType(element_type),
-            element_id
-        )
+        elements = await repo.get_by_element(ElementType(element_type), element_id)
 
         # 获取章节信息
         from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+
         story_node_repo = StoryNodeRepository(get_db_path())
 
         chapters = []
         for elem in elements:
             chapter = await story_node_repo.get_by_id(elem.chapter_id)
             if chapter:
-                chapters.append({
-                    "chapter": chapter.to_dict(),
-                    "relation": elem.to_dict()
-                })
+                chapters.append({"chapter": chapter.to_dict(), "relation": elem.to_dict()})
 
         return {
             "success": True,
@@ -252,8 +230,8 @@ async def get_element_chapters(
                 "element_type": element_type,
                 "element_id": element_id,
                 "appearance_count": len(chapters),
-                "chapters": chapters
-            }
+                "chapters": chapters,
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询元素章节失败: {str(e)}")

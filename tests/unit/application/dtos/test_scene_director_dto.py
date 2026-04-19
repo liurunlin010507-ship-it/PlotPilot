@@ -1,13 +1,12 @@
 import pytest
-from pydantic import ValidationError
-
 from application.dtos.scene_director_dto import (
+    ContextRetrieveRequest,
     SceneDirectorAnalysis,
     SceneDirectorAnalyzeRequest,
     SceneDirectorAnalyzeResponse,
-    ContextRetrieveRequest,
     validate_outline_not_empty,
 )
+from pydantic import ValidationError
 
 
 def test_validate_outline_not_empty_rejects_empty_string():
@@ -118,4 +117,3 @@ def test_context_retrieve_request_uses_shared_validator():
     # Invalid outline should fail
     with pytest.raises(ValidationError):
         ContextRetrieveRequest(chapter_number=1, outline="")
-

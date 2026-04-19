@@ -1,4 +1,5 @@
 """清空本地 SQLite 中所有业务表（保留表结构）。请先停止占用 aitext.db 的后端进程。"""
+
 from __future__ import annotations
 
 import sqlite3
@@ -20,9 +21,7 @@ def main() -> int:
         return 1
 
     cur = conn.cursor()
-    cur.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    )
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [r[0] for r in cur.fetchall()]
     conn.execute("PRAGMA foreign_keys=OFF")
     for t in tables:

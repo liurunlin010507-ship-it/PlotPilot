@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 环境检测与自动修复
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -15,13 +14,14 @@ aitex 环境检测与自动修复
 import os
 import shutil
 import subprocess
-import re
 
-from theme import OK_C, WARN_C, ERR_C
 from utils import (
-    get_proj_dir, get_venv_python, get_log_dir,
-    NO_WIN, find_python, check_uvicorn,
+    NO_WIN,
+    check_uvicorn,
     ensure_embedded_python,
+    find_python,
+    get_proj_dir,
+    get_venv_python,
 )
 
 
@@ -46,8 +46,11 @@ class EnvChecker:
     """
 
     STEP_NAMES = [
-        "Python 环境", "虚拟环境", "安装依赖",
-        "构建前端", "配置文件",
+        "Python 环境",
+        "虚拟环境",
+        "安装依赖",
+        "构建前端",
+        "配置文件",
     ]
 
     def __init__(self, on_log=None, on_progress=None):
@@ -129,14 +132,13 @@ class EnvChecker:
         # 尝试用 tkinter 弹窗（GUI 模式下）
         try:
             import tkinter as tk
-            from tkinter import messagebox
 
             root = tk.Tk()
             root.withdraw()
             root.attributes("-topmost", True)
 
             # 自定义弹窗（比 messagebox 更美观）
-            from ui_base import show_popup, BG2, ERR_C, FONT_BTN, ACCENT
+            from ui_base import ERR_C, show_popup
 
             def _open_download():
                 webbrowser.open("https://www.python.org/downloads/")
@@ -161,10 +163,10 @@ class EnvChecker:
             root.mainloop()
         except Exception:
             # tkinter 不可用时的降级方案
-            print(f"\n{'='*52}")
+            print(f"\n{'=' * 52}")
             print(f"  [FATAL] Python 版本过低: {current_ver}")
-            print(f"  要求: Python >= 3.10")
-            print(f"{'='*52}")
+            print("  要求: Python >= 3.10")
+            print(f"{'=' * 52}")
             try:
                 webbrowser.open("https://www.python.org/downloads/")
             except Exception:
@@ -192,7 +194,9 @@ class EnvChecker:
             self._log("正在创建虚拟环境 .venv ...", "title")
             r = subprocess.run(
                 [system_python, "-m", "venv", ".venv"],
-                cwd=self.proj_dir, capture_output=True, text=True,
+                cwd=self.proj_dir,
+                capture_output=True,
+                text=True,
                 creationflags=NO_WIN,
             )
             if r.returncode != 0:
@@ -208,10 +212,21 @@ class EnvChecker:
         # 升级 pip
         self._log("升级 pip 到最新版本...", "info")
         subprocess.run(
-            [venv_py, "-m", "pip", "install", "--upgrade", "pip",
-             "-i", "https://mirrors.aliyun.com/pypi/simple/",
-             "--trusted-host", "mirrors.aliyun.com", "-q"],
-            cwd=self.proj_dir, capture_output=True,
+            [
+                venv_py,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "pip",
+                "-i",
+                "https://mirrors.aliyun.com/pypi/simple/",
+                "--trusted-host",
+                "mirrors.aliyun.com",
+                "-q",
+            ],
+            cwd=self.proj_dir,
+            capture_output=True,
             creationflags=NO_WIN,
         )
 
@@ -235,9 +250,9 @@ class EnvChecker:
         self._prog(58, "检查前端构建...", "⏳", 3)
 
         frontend_dir = os.path.join(self.proj_dir, "frontend")
-        dist_index  = os.path.join(frontend_dir, "dist", "index.html")
-        node_exe    = shutil.which("node")
-        npm_exe     = shutil.which("npm")
+        dist_index = os.path.join(frontend_dir, "dist", "index.html")
+        node_exe = shutil.which("node")
+        npm_exe = shutil.which("npm")
 
         if node_exe and npm_exe and not os.path.exists(dist_index):
             self._log("前端未构建，需要 npm install + build", "title")
@@ -255,7 +270,7 @@ class EnvChecker:
         """确保 .env 存在"""
         self._prog(65, "检查配置文件...", "⏳", 4)
 
-        env_path    = os.path.join(self.proj_dir, ".env")
+        env_path = os.path.join(self.proj_dir, ".env")
         env_example = os.path.join(self.proj_dir, ".env.example")
 
         if not os.path.exists(env_path):
@@ -291,6 +306,7 @@ class EnvChecker:
 # 前端构建工具（独立函数）
 # ══════════════════════════════════════════════
 
+
 def build_frontend(proj_dir, npm_exe, on_log=None):
     """
     执行 npm install + npm run build。
@@ -302,8 +318,12 @@ def build_frontend(proj_dir, npm_exe, on_log=None):
     _log("正在安装前端依赖（npm install）...", "info")
     r_ni = subprocess.run(
         [npm_exe, "install", "--registry", "https://registry.npmmirror.com"],
-        cwd=frontend_dir, capture_output=True, text=True,
-        encoding="utf-8", errors="replace", creationflags=NO_WIN,
+        cwd=frontend_dir,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=NO_WIN,
     )
     if r_ni.returncode != 0:
         _log(f"npm install 失败: {r_ni.stderr[:200]}", "error")
@@ -315,8 +335,12 @@ def build_frontend(proj_dir, npm_exe, on_log=None):
     _log("构建可能需要 1~3 分钟，请耐心等待...", "warn")
     r_build = subprocess.run(
         [npm_exe, "run", "build"],
-        cwd=frontend_dir, capture_output=True, text=True,
-        encoding="utf-8", errors="replace", creationflags=NO_WIN,
+        cwd=frontend_dir,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=NO_WIN,
     )
     if r_build.returncode != 0:
         _log(f"npm run build 失败: {r_build.stderr[:300]}", "error")

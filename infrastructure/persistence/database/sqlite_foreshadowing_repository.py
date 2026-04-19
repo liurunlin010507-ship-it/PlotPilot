@@ -3,6 +3,7 @@
 以单行 JSON 快照持久化 ForeshadowingRegistry（与 ForeshadowingMapper 一致），
 替代文件系统 foreshadowings/{novel_id}.json。
 """
+
 from __future__ import annotations
 
 import json

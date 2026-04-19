@@ -1,14 +1,15 @@
 import logging
 import os
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
-from domain.novel.value_objects.chapter_state import ChapterState
+
 from application.ai.chapter_state_llm_contract import (
     build_chapter_state_extraction_system_prompt,
     chapter_state_payload_to_domain,
     empty_chapter_state,
     parse_chapter_state_llm_response,
 )
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
+from domain.novel.value_objects.chapter_state import ChapterState
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,7 @@ class StateExtractor:
         prompt = Prompt(system=system_prompt, user=user_prompt)
 
         # 配置 LLM
-        config = GenerationConfig(
-            model=os.getenv("WRITING_MODEL", ""),
-            max_tokens=4096,
-            temperature=0.3
-        )
+        config = GenerationConfig(model=os.getenv("WRITING_MODEL", ""), max_tokens=4096, temperature=0.3)
 
         # 调用 LLM 生成
         result = await self.llm_service.generate(prompt=prompt, config=config)

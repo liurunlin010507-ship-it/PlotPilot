@@ -5,11 +5,12 @@
 2. 快照 Bible/Foreshadow/Graph 状态
 3. 支持回滚和分支
 """
+
 import json
-import uuid
 import logging
-from typing import Optional, List, Dict, Any
+import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class SnapshotService:
         name: str,
         description: Optional[str] = None,
         branch_name: str = "main",
-        parent_snapshot_id: Optional[str] = None
+        parent_snapshot_id: Optional[str] = None,
     ) -> str:
         """创建快照（只存指针）"""
         from domain.novel.value_objects.novel_id import NovelId
@@ -49,6 +50,7 @@ class SnapshotService:
                 if registry:
                     all_fs = registry.foreshadowings
                     from domain.novel.value_objects.foreshadowing import ForeshadowingStatus
+
                     foreshadow_state = {
                         "count": len(all_fs),
                         "pending": len([f for f in all_fs if f.status == ForeshadowingStatus.PLANTED]),
@@ -66,19 +68,22 @@ class SnapshotService:
                 created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        self.db.execute(sql, (
-            snapshot_id,
-            novel_id,
-            parent_snapshot_id,
-            branch_name,
-            trigger_type,
-            name,
-            description,
-            json.dumps(chapter_pointers),
-            json.dumps(bible_state),
-            json.dumps(foreshadow_state),
-            datetime.utcnow().isoformat()
-        ))
+        self.db.execute(
+            sql,
+            (
+                snapshot_id,
+                novel_id,
+                parent_snapshot_id,
+                branch_name,
+                trigger_type,
+                name,
+                description,
+                json.dumps(chapter_pointers),
+                json.dumps(bible_state),
+                json.dumps(foreshadow_state),
+                datetime.utcnow().isoformat(),
+            ),
+        )
         self.db.get_connection().commit()
 
         logger.info(f"[Snapshot] 创建快照：{name} ({trigger_type})")
@@ -141,8 +146,8 @@ class SnapshotService:
         if snapshot.get("novel_id") != novel_id:
             raise ValueError("快照不属于该作品")
 
-        from domain.novel.value_objects.novel_id import NovelId
         from domain.novel.value_objects.chapter_id import ChapterId
+        from domain.novel.value_objects.novel_id import NovelId
 
         raw_ptrs = snapshot.get("chapter_pointers") or []
         valid_chapter_ids = {str(x) for x in raw_ptrs}
@@ -150,9 +155,7 @@ class SnapshotService:
         all_chapters = self.chapter_repository.list_by_novel(NovelId(novel_id))
 
         if not valid_chapter_ids and all_chapters:
-            raise ValueError(
-                "该快照未记录任何章节指针，为避免误删全书正文已中止回滚"
-            )
+            raise ValueError("该快照未记录任何章节指针，为避免误删全书正文已中止回滚")
 
         deleted_ids: List[str] = []
         for chapter in all_chapters:
@@ -174,11 +177,7 @@ class SnapshotService:
         return {"deleted_chapter_ids": deleted_ids, "deleted_count": len(deleted_ids)}
 
     def branch_from_snapshot(
-        self,
-        novel_id: str,
-        snapshot_id: str,
-        branch_name: str,
-        description: Optional[str] = None
+        self, novel_id: str, snapshot_id: str, branch_name: str, description: Optional[str] = None
     ) -> str:
         """从快照创建分支"""
         snapshot = self.get_snapshot(snapshot_id)
@@ -192,7 +191,7 @@ class SnapshotService:
             name=f"[分支] {branch_name}",
             description=description,
             branch_name=branch_name,
-            parent_snapshot_id=snapshot_id
+            parent_snapshot_id=snapshot_id,
         )
 
         logger.info(f"[Snapshot] 创建分支：{branch_name} from {snapshot['name']}")

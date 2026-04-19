@@ -1,4 +1,5 @@
 """多维张力分析结果值对象。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -48,9 +49,7 @@ class TensionDimensions:
         emotional = max(0.0, min(100.0, float(emotional)))
         pacing = max(0.0, min(100.0, float(pacing)))
         composite = round(
-            plot * cls._WEIGHTS[0]
-            + emotional * cls._WEIGHTS[1]
-            + pacing * cls._WEIGHTS[2],
+            plot * cls._WEIGHTS[0] + emotional * cls._WEIGHTS[1] + pacing * cls._WEIGHTS[2],
             1,
         )
         return cls(

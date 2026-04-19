@@ -1,9 +1,11 @@
 """TensionAnalyzer 单元测试"""
+
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 
 from application.analyst.services.tension_analyzer import TensionAnalyzer
-from application.workbench.dtos.writer_block_dto import TensionDiagnosis, TensionSlingshotRequest
+from application.workbench.dtos.writer_block_dto import TensionSlingshotRequest
 
 
 class TestTensionAnalyzer:
@@ -42,15 +44,15 @@ class TestTensionAnalyzer:
                 "chapter_number": 1,
                 "event_summary": "主角在家吃早餐",
                 "tags": ["日常", "情绪:平静"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "evt-002",
                 "chapter_number": 2,
                 "event_summary": "主角去上班",
                 "tags": ["日常"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         # Mock LLM 响应
@@ -61,10 +63,7 @@ class TestTensionAnalyzer:
             "suggestions": ["引入外部冲突", "提高事件的利害关系", "增加角色内心矛盾"]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=2
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=2)
 
         result = await analyzer.analyze_tension(request)
 
@@ -81,7 +80,7 @@ class TestTensionAnalyzer:
                 "chapter_number": 1,
                 "event_summary": "主角发现秘密",
                 "tags": ["冲突:内心"],
-                "mutations": []
+                "mutations": [],
             }
         ]
 
@@ -93,16 +92,13 @@ class TestTensionAnalyzer:
             "suggestions": ["让主角对秘密做出具体反应", "引入秘密带来的直接后果", "增加时间压力"]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=1,
-            stuck_reason="不知道如何推进情节"
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=1, stuck_reason="不知道如何推进情节")
 
         result = await analyzer.analyze_tension(request)
 
-        assert "不知道如何推进情节" in mock_llm_client.generate.call_args[0][0] or \
-               "不知道如何推进情节" in str(mock_llm_client.generate.call_args)
+        assert "不知道如何推进情节" in mock_llm_client.generate.call_args[0][0] or "不知道如何推进情节" in str(
+            mock_llm_client.generate.call_args
+        )
         assert result.diagnosis is not None
         assert len(result.diagnosis) > 0
 
@@ -115,7 +111,7 @@ class TestTensionAnalyzer:
                 "chapter_number": 1,
                 "event_summary": "主角思考人生",
                 "tags": ["情绪:迷茫"],
-                "mutations": []
+                "mutations": [],
             }
         ]
 
@@ -131,20 +127,14 @@ class TestTensionAnalyzer:
             ]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=1
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=1)
 
         result = await analyzer.analyze_tension(request)
 
         assert len(result.suggestions) > 0
         # 验证建议是动作导向的（包含动词）
         action_verbs = ["引入", "增加", "设置", "让", "创造", "提高"]
-        has_action = any(
-            any(verb in suggestion for verb in action_verbs)
-            for suggestion in result.suggestions
-        )
+        has_action = any(any(verb in suggestion for verb in action_verbs) for suggestion in result.suggestions)
         assert has_action
 
     @pytest.mark.asyncio
@@ -157,22 +147,22 @@ class TestTensionAnalyzer:
                 "chapter_number": 1,
                 "event_summary": "主角接受任务",
                 "tags": ["冲突:外部", "情绪:紧张"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "evt-002",
                 "chapter_number": 2,
                 "event_summary": "主角准备装备",
                 "tags": ["日常"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "evt-003",
                 "chapter_number": 3,
                 "event_summary": "主角出发",
                 "tags": ["日常"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         mock_llm_client.generate.return_value = """{
@@ -182,10 +172,7 @@ class TestTensionAnalyzer:
             "suggestions": ["在准备过程中加入障碍", "引入时间限制"]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=3
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=3)
 
         result = await analyzer.analyze_tension(request)
 
@@ -202,7 +189,7 @@ class TestTensionAnalyzer:
                 "chapter_number": 1,
                 "event_summary": "主角与敌人激烈战斗",
                 "tags": ["冲突:对抗", "冲突:生死", "情绪:愤怒", "情绪:恐惧"],
-                "mutations": []
+                "mutations": [],
             }
         ]
 
@@ -213,10 +200,7 @@ class TestTensionAnalyzer:
             "suggestions": ["保持当前节奏", "注意张力的持续性"]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=1
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=1)
 
         result = await analyzer.analyze_tension(request)
 
@@ -235,10 +219,7 @@ class TestTensionAnalyzer:
             "suggestions": ["开始创建叙事事件"]
         }"""
 
-        request = TensionSlingshotRequest(
-            novel_id="novel-001",
-            chapter_number=1
-        )
+        request = TensionSlingshotRequest(novel_id="novel-001", chapter_number=1)
 
         result = await analyzer.analyze_tension(request)
 
@@ -246,9 +227,7 @@ class TestTensionAnalyzer:
         assert result.tension_level == "low"
 
     @pytest.mark.asyncio
-    async def test_analyze_parses_markdown_fenced_json(
-        self, analyzer, mock_event_repo, mock_llm_client
-    ):
+    async def test_analyze_parses_markdown_fenced_json(self, analyzer, mock_event_repo, mock_llm_client):
         """LLM 用 markdown 代码块包裹 JSON 时仍能解析。"""
         mock_event_repo.list_up_to_chapter.return_value = []
 

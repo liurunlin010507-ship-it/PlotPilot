@@ -1,5 +1,6 @@
 """LLM 客户端包装器"""
-from typing import AsyncIterator
+
+from collections.abc import AsyncIterator
 
 from domain.ai.services.llm_service import GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
@@ -36,10 +37,7 @@ class LLMClient:
             生成的文本
         """
         # 创建 Prompt 对象
-        prompt_obj = Prompt(
-            system="你是一个专业的小说创作助手。",
-            user=prompt
-        )
+        prompt_obj = Prompt(system="你是一个专业的小说创作助手。", user=prompt)
 
         config = self._build_config(**kwargs)
 
@@ -49,17 +47,14 @@ class LLMClient:
 
     async def stream_generate(
         self,
-        prompt,          # Prompt 对象或 str
+        prompt,  # Prompt 对象或 str
         config=None,
-        **kwargs
+        **kwargs,
     ) -> AsyncIterator[str]:
         """流式生成，代理到底层 provider"""
         # 如果是字符串，转换为 Prompt 对象
         if isinstance(prompt, str):
-            prompt_obj = Prompt(
-                system="你是一个专业的小说创作助手。",
-                user=prompt
-            )
+            prompt_obj = Prompt(system="你是一个专业的小说创作助手。", user=prompt)
         else:
             prompt_obj = prompt
 

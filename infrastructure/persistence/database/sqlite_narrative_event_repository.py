@@ -1,8 +1,10 @@
 """SQLite Narrative Event Repository 实现"""
+
 import json
 import logging
 from typing import Optional
 from uuid import uuid4
+
 from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 from infrastructure.persistence.database.connection import DatabaseConnection
 
@@ -44,12 +46,7 @@ class SqliteNarrativeEventRepository(NarrativeEventRepository):
         return events
 
     def append_event(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        event_summary: str,
-        mutations: list[dict],
-        tags: list[str] = None
+        self, novel_id: str, chapter_number: int, event_summary: str, mutations: list[dict], tags: list[str] = None
     ) -> str:
         """追加新事件
 
@@ -102,13 +99,7 @@ class SqliteNarrativeEventRepository(NarrativeEventRepository):
         event["tags"] = json.loads(event["tags"])
         return event
 
-    def update_event(
-        self,
-        novel_id: str,
-        event_id: str,
-        event_summary: str,
-        tags: list[str]
-    ) -> None:
+    def update_event(self, novel_id: str, event_id: str, event_summary: str, tags: list[str]) -> None:
         """更新事件
 
         Args:
@@ -128,4 +119,3 @@ class SqliteNarrativeEventRepository(NarrativeEventRepository):
         self.db.get_connection().commit()
 
         logger.info(f"Updated event {event_id} for novel {novel_id}")
-

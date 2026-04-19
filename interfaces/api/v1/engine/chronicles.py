@@ -1,4 +1,5 @@
 """双螺旋编年史 BFF：剧情时间线（Bible）× 语义快照（novel_snapshots）按 chapter_index 拉链聚合。"""
+
 import logging
 import sqlite3
 from typing import Any, Dict, List, Optional
@@ -7,8 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from application.codex.chronicles_service import build_chronicles_rows
-from application.world.services.bible_service import BibleService
 from application.snapshot.services.snapshot_service import SnapshotService
+from application.world.services.bible_service import BibleService
 from domain.novel.value_objects.novel_id import NovelId
 from interfaces.api.dependencies import (
     get_bible_service,

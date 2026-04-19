@@ -1,14 +1,15 @@
 """
 API routes for Worldbuilding
 """
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+
 from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from application.paths import get_db_path
 from application.world.services.worldbuilding_service import WorldbuildingService
 from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
-from application.paths import get_db_path
-
 
 router = APIRouter(prefix="/api/v1/novels", tags=["worldbuilding"])
 
@@ -60,10 +61,7 @@ class UpdateWorldbuildingRequest(BaseModel):
 
 
 @router.get("/{slug}/worldbuilding")
-def get_worldbuilding(
-    slug: str,
-    service: WorldbuildingService = Depends(get_worldbuilding_service)
-):
+def get_worldbuilding(slug: str, service: WorldbuildingService = Depends(get_worldbuilding_service)):
     """获取小说的世界观"""
     worldbuilding = service.get_worldbuilding(slug)
 
@@ -74,10 +72,7 @@ def get_worldbuilding(
 
 
 @router.post("/{slug}/worldbuilding")
-def create_worldbuilding(
-    slug: str,
-    service: WorldbuildingService = Depends(get_worldbuilding_service)
-):
+def create_worldbuilding(slug: str, service: WorldbuildingService = Depends(get_worldbuilding_service)):
     """创建空白世界观"""
     worldbuilding = service.create_worldbuilding(slug)
     return worldbuilding.to_dict()
@@ -85,9 +80,7 @@ def create_worldbuilding(
 
 @router.put("/{slug}/worldbuilding")
 def update_worldbuilding(
-    slug: str,
-    request: UpdateWorldbuildingRequest,
-    service: WorldbuildingService = Depends(get_worldbuilding_service)
+    slug: str, request: UpdateWorldbuildingRequest, service: WorldbuildingService = Depends(get_worldbuilding_service)
 ):
     """更新世界观"""
     worldbuilding = service.update_worldbuilding(

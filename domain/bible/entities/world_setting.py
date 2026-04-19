@@ -11,7 +11,7 @@ class WorldSetting(BaseEntity):
         id: str,
         name: str,
         description: str,
-        setting_type: str  # "location", "item", "rule"
+        setting_type: str,  # "location", "item", "rule"
     ):
         super().__init__(id)
 

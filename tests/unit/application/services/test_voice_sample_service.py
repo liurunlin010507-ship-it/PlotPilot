@@ -1,7 +1,9 @@
 """Unit tests for VoiceSampleService"""
+
 import json
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
 from application.services.voice_sample_service import VoiceSampleService
 
 
@@ -34,7 +36,7 @@ class TestVoiceSampleService:
             chapter_number=chapter_number,
             scene_type=scene_type,
             ai_original=ai_original,
-            author_refined=author_refined
+            author_refined=author_refined,
         )
 
         # Assert
@@ -43,21 +45,21 @@ class TestVoiceSampleService:
 
         # 验证调用参数
         call_args = mock_repository.append_sample.call_args
-        assert call_args[1]['novel_id'] == novel_id
-        assert call_args[1]['chapter_number'] == chapter_number
-        assert call_args[1]['scene_type'] == scene_type
-        assert call_args[1]['ai_original'] == ai_original
-        assert call_args[1]['author_refined'] == author_refined
+        assert call_args[1]["novel_id"] == novel_id
+        assert call_args[1]["chapter_number"] == chapter_number
+        assert call_args[1]["scene_type"] == scene_type
+        assert call_args[1]["ai_original"] == ai_original
+        assert call_args[1]["author_refined"] == author_refined
 
         # 验证 diff_analysis 是有效的 JSON
-        diff_json = call_args[1]['diff_analysis']
+        diff_json = call_args[1]["diff_analysis"]
         diff_data = json.loads(diff_json)
-        assert 'edit_distance' in diff_data
-        assert 'similarity_ratio' in diff_data
-        assert 'original_length' in diff_data
-        assert 'refined_length' in diff_data
-        assert diff_data['original_length'] == len(ai_original)
-        assert diff_data['refined_length'] == len(author_refined)
+        assert "edit_distance" in diff_data
+        assert "similarity_ratio" in diff_data
+        assert "original_length" in diff_data
+        assert "refined_length" in diff_data
+        assert diff_data["original_length"] == len(ai_original)
+        assert diff_data["refined_length"] == len(author_refined)
 
     def test_append_sample_calls_repository(self, service, mock_repository):
         """测试 append_sample 调用仓储"""
@@ -70,7 +72,7 @@ class TestVoiceSampleService:
             chapter_number=5,
             scene_type=None,
             ai_original="Original text",
-            author_refined="Refined text"
+            author_refined="Refined text",
         )
 
         # Assert
@@ -89,7 +91,7 @@ class TestVoiceSampleService:
             chapter_number=10,
             scene_type="action",
             ai_original="Test original",
-            author_refined="Test refined"
+            author_refined="Test refined",
         )
 
         # Assert
@@ -104,13 +106,13 @@ class TestVoiceSampleService:
         diff = service._calculate_diff_analysis(text, text)
 
         # Assert
-        assert diff['edit_distance'] == 0
-        assert diff['similarity_ratio'] == 1.0
-        assert diff['original_length'] == len(text)
-        assert diff['refined_length'] == len(text)
-        assert diff['added_chars'] == 0
-        assert diff['removed_chars'] == 0
-        assert diff['length_change'] == 0
+        assert diff["edit_distance"] == 0
+        assert diff["similarity_ratio"] == 1.0
+        assert diff["original_length"] == len(text)
+        assert diff["refined_length"] == len(text)
+        assert diff["added_chars"] == 0
+        assert diff["removed_chars"] == 0
+        assert diff["length_change"] == 0
 
     def test_calculate_diff_analysis_different_texts(self, service):
         """测试不同文本的差异分析"""
@@ -122,12 +124,12 @@ class TestVoiceSampleService:
         diff = service._calculate_diff_analysis(original, refined)
 
         # Assert
-        assert diff['edit_distance'] > 0
-        assert diff['similarity_ratio'] < 1.0
-        assert diff['original_length'] == len(original)
-        assert diff['refined_length'] == len(refined)
-        assert diff['added_chars'] > 0
-        assert diff['length_change'] > 0
+        assert diff["edit_distance"] > 0
+        assert diff["similarity_ratio"] < 1.0
+        assert diff["original_length"] == len(original)
+        assert diff["refined_length"] == len(refined)
+        assert diff["added_chars"] > 0
+        assert diff["length_change"] > 0
 
     def test_levenshtein_distance_empty_strings(self, service):
         """测试空字符串的编辑距离"""

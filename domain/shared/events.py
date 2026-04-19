@@ -1,7 +1,7 @@
 # domain/shared/events.py
+import uuid
 from datetime import datetime
 from typing import Any, Dict
-import uuid
 
 
 class DomainEvent:
@@ -17,5 +17,5 @@ class DomainEvent:
             "event_id": self.event_id,
             "aggregate_id": self.aggregate_id,
             "occurred_at": self.occurred_at.isoformat(),
-            "event_type": self.__class__.__name__
+            "event_type": self.__class__.__name__,
         }

@@ -1,8 +1,10 @@
 """SQLite Voice Vault Repository Implementation"""
+
 import logging
+from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
-from datetime import datetime
+
 from domain.novel.repositories.voice_vault_repository import VoiceVaultRepository
 from infrastructure.persistence.database.connection import DatabaseConnection
 
@@ -22,7 +24,7 @@ class SqliteVoiceVaultRepository(VoiceVaultRepository):
         scene_type: Optional[str],
         ai_original: str,
         author_refined: str,
-        diff_analysis: str
+        diff_analysis: str,
     ) -> str:
         """添加文风样本"""
         sample_id = str(uuid4())
@@ -34,16 +36,9 @@ class SqliteVoiceVaultRepository(VoiceVaultRepository):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         now = datetime.utcnow().isoformat()
-        self.db.execute(sql, (
-            sample_id,
-            novel_id,
-            chapter_number,
-            scene_type,
-            ai_original,
-            author_refined,
-            diff_analysis,
-            now
-        ))
+        self.db.execute(
+            sql, (sample_id, novel_id, chapter_number, scene_type, ai_original, author_refined, diff_analysis, now)
+        )
         self.db.get_connection().commit()
         logger.info(f"Added voice sample: {sample_id} for novel {novel_id}")
         return sample_id
@@ -67,11 +62,9 @@ class SqliteVoiceVaultRepository(VoiceVaultRepository):
         """获取小说的样本数量"""
         sql = "SELECT COUNT(*) as count FROM voice_vault WHERE novel_id = ?"
         row = self.db.fetch_one(sql, (novel_id,))
-        return row['count'] if row else 0
+        return row["count"] if row else 0
 
-    def get_by_novel(
-        self, novel_id: str, pov_character_id: Optional[str] = None
-    ) -> List[dict]:
+    def get_by_novel(self, novel_id: str, pov_character_id: Optional[str] = None) -> List[dict]:
         """获取小说的所有样本（用于指纹计算）"""
         # Note: Current schema doesn't have pov_character_id, so we ignore it for now
         sql = """

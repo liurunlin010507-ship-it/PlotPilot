@@ -1,17 +1,18 @@
 """Bible API 集成测试（Bible / Novel 均使用临时 SQLite，与生产链路一致）。"""
+
 from typing import Optional
 
 import pytest
+from application.services.bible_service import BibleService
+from application.services.novel_service import NovelService
 from fastapi.testclient import TestClient
 
 from infrastructure.persistence.database.connection import DatabaseConnection
-from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
-from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
 from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
+from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
 from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from application.services.novel_service import NovelService
-from application.services.bible_service import BibleService
-from interfaces.api.dependencies import get_novel_service, get_bible_service
+from interfaces.api.dependencies import get_bible_service, get_novel_service
 from interfaces.main import app
 
 _test_novel_service = None

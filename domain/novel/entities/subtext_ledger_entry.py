@@ -1,8 +1,9 @@
 # domain/novel/entities/subtext_ledger_entry.py
 """伏笔手账本条目（手动）：主角或读者当下的疑问，本阶段兑现即可，不必写长文。"""
+
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

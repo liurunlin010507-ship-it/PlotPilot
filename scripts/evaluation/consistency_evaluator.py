@@ -62,13 +62,14 @@ class ConsistencyEvaluator(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         try:
             # 使用 LLM 进行一致性检查
             llm = self._get_service("llm")
-            from domain.ai.value_objects.prompt import Prompt
             from domain.ai.services.llm_service import GenerationConfig
+            from domain.ai.value_objects.prompt import Prompt
 
             system_prompt = """你是专业的小说一致性检查助手。检查文本中的问题。
 
@@ -86,11 +87,11 @@ class ConsistencyEvaluator(BaseEvaluator):
 }"""
 
             user_prompt = f"""设定：
-{test_case.get('character_setting', '')}
-{test_case.get('world_setting', '')}
+{test_case.get("character_setting", "")}
+{test_case.get("world_setting", "")}
 
 待检查文本：
-{test_case.get('content', '')}
+{test_case.get("content", "")}
 
 请检查一致性问题："""
 
@@ -105,7 +106,8 @@ class ConsistencyEvaluator(BaseEvaluator):
             # 解析结果
             import json
             import re
-            json_match = re.search(r'\{[\s\S]*\}', content)
+
+            json_match = re.search(r"\{[\s\S]*\}", content)
             parsed = json.loads(json_match.group(0)) if json_match else {"issues": []}
 
             # 评测
@@ -168,4 +170,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

@@ -1,7 +1,7 @@
 """存储后端抽象接口"""
+
 from abc import ABC, abstractmethod
 from typing import Any, List
-from pathlib import Path
 
 
 class StorageBackend(ABC):

@@ -1,12 +1,14 @@
-import pytest
 from unittest.mock import Mock
-from domain.novel.services.storyline_manager import StorylineManager
+
+import pytest
+
 from domain.novel.entities.storyline import Storyline
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
-from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 from domain.novel.repositories.storyline_repository import StorylineRepository
+from domain.novel.services.storyline_manager import StorylineManager
+from domain.novel.value_objects.novel_id import NovelId
+from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 
 
 class TestStorylineManager:
@@ -19,10 +21,7 @@ class TestStorylineManager:
 
         novel_id = NovelId("novel-123")
         storyline = manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.ROMANCE,
-            estimated_chapter_start=5,
-            estimated_chapter_end=20
+            novel_id=novel_id, storyline_type=StorylineType.ROMANCE, estimated_chapter_start=5, estimated_chapter_end=20
         )
 
         assert storyline.novel_id == novel_id
@@ -49,7 +48,7 @@ class TestStorylineManager:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -58,7 +57,7 @@ class TestStorylineManager:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline = Storyline(
@@ -69,7 +68,7 @@ class TestStorylineManager:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[milestone1, milestone2],
-            current_milestone_index=0
+            current_milestone_index=0,
         )
 
         mock_repo.get_by_id.return_value = storyline
@@ -103,7 +102,7 @@ class TestStorylineManager:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -112,7 +111,7 @@ class TestStorylineManager:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline = Storyline(
@@ -123,7 +122,7 @@ class TestStorylineManager:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[milestone1, milestone2],
-            current_milestone_index=0
+            current_milestone_index=0,
         )
 
         mock_repo.get_by_id.return_value = storyline
@@ -155,7 +154,7 @@ class TestStorylineManager:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -164,7 +163,7 @@ class TestStorylineManager:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline = Storyline(
@@ -175,7 +174,7 @@ class TestStorylineManager:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[milestone1, milestone2],
-            current_milestone_index=1
+            current_milestone_index=1,
         )
 
         mock_repo.get_by_id.return_value = storyline
@@ -212,7 +211,7 @@ class TestStorylineManager:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[],
-            current_milestone_index=0
+            current_milestone_index=0,
         )
 
         mock_repo.get_by_id.return_value = storyline

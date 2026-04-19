@@ -1,20 +1,23 @@
 """API 端点测试 - 生成工作流"""
+
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from interfaces.api.v1.engine.generation import router
-from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
+
 from application.engine.services.hosted_write_service import HostedWriteService
-from domain.novel.services.storyline_manager import StorylineManager
-from domain.novel.repositories.plot_arc_repository import PlotArcRepository
-from domain.novel.entities.storyline import Storyline
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
+from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
 from domain.novel.entities.plot_arc import PlotArc
+from domain.novel.entities.storyline import Storyline
+from domain.novel.repositories.plot_arc_repository import PlotArcRepository
+from domain.novel.services.storyline_manager import StorylineManager
+from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 from domain.novel.value_objects.tension_level import TensionLevel
+from interfaces.api.v1.engine.generation import router
 
 
 async def _mock_generate_chapter_stream(*args, **kwargs):
@@ -59,7 +62,7 @@ def mock_storyline_manager():
             storyline_type=StorylineType.MAIN_PLOT,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=1,
-            estimated_chapter_end=10
+            estimated_chapter_end=10,
         )
     ]
     manager.create_storyline.return_value = Storyline(
@@ -68,7 +71,7 @@ def mock_storyline_manager():
         storyline_type=StorylineType.ROMANCE,
         status=StorylineStatus.ACTIVE,
         estimated_chapter_start=5,
-        estimated_chapter_end=15
+        estimated_chapter_end=15,
     )
     return manager
 
@@ -78,18 +81,12 @@ def mock_plot_arc_repository():
     """Mock PlotArcRepository"""
     repo = Mock(spec=PlotArcRepository)
     plot_arc = PlotArc(id="arc-1", novel_id=NovelId("novel-1"))
-    plot_arc.add_plot_point(PlotPoint(
-        chapter_number=1,
-        point_type=PlotPointType.OPENING,
-        description="Opening",
-        tension=TensionLevel.LOW
-    ))
-    plot_arc.add_plot_point(PlotPoint(
-        chapter_number=50,
-        point_type=PlotPointType.CLIMAX,
-        description="Climax",
-        tension=TensionLevel.PEAK
-    ))
+    plot_arc.add_plot_point(
+        PlotPoint(chapter_number=1, point_type=PlotPointType.OPENING, description="Opening", tension=TensionLevel.LOW)
+    )
+    plot_arc.add_plot_point(
+        PlotPoint(chapter_number=50, point_type=PlotPointType.CLIMAX, description="Climax", tension=TensionLevel.PEAK)
+    )
     repo.get_by_novel_id.return_value = plot_arc
     repo.save.return_value = None
     return repo
@@ -110,6 +107,7 @@ def app(mock_workflow, mock_storyline_manager, mock_plot_arc_repository, mock_ho
 
     # Override dependencies
     from interfaces.api.v1.engine import generation
+
     test_app.dependency_overrides[generation.get_auto_workflow] = lambda: mock_workflow
     test_app.dependency_overrides[generation.get_hosted_write_service] = lambda: mock_hosted_service
     test_app.dependency_overrides[generation.get_storyline_manager] = lambda: mock_storyline_manager
@@ -197,11 +195,7 @@ class TestStorylineEndpoints:
         """测试创建故事线"""
         response = client.post(
             "/api/v1/novels/novel-1/storylines",
-            json={
-                "storyline_type": "romance",
-                "estimated_chapter_start": 5,
-                "estimated_chapter_end": 15
-            }
+            json={"storyline_type": "romance", "estimated_chapter_start": 5, "estimated_chapter_end": 15},
         )
 
         assert response.status_code == 201
@@ -228,23 +222,12 @@ class TestPlotArcEndpoints:
             "/api/v1/novels/novel-1/plot-arc",
             json={
                 "key_points": [
-                    {
-                        "chapter_number": 1,
-                        "tension": 1,
-                        "description": "Opening",
-                        "point_type": "opening"
-                    },
-                    {
-                        "chapter_number": 100,
-                        "tension": 4,
-                        "description": "Climax",
-                        "point_type": "climax"
-                    }
+                    {"chapter_number": 1, "tension": 1, "description": "Opening", "point_type": "opening"},
+                    {"chapter_number": 100, "tension": 4, "description": "Climax", "point_type": "climax"},
                 ]
-            }
+            },
         )
 
         assert response.status_code == 200
         data = response.json()
         assert "key_points" in data
-

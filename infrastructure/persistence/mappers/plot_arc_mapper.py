@@ -1,5 +1,7 @@
 """PlotArc 数据映射器"""
-from typing import Dict, Any, List
+
+from typing import Any, Dict, List
+
 from domain.novel.entities.plot_arc import PlotArc
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
@@ -29,10 +31,10 @@ class PlotArcMapper:
                     "chapter_number": point.chapter_number,
                     "point_type": point.point_type.value,
                     "description": point.description,
-                    "tension": point.tension.value
+                    "tension": point.tension.value,
                 }
                 for point in plot_arc.key_points
-            ]
+            ],
         }
 
     @staticmethod
@@ -62,7 +64,7 @@ class PlotArcMapper:
                     chapter_number=point_data["chapter_number"],
                     point_type=PlotPointType(point_data["point_type"]),
                     description=point_data["description"],
-                    tension=TensionLevel(point_data["tension"])
+                    tension=TensionLevel(point_data["tension"]),
                 )
                 key_points.append(point)
 

@@ -3,6 +3,7 @@
 与 ``SqliteChapterRepository`` 内 SQL 更新语义对齐：
 大于被删章号减 1；等于被删章号收束到 ``max(1, deleted-1)``；小于不变。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

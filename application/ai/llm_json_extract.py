@@ -3,6 +3,7 @@
 包含 JSON 智能自愈引擎 (Auto-Repair)，当模型产生残缺 JSON 时能自动补全闭合符号
 或自动切断并丢弃最后一个报错的残缺节点，确保生成流程不再卡死。
 """
+
 from __future__ import annotations
 
 import json
@@ -14,9 +15,9 @@ def strip_json_fences(raw: str) -> str:
     """去掉 ``` / ```json 代码块包装，同时剔除 ANSI 转义与 think 标签。"""
     content = raw.strip()
     # 剔除 ANSI 转义序列
-    content = re.sub(r'\x1b\[[0-9;]*m', '', content)
+    content = re.sub(r"\x1b\[[0-9;]*m", "", content)
     # 剔除  think ...  思考过程标签（DeepSeek-R1 等模型）
-    content = re.sub(r'think>.*? ', '', content, flags=re.DOTALL | re.IGNORECASE)
+    content = re.sub(r"think>.*? ", "", content, flags=re.DOTALL | re.IGNORECASE)
     if "```json" in content:
         content = content.split("```json", 1)[1].split("```", 1)[0]
     elif "```" in content:
@@ -54,7 +55,7 @@ def repair_json(text: str) -> str:
     def _do_repair(s: str) -> str:
         s = s.strip()
         if not s:
-            return '{}'
+            return "{}"
 
         in_string = False
         escape = False
@@ -66,7 +67,7 @@ def repair_json(text: str) -> str:
                 res.append(ch)
                 escape = False
                 continue
-            if ch == '\\' and in_string:
+            if ch == "\\" and in_string:
                 res.append(ch)
                 escape = True
                 continue
@@ -77,10 +78,10 @@ def repair_json(text: str) -> str:
             if in_string:
                 res.append(ch)
                 continue
-            if ch in '{[':
-                stack.append('}' if ch == '{' else ']')
+            if ch in "{[":
+                stack.append("}" if ch == "{" else "]")
                 res.append(ch)
-            elif ch in ']}' + "'":
+            elif ch in "]}" + "'":
                 if stack and stack[-1] == ch:
                     stack.pop()
                 res.append(ch)
@@ -90,11 +91,11 @@ def repair_json(text: str) -> str:
         if in_string:
             res += '"'
         res = res.strip()
-        while res.endswith(','):
+        while res.endswith(","):
             res = res[:-1].strip()
         while stack:
             res = res.strip()
-            if res.endswith(','):
+            if res.endswith(","):
                 res = res[:-1].strip()
             res += stack.pop()
         return res
@@ -108,7 +109,7 @@ def repair_json(text: str) -> str:
             json.loads(repaired)
             return repaired
         except json.JSONDecodeError:
-            idx = current_s.rfind(',')
+            idx = current_s.rfind(",")
             if idx == -1:
                 break
             current_s = current_s[:idx]

@@ -2,8 +2,9 @@
 
 适用于已有数据库的升级，新建数据库已在 schema.sql 中包含此列。
 """
-import sys
+
 import sqlite3
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

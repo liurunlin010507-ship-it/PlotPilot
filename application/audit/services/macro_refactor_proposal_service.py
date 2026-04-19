@@ -1,10 +1,11 @@
 """Macro Refactor Proposal Service - 使用 LLM 生成重构建议"""
+
 import logging
 import os
-from typing import Dict, Any
-from application.audit.dtos.macro_refactor_dto import RefactorProposalRequest, RefactorProposal
+
 from application.ai.llm_json_extract import parse_llm_json_to_dict
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from application.audit.dtos.macro_refactor_dto import RefactorProposal, RefactorProposalRequest
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
 
 logger = logging.getLogger(__name__)
@@ -34,11 +35,7 @@ class MacroRefactorProposalService:
             # 构建 LLM prompt
             prompt = self._build_prompt(request)
 
-            config = GenerationConfig(
-                model=os.getenv("SYSTEM_MODEL", ""),
-                max_tokens=2048,
-                temperature=0.7
-            )
+            config = GenerationConfig(model=os.getenv("SYSTEM_MODEL", ""), max_tokens=2048, temperature=0.7)
 
             # 调用 LLM
             result = await self.llm_service.generate(prompt, config)
@@ -55,7 +52,7 @@ class MacroRefactorProposalService:
                 natural_language_suggestion=data.get("natural_language_suggestion", ""),
                 suggested_mutations=data.get("suggested_mutations", []),
                 suggested_tags=data.get("suggested_tags", []),
-                reasoning=data.get("reasoning", "")
+                reasoning=data.get("reasoning", ""),
             )
 
         except Exception as e:
@@ -104,7 +101,7 @@ class MacroRefactorProposalService:
 {request.current_event_summary}
 
 **当前标签：**
-{', '.join(request.current_tags)}
+{", ".join(request.current_tags)}
 
 **事件 ID：**
 {request.event_id}
@@ -123,5 +120,5 @@ class MacroRefactorProposalService:
             natural_language_suggestion="无法生成具体建议，请手动检查事件标签和内容",
             suggested_mutations=[],
             suggested_tags=[],
-            reasoning="LLM 服务暂时不可用或响应格式错误"
+            reasoning="LLM 服务暂时不可用或响应格式错误",
         )

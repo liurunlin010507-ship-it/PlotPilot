@@ -1,10 +1,13 @@
 """Tests for MacroRefactorProposalService"""
+
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, Mock
+from application.dtos.macro_refactor_dto import RefactorProposal, RefactorProposalRequest
 from application.services.macro_refactor_proposal_service import MacroRefactorProposalService
-from application.dtos.macro_refactor_dto import RefactorProposalRequest, RefactorProposal
+
+from domain.ai.services.llm_service import GenerationResult
 from domain.ai.value_objects.prompt import Prompt
-from domain.ai.services.llm_service import GenerationResult, GenerationConfig
 from domain.ai.value_objects.token_usage import TokenUsage
 
 
@@ -28,7 +31,7 @@ async def test_generate_proposal_returns_structured_data(proposal_service, mock_
         event_id="evt_001",
         author_intent="让角色表现得更冷酷",
         current_event_summary="角色冲动地救了一个陌生人",
-        current_tags=["动机:冲动", "情感:同情"]
+        current_tags=["动机:冲动", "情感:同情"],
     )
 
     # Mock LLM response with JSON
@@ -45,8 +48,7 @@ async def test_generate_proposal_returns_structured_data(proposal_service, mock_
     """
 
     mock_llm_service.generate.return_value = GenerationResult(
-        content=llm_response,
-        token_usage=TokenUsage(input_tokens=100, output_tokens=200)
+        content=llm_response, token_usage=TokenUsage(input_tokens=100, output_tokens=200)
     )
 
     # Act
@@ -77,7 +79,7 @@ async def test_generate_proposal_handles_llm_error(proposal_service, mock_llm_se
         event_id="evt_001",
         author_intent="让角色表现得更冷酷",
         current_event_summary="角色冲动地救了一个陌生人",
-        current_tags=["动机:冲动"]
+        current_tags=["动机:冲动"],
     )
 
     # Mock LLM to raise exception
@@ -99,10 +101,7 @@ async def test_generate_proposal_parses_mutations(proposal_service, mock_llm_ser
     """测试正确解析 suggested_mutations 格式"""
     # Arrange
     request = RefactorProposalRequest(
-        event_id="evt_001",
-        author_intent="修复人设冲突",
-        current_event_summary="事件摘要",
-        current_tags=["tag1"]
+        event_id="evt_001", author_intent="修复人设冲突", current_event_summary="事件摘要", current_tags=["tag1"]
     )
 
     # Mock LLM response with various mutation types
@@ -120,8 +119,7 @@ async def test_generate_proposal_parses_mutations(proposal_service, mock_llm_ser
     """
 
     mock_llm_service.generate.return_value = GenerationResult(
-        content=llm_response,
-        token_usage=TokenUsage(input_tokens=100, output_tokens=200)
+        content=llm_response, token_usage=TokenUsage(input_tokens=100, output_tokens=200)
     )
 
     # Act
@@ -141,16 +139,12 @@ async def test_generate_proposal_handles_invalid_json(proposal_service, mock_llm
     """测试处理无效 JSON 响应"""
     # Arrange
     request = RefactorProposalRequest(
-        event_id="evt_001",
-        author_intent="修复",
-        current_event_summary="摘要",
-        current_tags=["tag1"]
+        event_id="evt_001", author_intent="修复", current_event_summary="摘要", current_tags=["tag1"]
     )
 
     # Mock LLM to return invalid JSON
     mock_llm_service.generate.return_value = GenerationResult(
-        content="This is not valid JSON",
-        token_usage=TokenUsage(input_tokens=100, output_tokens=50)
+        content="This is not valid JSON", token_usage=TokenUsage(input_tokens=100, output_tokens=50)
     )
 
     # Act

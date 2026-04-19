@@ -1,4 +1,5 @@
 """GhostAnnotation DTO 单元测试"""
+
 import pytest
 from application.dtos.ghost_annotation import GhostAnnotation
 
@@ -15,7 +16,7 @@ class TestGhostAnnotation:
             entity_id="char-001",
             entity_name="李明",
             expected="水系",
-            actual="火系"
+            actual="火系",
         )
 
         assert annotation.type == "setting_conflict"
@@ -28,11 +29,7 @@ class TestGhostAnnotation:
 
     def test_create_ghost_annotation_minimal(self):
         """测试创建最小字段的批注"""
-        annotation = GhostAnnotation(
-            type="other",
-            severity="info",
-            message="提示信息"
-        )
+        annotation = GhostAnnotation(type="other", severity="info", message="提示信息")
 
         assert annotation.type == "other"
         assert annotation.severity == "info"
@@ -45,47 +42,27 @@ class TestGhostAnnotation:
     def test_create_ghost_annotation_empty_type(self):
         """测试空 type 抛出异常"""
         with pytest.raises(ValueError, match="type cannot be empty"):
-            GhostAnnotation(
-                type="",
-                severity="warning",
-                message="测试"
-            )
+            GhostAnnotation(type="", severity="warning", message="测试")
 
     def test_create_ghost_annotation_empty_severity(self):
         """测试空 severity 抛出异常"""
         with pytest.raises(ValueError, match="severity cannot be empty"):
-            GhostAnnotation(
-                type="setting_conflict",
-                severity="",
-                message="测试"
-            )
+            GhostAnnotation(type="setting_conflict", severity="", message="测试")
 
     def test_create_ghost_annotation_empty_message(self):
         """测试空 message 抛出异常"""
         with pytest.raises(ValueError, match="message cannot be empty"):
-            GhostAnnotation(
-                type="setting_conflict",
-                severity="warning",
-                message=""
-            )
+            GhostAnnotation(type="setting_conflict", severity="warning", message="")
 
     def test_create_ghost_annotation_invalid_type(self):
         """测试无效的 type"""
         with pytest.raises(ValueError, match="type must be one of"):
-            GhostAnnotation(
-                type="invalid_type",
-                severity="warning",
-                message="测试"
-            )
+            GhostAnnotation(type="invalid_type", severity="warning", message="测试")
 
     def test_create_ghost_annotation_invalid_severity(self):
         """测试无效的 severity"""
         with pytest.raises(ValueError, match="severity must be one of"):
-            GhostAnnotation(
-                type="setting_conflict",
-                severity="critical",
-                message="测试"
-            )
+            GhostAnnotation(type="setting_conflict", severity="critical", message="测试")
 
     def test_to_dict(self):
         """测试转换为字典"""
@@ -96,7 +73,7 @@ class TestGhostAnnotation:
             entity_id="char-001",
             entity_name="李明",
             expected="水系",
-            actual="火系"
+            actual="火系",
         )
 
         result = annotation.to_dict()
@@ -108,16 +85,12 @@ class TestGhostAnnotation:
             "entity_id": "char-001",
             "entity_name": "李明",
             "expected": "水系",
-            "actual": "火系"
+            "actual": "火系",
         }
 
     def test_to_dict_with_none_values(self):
         """测试包含 None 值的字典转换"""
-        annotation = GhostAnnotation(
-            type="other",
-            severity="info",
-            message="测试"
-        )
+        annotation = GhostAnnotation(type="other", severity="info", message="测试")
 
         result = annotation.to_dict()
 
@@ -128,16 +101,12 @@ class TestGhostAnnotation:
             "entity_id": None,
             "entity_name": None,
             "expected": None,
-            "actual": None
+            "actual": None,
         }
 
     def test_ghost_annotation_is_frozen(self):
         """测试 GhostAnnotation 是不可变的"""
-        annotation = GhostAnnotation(
-            type="setting_conflict",
-            severity="warning",
-            message="测试"
-        )
+        annotation = GhostAnnotation(type="setting_conflict", severity="warning", message="测试")
 
         with pytest.raises(Exception):  # dataclass frozen=True 会抛出异常
             annotation.message = "新消息"
@@ -147,11 +116,7 @@ class TestGhostAnnotation:
         valid_types = ["setting_conflict", "character_inconsistency", "timeline_error", "other"]
 
         for type_value in valid_types:
-            annotation = GhostAnnotation(
-                type=type_value,
-                severity="warning",
-                message="测试"
-            )
+            annotation = GhostAnnotation(type=type_value, severity="warning", message="测试")
             assert annotation.type == type_value
 
     def test_all_valid_severities(self):
@@ -159,9 +124,5 @@ class TestGhostAnnotation:
         valid_severities = ["info", "warning", "error"]
 
         for severity_value in valid_severities:
-            annotation = GhostAnnotation(
-                type="other",
-                severity=severity_value,
-                message="测试"
-            )
+            annotation = GhostAnnotation(type="other", severity=severity_value, message="测试")
             assert annotation.severity == severity_value

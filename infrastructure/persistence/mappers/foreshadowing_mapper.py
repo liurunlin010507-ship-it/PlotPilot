@@ -1,14 +1,16 @@
 """ForeshadowingRegistry 数据映射器"""
-from typing import Dict, Any
+
 from datetime import datetime
+from typing import Any, Dict
+
 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
 from domain.novel.entities.subtext_ledger_entry import SubtextLedgerEntry
-from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.foreshadowing import (
     Foreshadowing,
     ForeshadowingStatus,
     ImportanceLevel,
 )
+from domain.novel.value_objects.novel_id import NovelId
 
 
 class ForeshadowingMapper:
@@ -90,9 +92,7 @@ class ForeshadowingMapper:
             for f_data in data["foreshadowings"]:
                 foreshadowing = Foreshadowing(
                     id=f_data["id"],
-                    planted_in_chapter=ForeshadowingMapper._to_int(
-                        f_data["planted_in_chapter"], "planted_in_chapter"
-                    ),
+                    planted_in_chapter=ForeshadowingMapper._to_int(f_data["planted_in_chapter"], "planted_in_chapter"),
                     description=f_data["description"],
                     importance=ImportanceLevel(f_data["importance"]),
                     status=ForeshadowingStatus(f_data["status"]),

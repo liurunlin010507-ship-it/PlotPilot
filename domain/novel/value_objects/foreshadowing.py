@@ -5,22 +5,25 @@ from typing import Optional
 
 class ForeshadowingStatus(str, Enum):
     """伏笔状态"""
-    PLANTED = "planted"      # 已埋下
-    RESOLVED = "resolved"    # 已解决
+
+    PLANTED = "planted"  # 已埋下
+    RESOLVED = "resolved"  # 已解决
     ABANDONED = "abandoned"  # 已放弃
 
 
 class ImportanceLevel(int, Enum):
     """重要性级别"""
-    LOW = 1        # 低
-    MEDIUM = 2     # 中等
-    HIGH = 3       # 高
-    CRITICAL = 4   # 关键
+
+    LOW = 1  # 低
+    MEDIUM = 2  # 中等
+    HIGH = 3  # 高
+    CRITICAL = 4  # 关键
 
 
 @dataclass(frozen=True)
 class Foreshadowing:
     """伏笔值对象"""
+
     id: str
     planted_in_chapter: int
     description: str

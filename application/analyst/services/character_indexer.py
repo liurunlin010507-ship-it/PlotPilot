@@ -1,8 +1,9 @@
-from typing import List, Dict
-from domain.bible.entities.character import Character
-from domain.bible.value_objects.character_id import CharacterId
+from typing import Dict, List
+
 from domain.ai.services.embedding_service import EmbeddingService
 from domain.ai.services.vector_store import VectorStore
+from domain.bible.entities.character import Character
+from domain.bible.value_objects.character_id import CharacterId
 
 
 class CharacterIndexer:
@@ -12,10 +13,7 @@ class CharacterIndexer:
     """
 
     def __init__(
-        self,
-        embedding_service: EmbeddingService,
-        vector_store: VectorStore,
-        collection_name: str = "characters"
+        self, embedding_service: EmbeddingService, vector_store: VectorStore, collection_name: str = "characters"
     ):
         self.embedding_service = embedding_service
         self.vector_store = vector_store
@@ -26,10 +24,7 @@ class CharacterIndexer:
     async def initialize_collection(self) -> None:
         """初始化向量集合"""
         dimension = self.embedding_service.get_dimension()
-        await self.vector_store.create_collection(
-            collection=self.collection_name,
-            dimension=dimension
-        )
+        await self.vector_store.create_collection(collection=self.collection_name, dimension=dimension)
 
     async def index_character(self, character: Character) -> None:
         """索引单个角色
@@ -57,10 +52,7 @@ class CharacterIndexer:
             collection=self.collection_name,
             id=character.character_id.value,
             vector=vector,
-            payload={
-                "name": character.name,
-                "description": character.description
-            }
+            payload={"name": character.name, "description": character.description},
         )
 
     async def batch_index_characters(self, characters: List[Character]) -> None:
@@ -72,11 +64,7 @@ class CharacterIndexer:
         for character in characters:
             await self.index_character(character)
 
-    async def search_by_description(
-        self,
-        query: str,
-        limit: int = 10
-    ) -> List[Dict]:
+    async def search_by_description(self, query: str, limit: int = 10) -> List[Dict]:
         """按描述搜索角色
 
         Args:
@@ -97,18 +85,12 @@ class CharacterIndexer:
 
         # 搜索相似向量
         results = await self.vector_store.search(
-            collection=self.collection_name,
-            query_vector=query_vector,
-            limit=limit
+            collection=self.collection_name, query_vector=query_vector, limit=limit
         )
 
         return results
 
-    async def find_similar_characters(
-        self,
-        character_id: CharacterId,
-        limit: int = 10
-    ) -> List[Dict]:
+    async def find_similar_characters(self, character_id: CharacterId, limit: int = 10) -> List[Dict]:
         """查找相似角色
 
         Args:
@@ -131,9 +113,7 @@ class CharacterIndexer:
 
         # 搜索相似向量
         results = await self.vector_store.search(
-            collection=self.collection_name,
-            query_vector=query_vector,
-            limit=limit
+            collection=self.collection_name, query_vector=query_vector, limit=limit
         )
 
         # 过滤掉自己
@@ -150,10 +130,7 @@ class CharacterIndexer:
         char_id_str = character_id.value
 
         # 从向量存储中删除
-        await self.vector_store.delete(
-            collection=self.collection_name,
-            id=char_id_str
-        )
+        await self.vector_store.delete(collection=self.collection_name, id=char_id_str)
 
         # 从缓存中删除
         if char_id_str in self._character_vectors:

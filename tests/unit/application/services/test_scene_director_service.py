@@ -1,11 +1,12 @@
 """SceneDirectorService 单元测试"""
-import pytest
+
 from unittest.mock import AsyncMock, Mock
 
+import pytest
 from application.dtos.scene_director_dto import SceneDirectorAnalysis
 from application.services.scene_director_service import SceneDirectorService
-from domain.ai.services.llm_service import GenerationConfig, GenerationResult
-from domain.ai.value_objects.prompt import Prompt
+
+from domain.ai.services.llm_service import GenerationResult
 from domain.ai.value_objects.token_usage import TokenUsage
 
 
@@ -268,4 +269,3 @@ def test_performance_notes_is_list_of_strings():
     assert isinstance(result.performance_notes, list)
     assert all(isinstance(note, str) for note in result.performance_notes)
     assert result.performance_notes == ["glances around", "fidgets with hands", "voice trembles"]
-

@@ -1,7 +1,8 @@
 """Unit tests for voice fingerprint service."""
-import pytest
+
 from unittest.mock import Mock
 
+import pytest
 from application.services.voice_fingerprint_service import VoiceFingerprintService
 
 
@@ -47,9 +48,7 @@ class TestVoiceFingerprintService:
         assert result["avg_sentence_length"] == 0.0
         assert result["sentence_count"] == 0
 
-    def test_maybe_recompute_triggers_at_threshold(
-        self, service, mock_sample_repo, mock_fingerprint_repo
-    ):
+    def test_maybe_recompute_triggers_at_threshold(self, service, mock_sample_repo, mock_fingerprint_repo):
         """Test that recompute triggers when sample count reaches threshold."""
         novel_id = "novel-123"
         samples = [{"content": f"样本{i}。"} for i in range(10)]
@@ -68,9 +67,7 @@ class TestVoiceFingerprintService:
         assert "sample_count" in call_args[0][1]
         assert call_args[0][1]["sample_count"] == 10
 
-    def test_maybe_recompute_skips_below_threshold(
-        self, service, mock_sample_repo, mock_fingerprint_repo
-    ):
+    def test_maybe_recompute_skips_below_threshold(self, service, mock_sample_repo, mock_fingerprint_repo):
         """Test that recompute does not trigger below threshold."""
         novel_id = "novel-123"
         samples = [{"content": f"样本{i}。"} for i in range(5)]
@@ -82,9 +79,7 @@ class TestVoiceFingerprintService:
         mock_sample_repo.get_by_novel.assert_called_once_with(novel_id, None)
         mock_fingerprint_repo.upsert.assert_not_called()
 
-    def test_maybe_recompute_with_pov_character(
-        self, service, mock_sample_repo, mock_fingerprint_repo
-    ):
+    def test_maybe_recompute_with_pov_character(self, service, mock_sample_repo, mock_fingerprint_repo):
         """Test recompute with POV character ID."""
         novel_id = "novel-123"
         pov_character_id = "char-456"
@@ -94,16 +89,12 @@ class TestVoiceFingerprintService:
         result = service.maybe_recompute(novel_id, pov_character_id)
 
         assert result is True
-        mock_sample_repo.get_by_novel.assert_called_once_with(
-            novel_id, pov_character_id
-        )
+        mock_sample_repo.get_by_novel.assert_called_once_with(novel_id, pov_character_id)
         mock_fingerprint_repo.upsert.assert_called_once()
         call_args = mock_fingerprint_repo.upsert.call_args
         assert call_args[0][2] == pov_character_id
 
-    def test_maybe_recompute_only_at_multiples_of_threshold(
-        self, service, mock_sample_repo, mock_fingerprint_repo
-    ):
+    def test_maybe_recompute_only_at_multiples_of_threshold(self, service, mock_sample_repo, mock_fingerprint_repo):
         """Test that recompute only triggers at exact multiples of threshold."""
         novel_id = "novel-123"
 

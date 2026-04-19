@@ -2,12 +2,14 @@
 
 import logging
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from domain.ai.services.llm_service import GenerationConfig
-from application.workbench.services.sandbox_dialogue_service import SandboxDialogueService
+
 from application.workbench.dtos.sandbox_dto import DialogueWhitelistResponse
-from interfaces.api.dependencies import get_sandbox_dialogue_service, get_bible_service, get_llm_service
+from application.workbench.services.sandbox_dialogue_service import SandboxDialogueService
+from domain.ai.services.llm_service import GenerationConfig
+from interfaces.api.dependencies import get_bible_service, get_llm_service, get_sandbox_dialogue_service
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/novels", tags=["sandbox"])
 
 class CharacterAnchorResponse(BaseModel):
     """角色心理锚点响应"""
+
     character_id: str
     character_name: str
     mental_state: str
@@ -25,6 +28,7 @@ class CharacterAnchorResponse(BaseModel):
 
 class UpdateCharacterAnchorRequest(BaseModel):
     """保存角色声线锚点到 Bible（bible_characters）"""
+
     mental_state: str = "NORMAL"
     verbal_tic: str = ""
     idle_behavior: str = ""
@@ -32,6 +36,7 @@ class UpdateCharacterAnchorRequest(BaseModel):
 
 class GenerateDialogueRequest(BaseModel):
     """生成对话请求"""
+
     novel_id: str
     character_id: str
     scene_prompt: str
@@ -42,6 +47,7 @@ class GenerateDialogueRequest(BaseModel):
 
 class GenerateDialogueResponse(BaseModel):
     """生成对话响应"""
+
     dialogue: str
     character_name: str
 
@@ -51,7 +57,7 @@ async def get_dialogue_whitelist(
     novel_id: str,
     chapter_number: Optional[int] = Query(None, ge=1, description="Filter by chapter number"),
     speaker: Optional[str] = Query(None, description="Filter by speaker name"),
-    service: SandboxDialogueService = Depends(get_sandbox_dialogue_service)
+    service: SandboxDialogueService = Depends(get_sandbox_dialogue_service),
 ) -> DialogueWhitelistResponse:
     """
     Get dialogue whitelist for sandbox simulation.
@@ -72,11 +78,7 @@ async def get_dialogue_whitelist(
         HTTPException: 500 if internal error occurs
     """
     try:
-        result = service.get_dialogue_whitelist(
-            novel_id=novel_id,
-            chapter_number=chapter_number,
-            speaker=speaker
-        )
+        result = service.get_dialogue_whitelist(novel_id=novel_id, chapter_number=chapter_number, speaker=speaker)
         return result
 
     except Exception as e:
@@ -85,11 +87,7 @@ async def get_dialogue_whitelist(
 
 
 @router.get("/{novel_id}/sandbox/character/{character_id}/anchor", response_model=CharacterAnchorResponse)
-async def get_character_anchor(
-    novel_id: str,
-    character_id: str,
-    bible_service = Depends(get_bible_service)
-):
+async def get_character_anchor(novel_id: str, character_id: str, bible_service=Depends(get_bible_service)):
     """
     获取角色心理锚点数据
 
@@ -163,8 +161,8 @@ async def patch_character_anchor(
 @router.post("/sandbox/generate-dialogue", response_model=GenerateDialogueResponse)
 async def generate_dialogue(
     request: GenerateDialogueRequest,
-    bible_service = Depends(get_bible_service),
-    llm_service = Depends(get_llm_service),
+    bible_service=Depends(get_bible_service),
+    llm_service=Depends(get_llm_service),
     sandbox_service: SandboxDialogueService = Depends(get_sandbox_dialogue_service),
 ):
     """
@@ -187,13 +185,9 @@ async def generate_dialogue(
             if request.mental_state is not None
             else (getattr(ch, "mental_state", None) or "NORMAL")
         )
-        verbal_tic = (
-            request.verbal_tic if request.verbal_tic is not None else (getattr(ch, "verbal_tic", None) or "")
-        )
+        verbal_tic = request.verbal_tic if request.verbal_tic is not None else (getattr(ch, "verbal_tic", None) or "")
         idle_behavior = (
-            request.idle_behavior
-            if request.idle_behavior is not None
-            else (getattr(ch, "idle_behavior", None) or "")
+            request.idle_behavior if request.idle_behavior is not None else (getattr(ch, "idle_behavior", None) or "")
         )
 
         recent_dialogues = sandbox_service.get_recent_character_dialogues(
@@ -217,14 +211,10 @@ async def generate_dialogue(
         if not dialogue:
             raise RuntimeError("LLM returned empty dialogue content")
 
-        return GenerateDialogueResponse(
-            dialogue=dialogue,
-            character_name=character_name
-        )
+        return GenerateDialogueResponse(dialogue=dialogue, character_name=character_name)
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error generating dialogue: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate dialogue")
-

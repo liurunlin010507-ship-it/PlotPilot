@@ -1,12 +1,15 @@
 """端到端集成测试 - Novel 工作流"""
-import pytest
-import tempfile
+
 import shutil
+import tempfile
 from pathlib import Path
-from infrastructure.persistence.storage.file_storage import FileStorage
-from infrastructure.persistence.repositories.file_novel_repository import FileNovelRepository
-from infrastructure.persistence.repositories.file_chapter_repository import FileChapterRepository
+
+import pytest
 from application.services.novel_service import NovelService
+from infrastructure.persistence.repositories.file_chapter_repository import FileChapterRepository
+from infrastructure.persistence.repositories.file_novel_repository import FileNovelRepository
+
+from infrastructure.persistence.storage.file_storage import FileStorage
 
 
 class TestNovelWorkflow:
@@ -30,12 +33,7 @@ class TestNovelWorkflow:
     def test_complete_novel_workflow(self, service):
         """测试完整的小说创建和管理流程"""
         # 1. 创建小说
-        novel_dto = service.create_novel(
-            novel_id="test-novel",
-            title="测试小说",
-            author="测试作者",
-            target_chapters=3
-        )
+        novel_dto = service.create_novel(novel_id="test-novel", title="测试小说", author="测试作者", target_chapters=3)
 
         assert novel_dto.id == "test-novel"
         assert novel_dto.title == "测试小说"
@@ -44,11 +42,7 @@ class TestNovelWorkflow:
 
         # 2. 添加第一章
         novel_dto = service.add_chapter(
-            novel_id="test-novel",
-            chapter_id="chapter-1",
-            number=1,
-            title="第一章：开始",
-            content="这是第一章的内容。"
+            novel_id="test-novel", chapter_id="chapter-1", number=1, title="第一章：开始", content="这是第一章的内容。"
         )
 
         assert len(novel_dto.chapters) == 1
@@ -61,7 +55,7 @@ class TestNovelWorkflow:
             chapter_id="chapter-2",
             number=2,
             title="第二章：发展",
-            content="这是第二章的内容，更长一些。"
+            content="这是第二章的内容，更长一些。",
         )
 
         assert len(novel_dto.chapters) == 2
@@ -113,7 +107,7 @@ class TestNovelWorkflow:
                 chapter_id=f"chapter-{i}",
                 number=i,
                 title=f"第{i}章",
-                content=f"这是第{i}章的内容。" * 10
+                content=f"这是第{i}章的内容。" * 10,
             )
 
         # 验证

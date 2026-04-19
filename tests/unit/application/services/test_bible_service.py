@@ -1,13 +1,13 @@
 """BibleService 单元测试"""
-import pytest
+
 from unittest.mock import Mock
+
+import pytest
+from application.services.bible_service import BibleService
+
 from domain.bible.entities.bible import Bible
-from domain.bible.entities.character import Character
-from domain.bible.entities.world_setting import WorldSetting
-from domain.bible.value_objects.character_id import CharacterId
 from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
-from application.services.bible_service import BibleService
 
 
 class TestBibleService:
@@ -25,10 +25,7 @@ class TestBibleService:
 
     def test_create_bible(self, service, mock_repository):
         """测试创建 Bible"""
-        bible_dto = service.create_bible(
-            bible_id="bible-1",
-            novel_id="novel-1"
-        )
+        bible_dto = service.create_bible(bible_id="bible-1", novel_id="novel-1")
 
         assert bible_dto.id == "bible-1"
         assert bible_dto.novel_id == "novel-1"
@@ -45,10 +42,7 @@ class TestBibleService:
         mock_repository.get_by_novel_id.return_value = bible
 
         bible_dto = service.add_character(
-            novel_id="novel-1",
-            character_id="char-1",
-            name="主角",
-            description="主角描述"
+            novel_id="novel-1", character_id="char-1", name="主角", description="主角描述"
         )
 
         assert bible_dto.id == "bible-1"
@@ -64,12 +58,7 @@ class TestBibleService:
         mock_repository.get_by_novel_id.return_value = None
 
         with pytest.raises(EntityNotFoundError, match="Bible"):
-            service.add_character(
-                novel_id="nonexistent",
-                character_id="char-1",
-                name="主角",
-                description="主角描述"
-            )
+            service.add_character(novel_id="nonexistent", character_id="char-1", name="主角", description="主角描述")
 
     def test_add_world_setting(self, service, mock_repository):
         """测试添加世界设定"""
@@ -78,11 +67,7 @@ class TestBibleService:
         mock_repository.get_by_novel_id.return_value = bible
 
         bible_dto = service.add_world_setting(
-            novel_id="novel-1",
-            setting_id="setting-1",
-            name="魔法系统",
-            description="魔法系统描述",
-            setting_type="rule"
+            novel_id="novel-1", setting_id="setting-1", name="魔法系统", description="魔法系统描述", setting_type="rule"
         )
 
         assert bible_dto.id == "bible-1"
@@ -104,7 +89,7 @@ class TestBibleService:
                 setting_id="setting-1",
                 name="魔法系统",
                 description="魔法系统描述",
-                setting_type="rule"
+                setting_type="rule",
             )
 
     def test_get_bible_by_novel(self, service, mock_repository):

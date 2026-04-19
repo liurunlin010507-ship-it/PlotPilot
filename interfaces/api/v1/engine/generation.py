@@ -1,43 +1,46 @@
 """生成工作流 API 端点"""
+
 from __future__ import annotations
+
 import json
 import logging
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
-from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
-from application.engine.services.hosted_write_service import HostedWriteService
+
 from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
+from application.engine.services.hosted_write_service import HostedWriteService
+from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
 from domain.novel.services.storyline_manager import StorylineManager
 
 logger = logging.getLogger(__name__)
-from domain.novel.repositories.plot_arc_repository import PlotArcRepository
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.tension_level import TensionLevel
-from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
-from domain.novel.entities.plot_arc import PlotArc
-from interfaces.api.dependencies import (
-    get_auto_workflow,
-    get_hosted_write_service,
-    get_storyline_manager,
-    get_plot_arc_repository,
-    get_bible_service,
-    get_novel_service,
-    get_chapter_service,
-    get_auto_bible_generator,
-    get_auto_knowledge_generator,
-    get_setup_main_plot_suggestion_service,
-)
 # from application.services.story_structure_ai_service import StoryStructureAIService  # 已废弃，使用 ContinuousPlanningService
 from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
 from application.paths import DATA_DIR
 from application.world.services.auto_bible_generator import AutoBibleGenerator
 from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
+from domain.novel.entities.plot_arc import PlotArc
+from domain.novel.repositories.plot_arc_repository import PlotArcRepository
+from domain.novel.value_objects.novel_id import NovelId
+from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
+from domain.novel.value_objects.storyline_type import StorylineType
+from domain.novel.value_objects.tension_level import TensionLevel
+from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+from interfaces.api.dependencies import (
+    get_auto_bible_generator,
+    get_auto_knowledge_generator,
+    get_auto_workflow,
+    get_bible_service,
+    get_chapter_service,
+    get_hosted_write_service,
+    get_novel_service,
+    get_plot_arc_repository,
+    get_setup_main_plot_suggestion_service,
+    get_storyline_manager,
+)
 
 router = APIRouter(prefix="/novels", tags=["generation"])
 
@@ -63,7 +66,7 @@ def get_continuous_planning_service() -> ContinuousPlanningService:
     chapter_element_repo = ChapterElementRepository(db_path)
 
     from application.world.services.bible_service import BibleService
-    from interfaces.api.dependencies import get_bible_repository, get_llm_service, get_chapter_repository
+    from interfaces.api.dependencies import get_bible_repository, get_chapter_repository, get_llm_service
 
     bible_service = BibleService(get_bible_repository())
     llm_service = get_llm_service()
@@ -74,13 +77,14 @@ def get_continuous_planning_service() -> ContinuousPlanningService:
         chapter_element_repo=chapter_element_repo,
         llm_service=llm_service,
         bible_service=bible_service,
-        chapter_repository=chapter_repository
+        chapter_repository=chapter_repository,
     )
 
 
 # Request/Response Models
 class GenerateChapterRequest(BaseModel):
     """生成章节请求"""
+
     chapter_number: int = Field(..., gt=0, description="章节号（必须 > 0）")
     outline: str = Field(..., min_length=1, description="章节大纲")
     scene_director_result: Optional[dict] = Field(None, description="可选的场记分析结果")
@@ -88,6 +92,7 @@ class GenerateChapterRequest(BaseModel):
 
 class StorylineMilestoneResponse(BaseModel):
     """故事线里程碑响应"""
+
     order: int
     title: str
     description: str = ""
@@ -99,6 +104,7 @@ class StorylineMilestoneResponse(BaseModel):
 
 class StorylineMergePoint(BaseModel):
     """故事线合并点（多线交汇的章节）"""
+
     chapter_number: int
     storyline_ids: List[str]
     merge_type: str = "convergence"  # convergence(汇聚) / divergence(分叉)
@@ -107,6 +113,7 @@ class StorylineMergePoint(BaseModel):
 
 class StorylineResponse(BaseModel):
     """故事线响应（增强版，含里程碑）"""
+
     id: str
     storyline_type: str
     status: str
@@ -122,6 +129,7 @@ class StorylineResponse(BaseModel):
 
 class StorylineGraphData(BaseModel):
     """Git Graph 视图所需的全量数据"""
+
     storylines: List[StorylineResponse]
     merge_points: List[StorylineMergePoint] = []
     total_chapters: int = 0
@@ -129,6 +137,7 @@ class StorylineGraphData(BaseModel):
 
 class CreateStorylineRequest(BaseModel):
     """创建故事线请求"""
+
     storyline_type: str = Field(..., description="故事线类型")
     estimated_chapter_start: int = Field(..., gt=0)
     estimated_chapter_end: int = Field(..., gt=0)
@@ -138,6 +147,7 @@ class CreateStorylineRequest(BaseModel):
 
 class MainPlotOptionItem(BaseModel):
     """向导推演得到的一条主线候选"""
+
     id: str
     type: str = ""
     title: str
@@ -181,6 +191,7 @@ def _storyline_to_response(storyline) -> StorylineResponse:
 
 class PlotPointResponse(BaseModel):
     """情节点响应"""
+
     chapter_number: int
     tension: int
     description: str
@@ -189,6 +200,7 @@ class PlotPointResponse(BaseModel):
 
 class PlotArcResponse(BaseModel):
     """情节弧响应"""
+
     id: str
     novel_id: str
     key_points: List[PlotPointResponse]
@@ -196,6 +208,7 @@ class PlotArcResponse(BaseModel):
 
 class PlotPointRequest(BaseModel):
     """情节点请求"""
+
     chapter_number: int = Field(..., gt=0)
     tension: int = Field(..., ge=1, le=4)
     description: str
@@ -204,11 +217,13 @@ class PlotPointRequest(BaseModel):
 
 class CreatePlotArcRequest(BaseModel):
     """创建情节弧请求"""
+
     key_points: List[PlotPointRequest]
 
 
 class HostedWriteStreamRequest(BaseModel):
     """托管连写（多章）请求"""
+
     from_chapter: int = Field(..., gt=0, description="起始章号")
     to_chapter: int = Field(..., gt=0, description="结束章号（含）")
     auto_save: bool = Field(True, description="每章生成后是否写入章节正文")
@@ -224,9 +239,7 @@ class HostedWriteStreamRequest(BaseModel):
     status_code=status.HTTP_200_OK,
 )
 async def generate_chapter_stream(
-    novel_id: str,
-    request: GenerateChapterRequest,
-    workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow)
+    novel_id: str, request: GenerateChapterRequest, workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow)
 ):
     """流式生成章节（SSE）
 
@@ -250,7 +263,7 @@ async def generate_chapter_stream(
             novel_id=novel_id,
             chapter_number=request.chapter_number,
             outline=request.outline,
-            scene_director=scene_director
+            scene_director=scene_director,
         ):
             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
@@ -284,7 +297,7 @@ async def hosted_write_stream(
     logger.info(f"  auto_save: {request.auto_save}, auto_outline: {request.auto_outline}")
 
     if request.to_chapter < request.from_chapter:
-        logger.error(f"API 错误: to_chapter < from_chapter")
+        logger.error("API 错误: to_chapter < from_chapter")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="to_chapter must be >= from_chapter",
@@ -336,15 +349,8 @@ async def suggest_main_plot_options(
         )
 
 
-@router.get(
-    "/{novel_id}/storylines",
-    response_model=List[StorylineResponse],
-    status_code=status.HTTP_200_OK
-)
-def get_storylines(
-    novel_id: str,
-    manager: StorylineManager = Depends(get_storyline_manager)
-):
+@router.get("/{novel_id}/storylines", response_model=List[StorylineResponse], status_code=status.HTTP_200_OK)
+def get_storylines(novel_id: str, manager: StorylineManager = Depends(get_storyline_manager)):
     """获取小说的所有故事线"""
     try:
         storylines = manager.repository.get_by_novel_id(NovelId(novel_id))
@@ -352,20 +358,12 @@ def get_storylines(
         return [_storyline_to_response(storyline) for storyline in storylines]
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get storylines: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get storylines: {str(e)}"
         )
 
 
-@router.get(
-    "/{novel_id}/storylines/graph-data",
-    response_model=StorylineGraphData,
-    status_code=status.HTTP_200_OK
-)
-def get_storyline_graph_data(
-    novel_id: str,
-    manager: StorylineManager = Depends(get_storyline_manager)
-):
+@router.get("/{novel_id}/storylines/graph-data", response_model=StorylineGraphData, status_code=status.HTTP_200_OK)
+def get_storyline_graph_data(novel_id: str, manager: StorylineManager = Depends(get_storyline_manager)):
     """获取 Git Graph 视图所需的全量数据（故事线 + 合并点）"""
     try:
         storylines = manager.repository.get_by_novel_id(NovelId(novel_id))
@@ -388,8 +386,7 @@ def get_storyline_graph_data(
     except Exception as e:
         logger.exception("get_storyline_graph_data failed")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get graph data: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get graph data: {str(e)}"
         )
 
 
@@ -428,36 +425,34 @@ def _compute_merge_points(storylines: List[StorylineResponse]) -> List[Storyline
         else:
             # 输出上一个区间
             ids = list(set(chapter_to_lines[start_ch]))
-            merge_points.append(StorylineMergePoint(
-                chapter_number=start_ch,
-                storyline_ids=ids,
-                merge_type="convergence",
-                description=f"第{start_ch}-{prev_ch}章：{'、'.join(ids)} 汇合",
-            ))
+            merge_points.append(
+                StorylineMergePoint(
+                    chapter_number=start_ch,
+                    storyline_ids=ids,
+                    merge_type="convergence",
+                    description=f"第{start_ch}-{prev_ch}章：{'、'.join(ids)} 汇合",
+                )
+            )
             start_ch = ch
             prev_ch = ch
 
     # 最后一个区间
     ids = list(set(chapter_to_lines[start_ch]))
-    merge_points.append(StorylineMergePoint(
-        chapter_number=start_ch,
-        storyline_ids=ids,
-        merge_type="convergence",
-        description=f"第{start_ch}-{prev_ch}章：多线汇合推进",
-    ))
+    merge_points.append(
+        StorylineMergePoint(
+            chapter_number=start_ch,
+            storyline_ids=ids,
+            merge_type="convergence",
+            description=f"第{start_ch}-{prev_ch}章：多线汇合推进",
+        )
+    )
 
     return merge_points
 
 
-@router.post(
-    "/{novel_id}/storylines",
-    response_model=StorylineResponse,
-    status_code=status.HTTP_201_CREATED
-)
+@router.post("/{novel_id}/storylines", response_model=StorylineResponse, status_code=status.HTTP_201_CREATED)
 def create_storyline(
-    novel_id: str,
-    request: CreateStorylineRequest,
-    manager: StorylineManager = Depends(get_storyline_manager)
+    novel_id: str, request: CreateStorylineRequest, manager: StorylineManager = Depends(get_storyline_manager)
 ):
     """创建新的故事线"""
     try:
@@ -475,13 +470,13 @@ def create_storyline(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create storyline: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create storyline: {str(e)}"
         )
 
 
 class UpdateStorylineRequest(BaseModel):
     """更新故事线请求"""
+
     storyline_type: Optional[str] = None
     estimated_chapter_start: Optional[int] = Field(None, gt=0)
     estimated_chapter_end: Optional[int] = Field(None, gt=0)
@@ -490,16 +485,12 @@ class UpdateStorylineRequest(BaseModel):
     description: Optional[str] = None
 
 
-@router.put(
-    "/{novel_id}/storylines/{storyline_id}",
-    response_model=StorylineResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.put("/{novel_id}/storylines/{storyline_id}", response_model=StorylineResponse, status_code=status.HTTP_200_OK)
 def update_storyline(
     novel_id: str,
     storyline_id: str,
     request: UpdateStorylineRequest,
-    manager: StorylineManager = Depends(get_storyline_manager)
+    manager: StorylineManager = Depends(get_storyline_manager),
 ):
     """更新故事线"""
     try:
@@ -515,6 +506,7 @@ def update_storyline(
             storyline.estimated_chapter_end = request.estimated_chapter_end
         if request.status is not None:
             from domain.novel.value_objects.storyline_status import StorylineStatus
+
             storyline.status = StorylineStatus(request.status)
         if request.name is not None:
             storyline.name = request.name.strip()
@@ -530,20 +522,12 @@ def update_storyline(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update storyline: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update storyline: {str(e)}"
         )
 
 
-@router.delete(
-    "/{novel_id}/storylines/{storyline_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-)
-def delete_storyline(
-    novel_id: str,
-    storyline_id: str,
-    manager: StorylineManager = Depends(get_storyline_manager)
-):
+@router.delete("/{novel_id}/storylines/{storyline_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_storyline(novel_id: str, storyline_id: str, manager: StorylineManager = Depends(get_storyline_manager)):
     """删除故事线"""
     try:
         storyline = manager.repository.get_by_id(storyline_id)
@@ -554,28 +538,19 @@ def delete_storyline(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete storyline: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete storyline: {str(e)}"
         )
 
 
-@router.get(
-    "/{novel_id}/plot-arc",
-    response_model=PlotArcResponse,
-    status_code=status.HTTP_200_OK
-)
-def get_plot_arc(
-    novel_id: str,
-    repository: PlotArcRepository = Depends(get_plot_arc_repository)
-):
+@router.get("/{novel_id}/plot-arc", response_model=PlotArcResponse, status_code=status.HTTP_200_OK)
+def get_plot_arc(novel_id: str, repository: PlotArcRepository = Depends(get_plot_arc_repository)):
     """获取小说的情节弧"""
     try:
         plot_arc = repository.get_by_novel_id(NovelId(novel_id))
 
         if plot_arc is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Plot arc not found for novel {novel_id}"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Plot arc not found for novel {novel_id}"
             )
 
         return PlotArcResponse(
@@ -586,29 +561,22 @@ def get_plot_arc(
                     chapter_number=point.chapter_number,
                     tension=point.tension.value,
                     description=point.description,
-                    point_type=point.point_type.value if hasattr(point.point_type, 'value') else str(point.point_type)
+                    point_type=point.point_type.value if hasattr(point.point_type, "value") else str(point.point_type),
                 )
                 for point in plot_arc.key_points
-            ]
+            ],
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get plot arc: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get plot arc: {str(e)}"
         )
 
 
-@router.post(
-    "/{novel_id}/plot-arc",
-    response_model=PlotArcResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.post("/{novel_id}/plot-arc", response_model=PlotArcResponse, status_code=status.HTTP_200_OK)
 def create_or_update_plot_arc(
-    novel_id: str,
-    request: CreatePlotArcRequest,
-    repository: PlotArcRepository = Depends(get_plot_arc_repository)
+    novel_id: str, request: CreatePlotArcRequest, repository: PlotArcRepository = Depends(get_plot_arc_repository)
 ):
     """创建或更新情节弧"""
     try:
@@ -622,12 +590,14 @@ def create_or_update_plot_arc(
         # 清空现有的情节点并添加新的
         plot_arc.key_points = []
         for point_req in request.key_points:
-            plot_arc.add_plot_point(PlotPoint(
-                chapter_number=point_req.chapter_number,
-                point_type=PlotPointType(point_req.point_type),
-                description=point_req.description,
-                tension=TensionLevel(point_req.tension)
-            ))
+            plot_arc.add_plot_point(
+                PlotPoint(
+                    chapter_number=point_req.chapter_number,
+                    point_type=PlotPointType(point_req.point_type),
+                    description=point_req.description,
+                    tension=TensionLevel(point_req.tension),
+                )
+            )
 
         # 保存
         repository.save(plot_arc)
@@ -640,17 +610,16 @@ def create_or_update_plot_arc(
                     chapter_number=point.chapter_number,
                     tension=point.tension.value,
                     description=point.description,
-                    point_type=point.point_type.value if hasattr(point.point_type, 'value') else str(point.point_type)
+                    point_type=point.point_type.value if hasattr(point.point_type, "value") else str(point.point_type),
                 )
                 for point in plot_arc.key_points
-            ]
+            ],
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create/update plot arc: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create/update plot arc: {str(e)}"
         )
 
 
@@ -658,14 +627,17 @@ def create_or_update_plot_arc(
 # 新增：大纲规划、章节审稿、续写大纲
 # ============================================================================
 
+
 class PlanRequest(BaseModel):
     """大纲规划请求"""
+
     mode: str = Field("initial", description="模式：initial=首次生成，revise=再规划")
     dry_run: bool = Field(False, description="预演模式（不调用 LLM）")
 
 
 class PlanResponse(BaseModel):
     """大纲规划响应"""
+
     success: bool
     message: str
     bible_updated: bool = False
@@ -677,11 +649,13 @@ class PlanResponse(BaseModel):
 
 class ReviewRequest(BaseModel):
     """章节审稿请求"""
+
     chapter_number: int = Field(..., gt=0, description="章节号")
 
 
 class ReviewResponse(BaseModel):
     """章节审稿响应"""
+
     chapter_number: int
     suggestions: List[str]
     score: int = Field(..., ge=0, le=100, description="评分 0-100")
@@ -689,30 +663,28 @@ class ReviewResponse(BaseModel):
 
 class ExtendOutlineRequest(BaseModel):
     """续写大纲请求"""
+
     from_chapter: int = Field(..., gt=0, description="从第几章开始续写")
     count: int = Field(5, gt=0, le=20, description="续写章节数量")
 
 
 class ExtendOutlineResponse(BaseModel):
     """续写大纲响应"""
+
     success: bool
     chapters_added: int
     outlines: List[str]
 
 
-@router.post(
-    "/{novel_id}/plan",
-    response_model=PlanResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.post("/{novel_id}/plan", response_model=PlanResponse, status_code=status.HTTP_200_OK)
 async def plan_novel(
     novel_id: str,
     request: PlanRequest,
     workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow),
-    bible_service = Depends(get_bible_service),
-    novel_service = Depends(get_novel_service),
-    chapter_service = Depends(get_chapter_service),
-    continuous_planning_service: ContinuousPlanningService = Depends(get_continuous_planning_service)
+    bible_service=Depends(get_bible_service),
+    novel_service=Depends(get_novel_service),
+    chapter_service=Depends(get_chapter_service),
+    continuous_planning_service: ContinuousPlanningService = Depends(get_continuous_planning_service),
 ):
     """大纲规划：根据世界观、文约、初始地图、初始角色，AI 自主生成部-卷-幕结构
 
@@ -733,27 +705,24 @@ async def plan_novel(
                 outline_updated=False,
                 chapters_planned=0,
                 structure_created=False,
-                nodes_created=0
+                nodes_created=0,
             )
 
         # 获取小说信息
-        logger.info(f"[PlanNovel] Getting novel info")
+        logger.info("[PlanNovel] Getting novel info")
         novel = novel_service.get_novel(novel_id)
         if not novel:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Novel {novel_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Novel {novel_id} not found")
         logger.info(f"[PlanNovel] Novel found: {novel.title}")
 
         # 生成 + 落库与全托管共用 ContinuousPlanningService.apply_macro_plan_from_llm_result
-        logger.info(f"[PlanNovel] Calling generate_macro_plan (AI autonomous planning)")
+        logger.info("[PlanNovel] Calling generate_macro_plan (AI autonomous planning)")
         macro_plan = await continuous_planning_service.generate_macro_plan(
             novel_id=novel_id,
             target_chapters=novel.target_chapters,
             structure_preference=None,
         )
-        logger.info(f"[PlanNovel] Macro plan generated, persisting (shared path with autopilot)")
+        logger.info("[PlanNovel] Macro plan generated, persisting (shared path with autopilot)")
 
         confirm_result = await continuous_planning_service.apply_macro_plan_from_llm_result(
             macro_plan,
@@ -768,13 +737,9 @@ async def plan_novel(
         )
 
         if confirm_result.get("used_minimal_fallback"):
-            msg = (
-                f"LLM 未返回有效结构，已写入占位骨架；共 {confirm_result['created_nodes']} 个结构节点"
-            )
+            msg = f"LLM 未返回有效结构，已写入占位骨架；共 {confirm_result['created_nodes']} 个结构节点"
         else:
-            msg = confirm_result.get("message") or (
-                f"成功创建 {confirm_result['created_nodes']} 个结构节点"
-            )
+            msg = confirm_result.get("message") or (f"成功创建 {confirm_result['created_nodes']} 个结构节点")
 
         return PlanResponse(
             success=True,
@@ -790,69 +755,44 @@ async def plan_novel(
         raise
     except Exception as e:
         logger.error(f"Plan failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Plan failed: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Plan failed: {str(e)}")
 
 
 @router.post(
-    "/{novel_id}/chapters/{chapter_number}/review",
-    response_model=ReviewResponse,
-    status_code=status.HTTP_200_OK
+    "/{novel_id}/chapters/{chapter_number}/review", response_model=ReviewResponse, status_code=status.HTTP_200_OK
 )
 async def review_chapter(
     novel_id: str,
     chapter_number: int,
     workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow),
-    chapter_service = Depends(get_chapter_service)
+    chapter_service=Depends(get_chapter_service),
 ):
     """章节审稿：AI 审稿并返回修改建议"""
     try:
         # 读取章节内容
         chapter = chapter_service.get_chapter(novel_id, chapter_number)
         if not chapter:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Chapter {chapter_number} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chapter {chapter_number} not found")
 
         # 使用一致性检查作为审稿
         # TODO: 这里可以调用专门的审稿 LLM prompt
-        suggestions = [
-            "建议检查人物一致性",
-            "建议优化对话节奏",
-            "建议增强场景描写"
-        ]
+        suggestions = ["建议检查人物一致性", "建议优化对话节奏", "建议增强场景描写"]
 
         # 简单评分逻辑（基于字数）
         word_count = len(chapter.content)
         score = min(100, max(60, word_count // 20))
 
-        return ReviewResponse(
-            chapter_number=chapter_number,
-            suggestions=suggestions,
-            score=score
-        )
+        return ReviewResponse(chapter_number=chapter_number, suggestions=suggestions, score=score)
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Review failed: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Review failed: {str(e)}")
 
 
-@router.post(
-    "/{novel_id}/outline/extend",
-    response_model=ExtendOutlineResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.post("/{novel_id}/outline/extend", response_model=ExtendOutlineResponse, status_code=status.HTTP_200_OK)
 async def extend_outline(
-    novel_id: str,
-    request: ExtendOutlineRequest,
-    workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow)
+    novel_id: str, request: ExtendOutlineRequest, workflow: AutoNovelGenerationWorkflow = Depends(get_auto_workflow)
 ):
     """续写大纲：基于当前进度生成后续章节大纲"""
     try:
@@ -870,24 +810,20 @@ async def extend_outline(
                 logger.warning(f"Failed to generate outline for chapter {chapter_num}: {e}")
                 break
 
-        return ExtendOutlineResponse(
-            success=chapters_added > 0,
-            chapters_added=chapters_added,
-            outlines=outlines
-        )
+        return ExtendOutlineResponse(success=chapters_added > 0, chapters_added=chapters_added, outlines=outlines)
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Extend outline failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Extend outline failed: {str(e)}"
         )
 
 
 # ============================================================================
 # Bible / Knowledge 一键 AI 生成（补齐旧小说数据）
 # ============================================================================
+
 
 class GenerateBibleResponse(BaseModel):
     success: bool
@@ -907,7 +843,7 @@ class GenerateKnowledgeResponse(BaseModel):
     "/{novel_id}/bible/generate",
     response_model=GenerateBibleResponse,
     status_code=status.HTTP_200_OK,
-    summary="AI 生成 Bible 设定"
+    summary="AI 生成 Bible 设定",
 )
 async def generate_bible(
     novel_id: str,
@@ -949,7 +885,7 @@ async def generate_bible(
     "/{novel_id}/knowledge/generate",
     response_model=GenerateKnowledgeResponse,
     status_code=status.HTTP_200_OK,
-    summary="AI 生成初始 Knowledge 知识图谱"
+    summary="AI 生成初始 Knowledge 知识图谱",
 )
 async def generate_knowledge(
     novel_id: str,
@@ -972,9 +908,7 @@ async def generate_knowledge(
         try:
             bible = bible_service.get_bible_by_novel(novel_id)
             if bible and bible.characters:
-                char_desc = "、".join(
-                    f"{c.name}" for c in list(bible.characters)[:5]
-                )
+                char_desc = "、".join(f"{c.name}" for c in list(bible.characters)[:5])
                 bible_summary = f"主要角色：{char_desc}。"
                 if bible.locations:
                     loc_desc = "、".join(l.name for l in list(bible.locations)[:3])

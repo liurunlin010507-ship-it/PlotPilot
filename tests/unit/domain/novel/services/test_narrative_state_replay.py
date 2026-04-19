@@ -1,6 +1,5 @@
 """Tests for narrative state replay pure function."""
 
-import pytest
 from domain.novel.services.narrative_state_replay import replay_entity_state
 
 
@@ -70,9 +69,7 @@ def test_replay_multiple_mutations_in_single_event():
 def test_replay_remove_nonexistent_attribute():
     """Test that removing a non-existent attribute doesn't cause errors."""
     base = {"魔法": "水系"}
-    events = [
-        {"mutations": [{"attribute": "不存在", "action": "remove", "value": ""}]}
-    ]
+    events = [{"mutations": [{"attribute": "不存在", "action": "remove", "value": ""}]}]
     state = replay_entity_state(base, events)
 
     # Should not raise error, base preserved
@@ -83,9 +80,7 @@ def test_replay_preserves_base_immutability():
     """Test that the base dictionary is not modified during replay."""
     base = {"魔法": "水系"}
     original_base = base.copy()
-    events = [
-        {"mutations": [{"attribute": "魔法", "action": "add", "value": "火系"}]}
-    ]
+    events = [{"mutations": [{"attribute": "魔法", "action": "add", "value": "火系"}]}]
 
     state = replay_entity_state(base, events)
 

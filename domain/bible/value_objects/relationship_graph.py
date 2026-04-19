@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Tuple
+
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.relationship import Relationship
 
@@ -13,12 +14,7 @@ class RelationshipGraph:
         # 邻接表: Dict[CharacterId, Dict[CharacterId, List[Relationship]]]
         self._adjacency_list: Dict[CharacterId, Dict[CharacterId, List[Relationship]]] = {}
 
-    def add_relationship(
-        self,
-        char1: CharacterId,
-        char2: CharacterId,
-        relation: Relationship
-    ) -> None:
+    def add_relationship(self, char1: CharacterId, char2: CharacterId, relation: Relationship) -> None:
         """添加关系（保留历史记录）
 
         关系是双向的，会同时添加到两个角色的邻接表中。
@@ -41,22 +37,14 @@ class RelationshipGraph:
             self._adjacency_list[char2][char1] = []
         self._adjacency_list[char2][char1].append(relation)
 
-    def get_current_relationship(
-        self,
-        char1: CharacterId,
-        char2: CharacterId
-    ) -> Optional[Relationship]:
+    def get_current_relationship(self, char1: CharacterId, char2: CharacterId) -> Optional[Relationship]:
         """获取最新的关系"""
         history = self.get_relationship_history(char1, char2)
         if not history:
             return None
         return history[-1]
 
-    def get_relationship_history(
-        self,
-        char1: CharacterId,
-        char2: CharacterId
-    ) -> List[Relationship]:
+    def get_relationship_history(self, char1: CharacterId, char2: CharacterId) -> List[Relationship]:
         """获取所有关系历史"""
         if char1 not in self._adjacency_list:
             return []
@@ -64,10 +52,7 @@ class RelationshipGraph:
             return []
         return self._adjacency_list[char1][char2].copy()
 
-    def get_all_relationships(
-        self,
-        char_id: CharacterId
-    ) -> List[Tuple[CharacterId, Relationship]]:
+    def get_all_relationships(self, char_id: CharacterId) -> List[Tuple[CharacterId, Relationship]]:
         """获取角色的所有当前关系
 
         返回: List[Tuple[CharacterId, Relationship]]

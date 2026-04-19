@@ -2,14 +2,15 @@
 端到端测试：从章节大纲到节拍表生成的完整链路
 使用 Playwright 测试前端和后端的集成
 """
+
 import asyncio
-import sys
 import os
+import sys
 
 # 添加项目根目录到 Python 路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from playwright.async_api import async_playwright, expect
+from playwright.async_api import async_playwright
 
 
 async def test_beat_sheet_generation_e2e():
@@ -87,9 +88,9 @@ async def test_beat_sheet_generation_e2e():
 
             print(f"API 响应: {response}")
 
-            if 'scenes' in response:
+            if "scenes" in response:
                 print(f"✓ 节拍表生成成功，共 {len(response['scenes'])} 个场景")
-                for i, scene in enumerate(response['scenes'], 1):
+                for i, scene in enumerate(response["scenes"], 1):
                     print(f"  场景 {i}: {scene.get('title', 'N/A')}")
                     print(f"    - POV: {scene.get('pov', 'N/A')}")
                     print(f"    - 地点: {scene.get('location', 'N/A')}")
@@ -99,18 +100,19 @@ async def test_beat_sheet_generation_e2e():
 
             # 步骤 7：验证节拍表数据
             print("\n[步骤 7] 验证节拍表数据...")
-            if 'scenes' in response and len(response['scenes']) > 0:
-                scene = response['scenes'][0]
-                assert 'title' in scene, "场景缺少标题"
-                assert 'pov' in scene, "场景缺少 POV"
-                assert 'location' in scene, "场景缺少地点"
-                assert 'estimated_words' in scene, "场景缺少预估字数"
+            if "scenes" in response and len(response["scenes"]) > 0:
+                scene = response["scenes"][0]
+                assert "title" in scene, "场景缺少标题"
+                assert "pov" in scene, "场景缺少 POV"
+                assert "location" in scene, "场景缺少地点"
+                assert "estimated_words" in scene, "场景缺少预估字数"
                 print("✓ 节拍表数据结构验证通过")
 
             # 步骤 8：测试场景生成（可选）
             print("\n[步骤 8] 测试场景生成...")
-            if 'scenes' in response and len(response['scenes']) > 0:
-                scene_response = await page.evaluate("""
+            if "scenes" in response and len(response["scenes"]) > 0:
+                scene_response = await page.evaluate(
+                    """
                     async (sceneData) => {
                         const response = await fetch('http://localhost:8000/api/v1/scenes/generate', {
                             method: 'POST',
@@ -130,10 +132,12 @@ async def test_beat_sheet_generation_e2e():
                         });
                         return await response.json();
                     }
-                """, response['scenes'][0])
+                """,
+                    response["scenes"][0],
+                )
 
-                if 'content' in scene_response:
-                    content_length = len(scene_response['content'])
+                if "content" in scene_response:
+                    content_length = len(scene_response["content"])
                     print(f"✓ 场景生成成功，生成 {content_length} 字")
                 else:
                     print(f"⚠ 场景生成失败: {scene_response}")
@@ -145,6 +149,7 @@ async def test_beat_sheet_generation_e2e():
         except Exception as e:
             print(f"\n✗ 测试失败: {str(e)}")
             import traceback
+
             traceback.print_exc()
 
         finally:

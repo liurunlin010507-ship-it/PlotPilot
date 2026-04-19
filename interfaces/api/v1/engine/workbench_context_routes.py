@@ -1,4 +1,5 @@
 """工作台聚合上下文：一次 GET 对齐「故事线·弧光 / 编年史 / 叙事知识 / 关系图 / 伏笔 / 宏观 / 沙盒依赖」只读数据。"""
+
 import logging
 from typing import Any, Dict
 

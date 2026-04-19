@@ -3,20 +3,20 @@
 将张力评分从 llm_chapter_extract_bundle() 的多任务 JSON 提取中拆出，
 使用专门的多维 prompt（情节/情绪/节奏）进行精准分析。
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
-from domain.novel.value_objects.tension_dimensions import TensionDimensions
+from application.ai.structured_json_pipeline import structured_json_generate
 from application.ai.tension_scoring_contract import (
     TensionScoringLlmPayload,
     tension_scoring_payload_to_domain,
     tension_scoring_response_format,
 )
-from application.ai.structured_json_pipeline import structured_json_generate
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
+from domain.novel.value_objects.tension_dimensions import TensionDimensions
 from infrastructure.ai.prompt_manager import get_prompt_manager
 
 logger = logging.getLogger(__name__)

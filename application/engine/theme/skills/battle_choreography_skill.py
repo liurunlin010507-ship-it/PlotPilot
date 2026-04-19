@@ -4,6 +4,7 @@
 """
 
 from typing import List
+
 from application.engine.theme.theme_agent import ThemeSkill
 
 
@@ -33,8 +34,9 @@ class BattleChoreographySkill(ThemeSkill):
         chapter_number: int,
         outline: str,
     ) -> str:
-        if beat_focus in ("action", "martial_arts", "power_reveal") or \
-           any(kw in beat_description for kw in ["战斗", "对决", "交锋", "过招", "攻击"]):
+        if beat_focus in ("action", "martial_arts", "power_reveal") or any(
+            kw in beat_description for kw in ["战斗", "对决", "交锋", "过招", "攻击"]
+        ):
             return (
                 "战斗编排增强提示：\n"
                 "1. 动作分解：将一个回合拆成「起手→出招→碰撞→结果」四拍\n"

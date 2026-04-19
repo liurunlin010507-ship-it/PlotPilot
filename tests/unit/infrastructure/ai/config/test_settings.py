@@ -1,5 +1,7 @@
 """Settings 配置测试"""
+
 import pytest
+
 from infrastructure.ai.config.settings import Settings
 
 
@@ -18,10 +20,7 @@ class TestSettings:
     def test_custom_values(self):
         """测试自定义值"""
         settings = Settings(
-            default_model="claude-3-opus-20240229",
-            default_temperature=0.5,
-            default_max_tokens=2048,
-            api_key="test-key"
+            default_model="claude-3-opus-20240229", default_temperature=0.5, default_max_tokens=2048, api_key="test-key"
         )
 
         assert settings.default_model == "claude-3-opus-20240229"

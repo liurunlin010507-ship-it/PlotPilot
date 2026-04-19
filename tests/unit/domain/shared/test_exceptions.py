@@ -1,11 +1,5 @@
 # tests/unit/domain/shared/test_exceptions.py
-import pytest
-from domain.shared.exceptions import (
-    DomainException,
-    EntityNotFoundError,
-    InvalidOperationError,
-    ValidationError
-)
+from domain.shared.exceptions import DomainException, EntityNotFoundError, InvalidOperationError, ValidationError
 
 
 def test_domain_exception_is_base_class():

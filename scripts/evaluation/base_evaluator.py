@@ -3,29 +3,28 @@
 通过依赖注入和现有服务层进行评测，不重新实现LLM调用。
 """
 
-import asyncio
 import json
+import logging
 import os
 import sys
-import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import logging
 
 # 添加项目根目录到路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class EvaluationMetric:
     """评测指标"""
+
     name: str
     score: float  # 0-10 分
     weight: float = 1.0
@@ -39,6 +38,7 @@ class EvaluationMetric:
 @dataclass
 class EvaluationResult:
     """单次评测结果"""
+
     test_name: str
     success: bool
     metrics: List[EvaluationMetric] = field(default_factory=list)
@@ -89,6 +89,7 @@ class EvaluationResult:
 @dataclass
 class EvaluationReport:
     """评测报告"""
+
     evaluator_name: str
     total_tests: int
     passed_tests: int
@@ -113,7 +114,7 @@ class EvaluationReport:
     def save(self, path: Path):
         """保存报告到文件"""
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
         logger.info(f"报告已保存到: {path}")
 
@@ -166,24 +167,22 @@ class BaseEvaluator(ABC):
 
     def _create_service(self, service_name: str):
         """创建服务实例"""
+        from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
+        from application.paths import get_db_path
+        from infrastructure.ai.config.settings import Settings
+        from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
+        from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+        from infrastructure.persistence.database.connection import get_database
+        from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+        from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
         from interfaces.api.dependencies import (
-            get_novel_repository,
-            get_chapter_repository,
             get_bible_repository,
             get_bible_service,
+            get_chapter_repository,
             get_chapter_service,
+            get_novel_repository,
             get_novel_service,
         )
-        from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
-        from application.blueprint.services.beat_sheet_service import BeatSheetService
-        from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
-        from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-        from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
-        from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
-        from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
-        from infrastructure.ai.config.settings import Settings
-        from infrastructure.persistence.database.connection import get_database
-        from application.paths import get_db_path
 
         if service_name == "llm":
             api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")
@@ -224,10 +223,12 @@ class BaseEvaluator(ABC):
 
         elif service_name == "beat_sheet":
             from interfaces.api.dependencies import get_beat_sheet_service
+
             return get_beat_sheet_service()
 
         elif service_name == "auto_workflow":
             from interfaces.api.dependencies import get_auto_workflow
+
             return get_auto_workflow()
 
         elif service_name == "story_node_repository":
@@ -241,10 +242,10 @@ class BaseEvaluator(ABC):
         if test_cases is None:
             test_cases = self.get_test_cases()
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"开始评测: {self.name}")
         logger.info(f"测试用例数: {len(test_cases)}")
-        logger.info(f"{'='*60}\n")
+        logger.info(f"{'=' * 60}\n")
 
         self.results = []
         for i, test_case in enumerate(test_cases, 1):
@@ -260,7 +261,7 @@ class BaseEvaluator(ABC):
             except Exception as e:
                 logger.error(f"测试异常: {e}", exc_info=True)
                 error_result = EvaluationResult(
-                    test_name=test_case.get('name', 'unnamed'),
+                    test_name=test_case.get("name", "unnamed"),
                     success=False,
                     error=str(e),
                 )
@@ -281,10 +282,10 @@ class BaseEvaluator(ABC):
             summary=self.generate_summary(),
         )
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"评测完成: {self.name}")
         logger.info(f"通过: {passed}/{len(self.results)}, 平均分: {avg_score:.2f}")
-        logger.info(f"{'='*60}\n")
+        logger.info(f"{'=' * 60}\n")
 
         return report
 
@@ -301,10 +302,7 @@ class BaseEvaluator(ABC):
                 metric_scores[metric.name].append(metric.score)
 
         return {
-            "average_scores_by_metric": {
-                name: sum(scores) / len(scores)
-                for name, scores in metric_scores.items()
-            },
+            "average_scores_by_metric": {name: sum(scores) / len(scores) for name, scores in metric_scores.items()},
         }
 
     def save_results(self, output_dir: Path) -> Path:

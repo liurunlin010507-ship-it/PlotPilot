@@ -1,4 +1,5 @@
 """张力诊断 LLM 输出的 Pydantic 模型。"""
+
 from __future__ import annotations
 
 from typing import List

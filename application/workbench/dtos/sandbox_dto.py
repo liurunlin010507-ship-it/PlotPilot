@@ -23,7 +23,5 @@ class DialogueEntry(BaseModel):
 class DialogueWhitelistResponse(BaseModel):
     """Response model for dialogue whitelist query."""
 
-    dialogues: List[DialogueEntry] = Field(
-        default_factory=list, description="List of available dialogues"
-    )
+    dialogues: List[DialogueEntry] = Field(default_factory=list, description="List of available dialogues")
     total_count: int = Field(..., description="Total number of dialogues")

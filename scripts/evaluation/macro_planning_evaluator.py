@@ -48,13 +48,14 @@ class MacroPlanningEvaluator(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         try:
             # 直接使用LLM
             llm = self._get_service("llm")
-            from domain.ai.value_objects.prompt import Prompt
             from domain.ai.services.llm_service import GenerationConfig
+            from domain.ai.value_objects.prompt import Prompt
 
             system_prompt = """你是一位狂热且极具市场敏锐度的顶级网文主编，精通各种爆款商业节奏。
 
@@ -76,13 +77,13 @@ class MacroPlanningEvaluator(BaseEvaluator):
 
 不要添加任何解释性文字。"""
 
-            user_prompt = f"""目标章节数：{test_case.get('target_chapters', 100)}
+            user_prompt = f"""目标章节数：{test_case.get("target_chapters", 100)}
 
 【世界观】
-{test_case.get('worldview', '')}
+{test_case.get("worldview", "")}
 
 【主要角色】
-{', '.join(test_case.get('characters', []))}
+{", ".join(test_case.get("characters", []))}
 
 请生成完整的叙事结构规划。"""
 
@@ -131,14 +132,14 @@ class MacroPlanningEvaluator(BaseEvaluator):
         except:
             pass
 
-        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', content)
+        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
         if json_match:
             try:
                 return json.loads(json_match.group(1))
             except:
                 pass
 
-        json_match = re.search(r'\{[\s\S]*\}', content)
+        json_match = re.search(r"\{[\s\S]*\}", content)
         if json_match:
             try:
                 return json.loads(json_match.group(0))
@@ -155,39 +156,47 @@ class MacroPlanningEvaluator(BaseEvaluator):
 
         # 1. 结构合理性
         structure_score, structure_details = self._evaluate_structure_quality(parts, test_case)
-        metrics.append(create_metric(
-            name="结构合理性",
-            score=structure_score,
-            weight=1.5,
-            details=structure_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="结构合理性",
+                score=structure_score,
+                weight=1.5,
+                details=structure_details,
+            )
+        )
 
         # 2. 冲突设计
         conflict_score, conflict_details = self._evaluate_conflicts(parts)
-        metrics.append(create_metric(
-            name="冲突设计",
-            score=conflict_score,
-            weight=1.4,
-            details=conflict_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="冲突设计",
+                score=conflict_score,
+                weight=1.4,
+                details=conflict_details,
+            )
+        )
 
         # 3. 情绪曲线
         emotion_score, emotion_details = self._evaluate_emotional_arc(parts)
-        metrics.append(create_metric(
-            name="情绪曲线",
-            score=emotion_score,
-            weight=1.2,
-            details=emotion_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="情绪曲线",
+                score=emotion_score,
+                weight=1.2,
+                details=emotion_details,
+            )
+        )
 
         # 4. 标题质量
         title_score, title_details = self._evaluate_titles(parts)
-        metrics.append(create_metric(
-            name="标题吸引力",
-            score=title_score,
-            weight=0.8,
-            details=title_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="标题吸引力",
+                score=title_score,
+                weight=0.8,
+                details=title_details,
+            )
+        )
 
         return metrics
 
@@ -316,7 +325,7 @@ class MacroPlanningEvaluator(BaseEvaluator):
         attractive_count = sum(1 for t in titles for aw in attractive_words if aw in t)
         if attractive_count >= len(titles) * 0.3:
             score += 3.0
-            details.append(f"标题有吸引力")
+            details.append("标题有吸引力")
 
         return min(score, 10.0), "; ".join(details) if details else "标题质量一般"
 
@@ -335,4 +344,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

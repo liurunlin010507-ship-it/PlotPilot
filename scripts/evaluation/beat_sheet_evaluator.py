@@ -3,11 +3,9 @@
 评测 BeatSheetService 的节拍表生成质量。
 """
 
-import json
-import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -55,6 +53,7 @@ class BeatSheetEvaluator(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         try:
@@ -84,10 +83,10 @@ class BeatSheetEvaluator(BaseEvaluator):
                     "outline": test_case.get("outline", "")[:100],
                 },
                 output_data={
-                    "scenes_count": len(result.scenes) if hasattr(result, 'scenes') else 0,
+                    "scenes_count": len(result.scenes) if hasattr(result, "scenes") else 0,
                     "scenes": [
                         {"title": s.title, "goal": s.goal, "estimated_words": s.estimated_words}
-                        for s in (result.scenes if hasattr(result, 'scenes') else [])
+                        for s in (result.scenes if hasattr(result, "scenes") else [])
                     ][:5],
                 },
                 duration_seconds=duration,
@@ -104,11 +103,12 @@ class BeatSheetEvaluator(BaseEvaluator):
 
     async def _ensure_test_chapter(self, test_case: Dict) -> str:
         """确保存在测试章节"""
-        from domain.novel.entities.novel import Novel
-        from domain.novel.value_objects.novel_id import NovelId
-        from domain.novel.entities.chapter import Chapter
-        from domain.novel.value_objects.chapter_id import ChapterId
         import uuid
+
+        from domain.novel.entities.chapter import Chapter
+        from domain.novel.entities.novel import Novel
+        from domain.novel.value_objects.chapter_id import ChapterId
+        from domain.novel.value_objects.novel_id import NovelId
 
         novel_repo = self._get_service("novel_repository")
         chapter_repo = self._get_service("chapter_repository")
@@ -139,7 +139,7 @@ class BeatSheetEvaluator(BaseEvaluator):
         """评测节拍表"""
         metrics = []
 
-        scenes = result.scenes if hasattr(result, 'scenes') else []
+        scenes = result.scenes if hasattr(result, "scenes") else []
 
         # 1. 场景数量
         expected_scenes = test_case.get("expected_scenes", 4)
@@ -154,48 +154,58 @@ class BeatSheetEvaluator(BaseEvaluator):
         else:
             scene_score = 3.0
 
-        metrics.append(create_metric(
-            name="场景数量",
-            score=scene_score,
-            weight=1.0,
-            details=f"生成{scene_count}个场景，预期{expected_scenes}个",
-        ))
+        metrics.append(
+            create_metric(
+                name="场景数量",
+                score=scene_score,
+                weight=1.0,
+                details=f"生成{scene_count}个场景，预期{expected_scenes}个",
+            )
+        )
 
         # 2. 场景目标明确性
         goal_score, goal_details = self._evaluate_scene_goals(scenes)
-        metrics.append(create_metric(
-            name="场景目标",
-            score=goal_score,
-            weight=1.3,
-            details=goal_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="场景目标",
+                score=goal_score,
+                weight=1.3,
+                details=goal_details,
+            )
+        )
 
         # 3. POV 角色选择
         pov_score, pov_details = self._evaluate_pov(scenes, test_case.get("characters", []))
-        metrics.append(create_metric(
-            name="POV选择",
-            score=pov_score,
-            weight=1.0,
-            details=pov_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="POV选择",
+                score=pov_score,
+                weight=1.0,
+                details=pov_details,
+            )
+        )
 
         # 4. 情绪基调
         tone_score, tone_details = self._evaluate_tone(scenes)
-        metrics.append(create_metric(
-            name="情绪基调",
-            score=tone_score,
-            weight=1.0,
-            details=tone_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="情绪基调",
+                score=tone_score,
+                weight=1.0,
+                details=tone_details,
+            )
+        )
 
         # 5. 字数预估
         word_score, word_details = self._evaluate_word_estimation(scenes, test_case.get("expected_total_words", 3000))
-        metrics.append(create_metric(
-            name="字数预估",
-            score=word_score,
-            weight=0.8,
-            details=word_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="字数预估",
+                score=word_score,
+                weight=0.8,
+                details=word_details,
+            )
+        )
 
         return metrics
 
@@ -208,7 +218,7 @@ class BeatSheetEvaluator(BaseEvaluator):
         details = []
 
         for i, scene in enumerate(scenes[:3], 1):
-            goal = scene.goal if hasattr(scene, 'goal') else ""
+            goal = scene.goal if hasattr(scene, "goal") else ""
             if goal and len(goal) >= 10:
                 scores.append(10)
                 details.append(f"场景{i}目标明确")
@@ -228,7 +238,7 @@ class BeatSheetEvaluator(BaseEvaluator):
         details = []
 
         for i, scene in enumerate(scenes[:3], 1):
-            pov = scene.pov_character if hasattr(scene, 'pov_character') else ""
+            pov = scene.pov_character if hasattr(scene, "pov_character") else ""
             if not pov:
                 pov_scores.append(4)
                 details.append(f"场景{i}未指定POV")
@@ -243,7 +253,7 @@ class BeatSheetEvaluator(BaseEvaluator):
 
     def _evaluate_tone(self, scenes: List) -> tuple:
         """评测情绪基调"""
-        tones = [s.tone for s in scenes if hasattr(s, 'tone') and s.tone]
+        tones = [s.tone for s in scenes if hasattr(s, "tone") and s.tone]
 
         if not tones:
             return 5.0, "未指定情绪基调"
@@ -265,7 +275,7 @@ class BeatSheetEvaluator(BaseEvaluator):
 
     def _evaluate_word_estimation(self, scenes: List, expected_total: int) -> tuple:
         """评测字数预估"""
-        total = sum(s.estimated_words for s in scenes if hasattr(s, 'estimated_words') and s.estimated_words)
+        total = sum(s.estimated_words for s in scenes if hasattr(s, "estimated_words") and s.estimated_words)
 
         if total == 0:
             return 5.0, "未预估字数"
@@ -294,4 +304,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

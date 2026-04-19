@@ -1,4 +1,5 @@
 """SQLite implementation of voice fingerprint repository."""
+
 from typing import Optional
 from uuid import uuid4
 
@@ -18,9 +19,7 @@ class SQLiteVoiceFingerprintRepository(VoiceFingerprintRepository):
         """
         self.db = db_connection
 
-    def get_by_novel(
-        self, novel_id: str, pov_character_id: Optional[str] = None
-    ) -> Optional[dict]:
+    def get_by_novel(self, novel_id: str, pov_character_id: Optional[str] = None) -> Optional[dict]:
         """Get fingerprint by novel ID and optional POV character."""
         row = self.db.fetch_one(
             """

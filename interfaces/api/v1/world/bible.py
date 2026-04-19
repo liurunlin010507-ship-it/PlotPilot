@@ -1,24 +1,22 @@
 """Bible API 路由"""
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Union
-import logging
 
-from application.world.services.bible_service import BibleService
-from application.world.services.auto_bible_generator import AutoBibleGenerator
-from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
-from application.world.dtos.bible_dto import BibleDTO
-from interfaces.api.dependencies import (
-    get_bible_service,
-    get_auto_bible_generator,
-    get_auto_knowledge_generator
-)
-from domain.shared.exceptions import EntityNotFoundError
+import logging
+from typing import Optional, Union
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+
 from application.world.bible_generation_state import (
     clear_bible_generation_state,
     get_bible_generation_state,
     record_bible_generation_failure,
 )
+from application.world.dtos.bible_dto import BibleDTO
+from application.world.services.auto_bible_generator import AutoBibleGenerator
+from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
+from application.world.services.bible_service import BibleService
+from domain.shared.exceptions import EntityNotFoundError
+from interfaces.api.dependencies import get_auto_bible_generator, get_auto_knowledge_generator, get_bible_service
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +27,14 @@ router = APIRouter(prefix="/bible", tags=["bible"])
 # Request Models
 class CreateBibleRequest(BaseModel):
     """创建 Bible 请求"""
+
     bible_id: str = Field(..., description="Bible ID")
     novel_id: str = Field(..., description="小说 ID")
 
 
 class AddCharacterRequest(BaseModel):
     """添加人物请求"""
+
     character_id: str = Field(..., description="人物 ID")
     name: str = Field(..., description="人物名称")
     description: str = Field(..., description="人物描述")
@@ -42,6 +42,7 @@ class AddCharacterRequest(BaseModel):
 
 class AddWorldSettingRequest(BaseModel):
     """添加世界设定请求"""
+
     setting_id: str = Field(..., description="设定 ID")
     name: str = Field(..., description="设定名称")
     description: str = Field(..., description="设定描述")
@@ -50,6 +51,7 @@ class AddWorldSettingRequest(BaseModel):
 
 class AddLocationRequest(BaseModel):
     """添加地点请求"""
+
     location_id: str = Field(..., description="地点 ID")
     name: str = Field(..., description="地点名称")
     description: str = Field(..., description="地点描述")
@@ -59,6 +61,7 @@ class AddLocationRequest(BaseModel):
 
 class AddTimelineNoteRequest(BaseModel):
     """添加时间线笔记请求"""
+
     note_id: str = Field(..., description="笔记 ID")
     event: str = Field(..., description="事件")
     time_point: str = Field(..., description="时间点")
@@ -67,6 +70,7 @@ class AddTimelineNoteRequest(BaseModel):
 
 class AddStyleNoteRequest(BaseModel):
     """添加风格笔记请求"""
+
     note_id: str = Field(..., description="笔记 ID")
     category: str = Field(..., description="类别")
     content: str = Field(..., description="内容")
@@ -84,6 +88,7 @@ class BibleCharacterRelationshipItem(BaseModel):
 
 class CharacterData(BaseModel):
     """人物数据"""
+
     id: str = Field(..., description="人物 ID")
     name: str = Field(..., description="人物名称")
     description: str = Field(..., description="人物描述")
@@ -104,6 +109,7 @@ class CharacterData(BaseModel):
 
 class WorldSettingData(BaseModel):
     """世界设定数据"""
+
     id: str = Field(..., description="设定 ID")
     name: str = Field(..., description="设定名称")
     description: str = Field(..., description="设定描述")
@@ -112,6 +118,7 @@ class WorldSettingData(BaseModel):
 
 class LocationData(BaseModel):
     """地点数据"""
+
     id: str = Field(..., description="地点 ID")
     name: str = Field(..., description="地点名称")
     description: str = Field(..., description="地点描述")
@@ -121,6 +128,7 @@ class LocationData(BaseModel):
 
 class TimelineNoteData(BaseModel):
     """时间线笔记数据"""
+
     id: str = Field(..., description="笔记 ID")
     event: str = Field(..., description="事件")
     time_point: str = Field(..., description="时间点")
@@ -129,6 +137,7 @@ class TimelineNoteData(BaseModel):
 
 class StyleNoteData(BaseModel):
     """风格笔记数据"""
+
     id: str = Field(..., description="笔记 ID")
     category: str = Field(..., description="类别")
     content: str = Field(..., description="内容")
@@ -136,6 +145,7 @@ class StyleNoteData(BaseModel):
 
 class BulkUpdateBibleRequest(BaseModel):
     """批量更新 Bible 请求"""
+
     characters: list[CharacterData] = Field(default_factory=list, description="人物列表")
     world_settings: list[WorldSettingData] = Field(default_factory=list, description="世界设定列表")
     locations: list[LocationData] = Field(default_factory=list, description="地点列表")
@@ -150,7 +160,7 @@ async def generate_bible(
     background_tasks: BackgroundTasks,
     stage: str = "all",  # all / worldbuilding / characters / locations
     bible_generator: AutoBibleGenerator = Depends(get_auto_bible_generator),
-    knowledge_generator: AutoKnowledgeGenerator = Depends(get_auto_knowledge_generator)
+    knowledge_generator: AutoKnowledgeGenerator = Depends(get_auto_knowledge_generator),
 ):
     """手动触发 Bible 和 Knowledge 生成（异步）
 
@@ -173,14 +183,17 @@ async def generate_bible(
     Returns:
         202 Accepted，表示生成任务已启动
     """
+
     async def _generate_task():
         import sys
+
         print(f"[TASK START] Bible generation for {novel_id}, stage={stage}", file=sys.stderr, flush=True)
         logger.info(f"Starting Bible generation task for {novel_id}, stage={stage}")
         clear_bible_generation_state(novel_id)
         try:
             # 获取小说信息（需要 premise 和 target_chapters）
             from interfaces.api.dependencies import get_novel_service
+
             novel_service = get_novel_service()
             novel = novel_service.get_novel(novel_id)
             if not novel:
@@ -192,31 +205,23 @@ async def generate_bible(
             premise = novel.premise if novel.premise else novel.title
 
             # 生成 Bible（支持分阶段）
-            bible_data = await bible_generator.generate_and_save(
-                novel_id,
-                premise,
-                novel.target_chapters,
-                stage=stage
-            )
+            bible_data = await bible_generator.generate_and_save(novel_id, premise, novel.target_chapters, stage=stage)
 
             # 构建 Bible 摘要供 Knowledge 生成使用
             chars = bible_data.get("characters", [])
             locs = bible_data.get("locations", [])
             char_desc = "、".join(f"{c['name']}（{c.get('role', '')}）" for c in chars[:5])
-            loc_desc = "、".join(c['name'] for c in locs[:3])
+            loc_desc = "、".join(c["name"] for c in locs[:3])
             bible_summary = f"主要角色：{char_desc}。重要地点：{loc_desc}。文风：{bible_data.get('style', '')}。"
 
             # 生成初始 Knowledge
-            await knowledge_generator.generate_and_save(
-                novel_id,
-                novel.title,
-                bible_summary
-            )
+            await knowledge_generator.generate_and_save(novel_id, novel.title, bible_summary)
             logger.info(f"Bible and Knowledge generated successfully for {novel_id}")
             clear_bible_generation_state(novel_id)
         except Exception as e:
             import sys
             import traceback
+
             print(f"[TASK ERROR] {e}", file=sys.stderr, flush=True)
             traceback.print_exc(file=sys.stderr)
             logger.error(f"Failed to generate Bible/Knowledge for {novel_id}: {e}")
@@ -228,16 +233,12 @@ async def generate_bible(
     return {
         "message": "Bible generation started",
         "novel_id": novel_id,
-        "status_url": f"/api/v1/bible/novels/{novel_id}/bible/status"
+        "status_url": f"/api/v1/bible/novels/{novel_id}/bible/status",
     }
 
 
 @router.post("/novels/{novel_id}/bible", response_model=BibleDTO, status_code=201)
-async def create_bible(
-    novel_id: str,
-    request: CreateBibleRequest,
-    service: BibleService = Depends(get_bible_service)
-):
+async def create_bible(novel_id: str, request: CreateBibleRequest, service: BibleService = Depends(get_bible_service)):
     """为小说创建 Bible
 
     Args:
@@ -267,10 +268,7 @@ async def get_bible_generation_feedback(novel_id: str):
 
 
 @router.get("/novels/{novel_id}/bible/status")
-async def get_bible_status(
-    novel_id: str,
-    service: BibleService = Depends(get_bible_service)
-):
+async def get_bible_status(novel_id: str, service: BibleService = Depends(get_bible_service)):
     """检查 Bible 生成状态
 
     Args:
@@ -286,21 +284,14 @@ async def get_bible_status(
         # 修改ready逻辑：只要有文风公约或世界观就算ready（支持分阶段生成）
         ready = exists and (len(bible.style_notes) > 0 or len(bible.world_settings) > 0 or len(bible.characters) > 0)
 
-        return {
-            "exists": exists,
-            "ready": ready,
-            "novel_id": novel_id
-        }
+        return {"exists": exists, "ready": ready, "novel_id": novel_id}
     except Exception as e:
         logger.exception("get_bible_status failed for novel_id=%s", novel_id)
         raise HTTPException(status_code=500, detail=f"检查 Bible 状态失败: {e}") from e
 
 
 @router.get("/novels/{novel_id}/bible", response_model=BibleDTO)
-async def get_bible_by_novel(
-    novel_id: str,
-    service: BibleService = Depends(get_bible_service)
-):
+async def get_bible_by_novel(novel_id: str, service: BibleService = Depends(get_bible_service)):
     """获取小说的 Bible
 
     Args:
@@ -315,18 +306,12 @@ async def get_bible_by_novel(
     """
     bible = service.get_bible_by_novel(novel_id)
     if bible is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Bible not found for novel: {novel_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Bible not found for novel: {novel_id}")
     return bible
 
 
 @router.get("/novels/{novel_id}/bible/characters", response_model=list)
-async def list_characters(
-    novel_id: str,
-    service: BibleService = Depends(get_bible_service)
-):
+async def list_characters(novel_id: str, service: BibleService = Depends(get_bible_service)):
     """列出 Bible 中的所有人物
 
     Args:
@@ -341,18 +326,13 @@ async def list_characters(
     """
     bible = service.get_bible_by_novel(novel_id)
     if bible is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Bible not found for novel: {novel_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Bible not found for novel: {novel_id}")
     return bible.characters
 
 
 @router.post("/novels/{novel_id}/bible/characters", response_model=BibleDTO)
 async def add_character(
-    novel_id: str,
-    request: AddCharacterRequest,
-    service: BibleService = Depends(get_bible_service)
+    novel_id: str, request: AddCharacterRequest, service: BibleService = Depends(get_bible_service)
 ):
     """添加人物到 Bible
 
@@ -369,10 +349,7 @@ async def add_character(
     """
     try:
         return service.add_character(
-            novel_id=novel_id,
-            character_id=request.character_id,
-            name=request.name,
-            description=request.description
+            novel_id=novel_id, character_id=request.character_id, name=request.name, description=request.description
         )
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -380,9 +357,7 @@ async def add_character(
 
 @router.post("/novels/{novel_id}/bible/world-settings", response_model=BibleDTO)
 async def add_world_setting(
-    novel_id: str,
-    request: AddWorldSettingRequest,
-    service: BibleService = Depends(get_bible_service)
+    novel_id: str, request: AddWorldSettingRequest, service: BibleService = Depends(get_bible_service)
 ):
     """添加世界设定到 Bible
 
@@ -403,18 +378,14 @@ async def add_world_setting(
             setting_id=request.setting_id,
             name=request.name,
             description=request.description,
-            setting_type=request.setting_type
+            setting_type=request.setting_type,
         )
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/novels/{novel_id}/bible/locations", response_model=BibleDTO)
-async def add_location(
-    novel_id: str,
-    request: AddLocationRequest,
-    service: BibleService = Depends(get_bible_service)
-):
+async def add_location(novel_id: str, request: AddLocationRequest, service: BibleService = Depends(get_bible_service)):
     """添加地点到 Bible
 
     Args:
@@ -443,9 +414,7 @@ async def add_location(
 
 @router.post("/novels/{novel_id}/bible/timeline-notes", response_model=BibleDTO)
 async def add_timeline_note(
-    novel_id: str,
-    request: AddTimelineNoteRequest,
-    service: BibleService = Depends(get_bible_service)
+    novel_id: str, request: AddTimelineNoteRequest, service: BibleService = Depends(get_bible_service)
 ):
     """添加时间线笔记到 Bible
 
@@ -466,7 +435,7 @@ async def add_timeline_note(
             note_id=request.note_id,
             event=request.event,
             time_point=request.time_point,
-            description=request.description
+            description=request.description,
         )
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -474,9 +443,7 @@ async def add_timeline_note(
 
 @router.post("/novels/{novel_id}/bible/style-notes", response_model=BibleDTO)
 async def add_style_note(
-    novel_id: str,
-    request: AddStyleNoteRequest,
-    service: BibleService = Depends(get_bible_service)
+    novel_id: str, request: AddStyleNoteRequest, service: BibleService = Depends(get_bible_service)
 ):
     """添加风格笔记到 Bible
 
@@ -493,10 +460,7 @@ async def add_style_note(
     """
     try:
         return service.add_style_note(
-            novel_id=novel_id,
-            note_id=request.note_id,
-            category=request.category,
-            content=request.content
+            novel_id=novel_id, note_id=request.note_id, category=request.category, content=request.content
         )
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -504,9 +468,7 @@ async def add_style_note(
 
 @router.put("/novels/{novel_id}/bible", response_model=BibleDTO)
 async def bulk_update_bible(
-    novel_id: str,
-    request: BulkUpdateBibleRequest,
-    service: BibleService = Depends(get_bible_service)
+    novel_id: str, request: BulkUpdateBibleRequest, service: BibleService = Depends(get_bible_service)
 ):
     """批量更新 Bible 的所有数据
 
@@ -528,7 +490,7 @@ async def bulk_update_bible(
             world_settings=request.world_settings,
             locations=request.locations,
             timeline_notes=request.timeline_notes,
-            style_notes=request.style_notes
+            style_notes=request.style_notes,
         )
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

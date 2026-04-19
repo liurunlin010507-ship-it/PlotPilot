@@ -1,12 +1,10 @@
 """strip_reasoning_artifacts 单元测试。"""
+
 from application.ai.llm_output_sanitize import strip_reasoning_artifacts
 
 
 def test_strip_redacted_reasoning_block():
-    raw = (
-        "<redacted_reasoning>内部推理</redacted_reasoning>"
-        "第一章正文开始。"
-    )
+    raw = "<redacted_reasoning>内部推理</redacted_reasoning>第一章正文开始。"
     assert strip_reasoning_artifacts(raw) == "第一章正文开始。"
 
 

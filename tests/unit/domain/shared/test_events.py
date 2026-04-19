@@ -1,11 +1,12 @@
 # tests/unit/domain/shared/test_events.py
-import pytest
 from datetime import datetime
+
 from domain.shared.events import DomainEvent
 
 
 class _TestEvent(DomainEvent):
     """测试用事件"""
+
     def __init__(self, aggregate_id: str, data: str):
         super().__init__(aggregate_id)
         self.data = data

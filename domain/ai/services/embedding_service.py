@@ -1,4 +1,5 @@
 """嵌入服务接口"""
+
 from abc import ABC, abstractmethod
 from typing import List
 

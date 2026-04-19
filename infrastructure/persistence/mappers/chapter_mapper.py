@@ -1,11 +1,10 @@
 """Chapter 数据映射器"""
+
 import re
-from typing import Dict, Any
-from domain.novel.entities.chapter import Chapter, ChapterStatus
+from typing import Any, Dict
+
+from domain.novel.entities.chapter import Chapter
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.value_objects.word_count import WordCount
-from domain.novel.value_objects.chapter_content import ChapterContent
 
 
 class ChapterMapper:
@@ -29,12 +28,12 @@ class ChapterMapper:
             return ""
 
         # 查找第一行的Markdown标题
-        lines = content.split('\n')
+        lines = content.split("\n")
         for line in lines:
             line = line.strip()
-            if line.startswith('#'):
+            if line.startswith("#"):
                 # 移除#号和空格
-                title = re.sub(r'^#+\s*', '', line)
+                title = re.sub(r"^#+\s*", "", line)
                 return title
 
         return ""
@@ -61,7 +60,7 @@ class ChapterMapper:
             "number": chapter.number,
             "title": title,
             "content": chapter.content,
-            "word_count": chapter.word_count.value
+            "word_count": chapter.word_count.value,
         }
 
     @staticmethod
@@ -90,7 +89,7 @@ class ChapterMapper:
                 novel_id=NovelId(data["novel_id"]),
                 number=data["number"],
                 title=data["title"],
-                content=data["content"]
+                content=data["content"],
             )
 
             return chapter

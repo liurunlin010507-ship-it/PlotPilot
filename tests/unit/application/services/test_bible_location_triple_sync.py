@@ -2,13 +2,11 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from application.services.bible_location_triple_sync import BibleLocationTripleSyncService
+
 from infrastructure.persistence.database.triple_repository import TripleRepository
 
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[4] / "infrastructure" / "persistence" / "database" / "schema.sql"
-)
+SCHEMA_PATH = Path(__file__).resolve().parents[4] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture
@@ -16,9 +14,7 @@ def sync_service(tmp_path):
     db_path = tmp_path / "sync.db"
     conn = sqlite3.connect(str(db_path))
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-    conn.execute(
-        "INSERT INTO novels (id, title, slug, target_chapters) VALUES ('novel-1', 'T', 'slug-sync', 0)"
-    )
+    conn.execute("INSERT INTO novels (id, title, slug, target_chapters) VALUES ('novel-1', 'T', 'slug-sync', 0)")
     conn.commit()
     conn.close()
     repo = TripleRepository(str(db_path))

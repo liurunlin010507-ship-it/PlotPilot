@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 启动器入口 (Bootstrap)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -6,13 +5,13 @@ PyInstaller 真正的入口文件。
 通过 exec 方式加载 hub.py，绕过 PyInstaller 静态 import 分析。
 """
 
-import sys
 import os
+import sys
 
 
 def main():
     # 确定 install 模块所在目录
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         base_dir = sys._MEIPASS
         install_dir = os.path.join(base_dir, "scripts", "install")
     else:
@@ -23,7 +22,7 @@ def main():
         sys.path.insert(0, install_dir)
 
     # 项目根目录
-    if not getattr(sys, 'frozen', False):
+    if not getattr(sys, "frozen", False):
         proj_dir = os.path.dirname(os.path.dirname(install_dir))
         if proj_dir not in sys.path:
             sys.path.insert(0, proj_dir)
@@ -31,7 +30,7 @@ def main():
     # 用 exec 加载 hub.py（绕过 PyInstaller 的静态 import 分析）
     hub_path = os.path.join(install_dir, "hub.py")
 
-    with open(hub_path, "r", encoding="utf-8") as f:
+    with open(hub_path, encoding="utf-8") as f:
         hub_code = f.read()
 
     # 构建执行命名空间
@@ -69,7 +68,7 @@ def main():
             dbg.write(f"hub exists: {os.path.exists(hub_path)}\n")
             dbg.write(f"sys.path[0]: {sys.path[0]}\n")
             dbg.write(f"frozen: {getattr(sys, 'frozen', False)}\n")
-            dbg.write(f"exec starting...\n")
+            dbg.write("exec starting...\n")
     except Exception:
         pass  # 调试日志写入失败不影响主流程
 
@@ -78,11 +77,12 @@ def main():
         exec(hub_code, run_globals)
     except Exception as e:
         import traceback
+
         tb = traceback.format_exc()
         # 写入调试日志
         try:
             with open(log_file, "a", encoding="utf-8") as dbg:
-                dbg.write(f"\n!!! EXEC CRASH !!!\n")
+                dbg.write("\n!!! EXEC CRASH !!!\n")
                 dbg.write(f"Error: {e}\n")
                 dbg.write(f"{tb}\n")
         except Exception:
@@ -95,10 +95,11 @@ def main():
             pass
 
         # ═══ windowed 模式下弹窗显示错误（否则用户看不到任何东西） ═══
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             try:
                 import tkinter as tk
                 from tkinter import scrolledtext
+
                 root = tk.Tk()
                 root.title("aitext - 启动失败")
                 root.attributes("-topmost", True)
@@ -111,16 +112,16 @@ def main():
                 root.geometry(f"{w}x{h}+{x}+{y}")
                 root.resizable(False, False)
 
-                tk.Label(root, text="aitex 启动失败",
-                         font=("Arial", 16, "bold"), fg="#dc2626",
-                         bg="#1e1e2e").pack(fill="x", pady=(20, 10))
-                tk.Label(root, text=str(e)[:200],
-                         font=("Arial", 10), fg="#fbbf24",
-                         bg="#1e1e2e", wraplength=520).pack(fill="x", padx=20)
+                tk.Label(root, text="aitex 启动失败", font=("Arial", 16, "bold"), fg="#dc2626", bg="#1e1e2e").pack(
+                    fill="x", pady=(20, 10)
+                )
+                tk.Label(root, text=str(e)[:200], font=("Arial", 10), fg="#fbbf24", bg="#1e1e2e", wraplength=520).pack(
+                    fill="x", padx=20
+                )
 
                 txt = scrolledtext.ScrolledText(
-                    root, font=("Consolas", 9), bg="#2d2d3d", fg="#cdd6f4",
-                    wrap="word", height=12)
+                    root, font=("Consolas", 9), bg="#2d2d3d", fg="#cdd6f4", wrap="word", height=12
+                )
                 txt.pack(fill="both", expand=True, padx=15, pady=10)
                 txt.insert("end", tb[-2500:] if len(tb) > 2500 else tb)
                 txt.config(state="disabled")
@@ -132,10 +133,16 @@ def main():
 
                 btn_frame = tk.Frame(root, bg="#1e1e2e")
                 btn_frame.pack(fill="x", pady=(5, 15))
-                tk.Button(btn_frame, text="复制错误信息并关闭",
-                          command=_copy_and_exit,
-                          bg="#dc2626", fg="white", font=("Arial", 10),
-                          padx=30, pady=8).pack()
+                tk.Button(
+                    btn_frame,
+                    text="复制错误信息并关闭",
+                    command=_copy_and_exit,
+                    bg="#dc2626",
+                    fg="white",
+                    font=("Arial", 10),
+                    padx=30,
+                    pady=8,
+                ).pack()
 
                 root.mainloop()
             except Exception:

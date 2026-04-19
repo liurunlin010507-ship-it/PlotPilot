@@ -3,6 +3,7 @@
 覆盖：书目创建 → story_nodes(chapter) + triples(chapter_inferred) + triple_provenance
 → GET inference-evidence → DELETE 单条推断 → 按章撤销。
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,7 +12,6 @@ from fastapi.testclient import TestClient
 from application import paths as paths_mod
 from infrastructure.persistence.database import connection as conn_mod
 from interfaces.main import app
-
 
 NOVEL_ID = "e2e-inference-novel"
 STORY_NODE_ID = "e2e-sn-chapter-1"
@@ -109,9 +109,7 @@ class TestInferenceEvidenceFullChain:
         )
         assert r.status_code == 201
 
-        resp = client.get(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence"
-        )
+        resp = client.get(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence")
         assert resp.status_code == 200
         body = resp.json()
         assert body["success"] is True
@@ -132,35 +130,25 @@ class TestInferenceEvidenceFullChain:
         )
         _seed_chapter_and_inference(isolated_sqlite, two_triples=True)
 
-        g1 = client.get(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence"
-        )
+        g1 = client.get(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence")
         assert g1.status_code == 200
         b1 = g1.json()
         assert b1["data"]["story_node_id"] == STORY_NODE_ID
         assert len(b1["data"]["facts"]) == 2
 
-        d1 = client.delete(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/inferred-triples/{TRIPLE_A}"
-        )
+        d1 = client.delete(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/inferred-triples/{TRIPLE_A}")
         assert d1.status_code == 200
 
-        g2 = client.get(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence"
-        )
+        g2 = client.get(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence")
         ids = {x["fact"]["id"] for x in g2.json()["data"]["facts"]}
         assert ids == {TRIPLE_B}
 
-        d2 = client.delete(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference"
-        )
+        d2 = client.delete(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference")
         assert d2.status_code == 200
         st = d2.json()["data"]
         assert st["deleted_inferred_facts"] >= 1
 
-        g3 = client.get(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence"
-        )
+        g3 = client.get(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/chapters/by-number/1/inference-evidence")
         assert g3.json()["data"]["facts"] == []
 
     def test_revoke_non_inferred_triple_400(self, isolated_sqlite):
@@ -192,7 +180,5 @@ class TestInferenceEvidenceFullChain:
         )
         cx.commit()
 
-        r = client.delete(
-            f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/inferred-triples/e2e-manual-t"
-        )
+        r = client.delete(f"/api/v1/knowledge-graph/novels/{NOVEL_ID}/inferred-triples/e2e-manual-t")
         assert r.status_code == 400

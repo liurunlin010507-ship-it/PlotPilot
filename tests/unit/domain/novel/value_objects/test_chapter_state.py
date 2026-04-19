@@ -1,4 +1,5 @@
 import pytest
+
 from domain.novel.value_objects.chapter_state import ChapterState
 
 
@@ -13,7 +14,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert state.new_characters == []
@@ -26,18 +27,12 @@ class TestChapterState:
     def test_create_state_with_new_characters(self):
         """测试创建包含新角色的状态"""
         state = ChapterState(
-            new_characters=[
-                {
-                    "name": "张三",
-                    "description": "主角的朋友",
-                    "first_appearance": 5
-                }
-            ],
+            new_characters=[{"name": "张三", "description": "主角的朋友", "first_appearance": 5}],
             character_actions=[],
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert len(state.new_characters) == 1
@@ -49,17 +44,11 @@ class TestChapterState:
         """测试创建包含角色行为的状态"""
         state = ChapterState(
             new_characters=[],
-            character_actions=[
-                {
-                    "character_id": "char-1",
-                    "action": "做出了重要决定",
-                    "chapter": 5
-                }
-            ],
+            character_actions=[{"character_id": "char-1", "action": "做出了重要决定", "chapter": 5}],
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert len(state.character_actions) == 1
@@ -72,17 +61,11 @@ class TestChapterState:
             new_characters=[],
             character_actions=[],
             relationship_changes=[
-                {
-                    "char1": "char-1",
-                    "char2": "char-2",
-                    "old_type": "stranger",
-                    "new_type": "friend",
-                    "chapter": 5
-                }
+                {"char1": "char-1", "char2": "char-2", "old_type": "stranger", "new_type": "friend", "chapter": 5}
             ],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert len(state.relationship_changes) == 1
@@ -97,19 +80,9 @@ class TestChapterState:
             new_characters=[],
             character_actions=[],
             relationship_changes=[],
-            foreshadowing_planted=[
-                {
-                    "description": "神秘的预言",
-                    "chapter": 5
-                }
-            ],
-            foreshadowing_resolved=[
-                {
-                    "foreshadowing_id": "foreshadow-1",
-                    "chapter": 10
-                }
-            ],
-            events=[]
+            foreshadowing_planted=[{"description": "神秘的预言", "chapter": 5}],
+            foreshadowing_resolved=[{"foreshadowing_id": "foreshadow-1", "chapter": 10}],
+            events=[],
         )
 
         assert len(state.foreshadowing_planted) == 1
@@ -130,9 +103,9 @@ class TestChapterState:
                     "type": "conflict",
                     "description": "主角与反派对峙",
                     "involved_characters": ["char-1", "char-2"],
-                    "chapter": 5
+                    "chapter": 5,
                 }
-            ]
+            ],
         )
 
         assert len(state.events) == 1
@@ -148,7 +121,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         with pytest.raises(AttributeError):
@@ -162,7 +135,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         state_without_chars = ChapterState(
@@ -171,7 +144,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert state_with_chars.has_new_characters() is True
@@ -187,7 +160,7 @@ class TestChapterState:
             ],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         state_without_changes = ChapterState(
@@ -196,7 +169,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert state_with_changes.has_relationship_changes() is True
@@ -210,7 +183,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[{"description": "test", "chapter": 1}],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         state_with_resolved = ChapterState(
@@ -219,7 +192,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[{"foreshadowing_id": "f1", "chapter": 1}],
-            events=[]
+            events=[],
         )
 
         state_without = ChapterState(
@@ -228,7 +201,7 @@ class TestChapterState:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
         assert state_with_planted.has_foreshadowing_activity() is True

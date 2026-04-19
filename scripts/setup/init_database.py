@@ -8,8 +8,9 @@
 2. 创建所有表和索引
 3. 验证数据库结构
 """
-import sys
+
 import sqlite3
+import sys
 from pathlib import Path
 
 # 添加项目根目录到路径
@@ -29,7 +30,7 @@ def main():
     print(f"📂 数据库文件: {db_file}")
 
     # 读取 schema
-    with open(schema_file, 'r', encoding='utf-8') as f:
+    with open(schema_file, encoding="utf-8") as f:
         schema_sql = f.read()
 
     # 创建数据库

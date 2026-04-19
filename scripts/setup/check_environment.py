@@ -1,6 +1,8 @@
 """环境检查脚本：确保验证原型可以运行"""
+
 import sys
 from pathlib import Path
+
 
 def check_python_version():
     """检查 Python 版本"""
@@ -13,13 +15,10 @@ def check_python_version():
         print("   需要 Python 3.9+")
         return False
 
+
 def check_dependencies():
     """检查依赖包"""
-    required = {
-        "anthropic": "anthropic",
-        "pydantic": "pydantic",
-        "python-dotenv": "dotenv"
-    }
+    required = {"anthropic": "anthropic", "pydantic": "pydantic", "python-dotenv": "dotenv"}
 
     missing = []
     for package_name, import_name in required.items():
@@ -35,14 +34,15 @@ def check_dependencies():
         return False
     return True
 
+
 def check_env_file():
     """检查 .env 文件"""
     env_file = Path(__file__).parent.parent / ".env"
     if env_file.exists():
-        print(f"✅ .env 文件存在")
+        print("✅ .env 文件存在")
 
         # 检查是否有 API key
-        with open(env_file, 'r') as f:
+        with open(env_file) as f:
             content = f.read()
             if "ANTHROPIC_API_KEY" in content:
                 print("✅ ANTHROPIC_API_KEY 已配置")
@@ -51,8 +51,9 @@ def check_env_file():
                 print("⚠️  ANTHROPIC_API_KEY 未配置（模拟版不需要）")
                 return True
     else:
-        print(f"⚠️  .env 文件不存在（模拟版不需要）")
+        print("⚠️  .env 文件不存在（模拟版不需要）")
         return True
+
 
 def check_output_dir():
     """检查输出目录"""
@@ -63,6 +64,7 @@ def check_output_dir():
     else:
         print(f"✅ 输出目录存在: {output_dir}")
     return True
+
 
 def main():
     print("=" * 60)
@@ -91,6 +93,7 @@ def main():
     else:
         print("❌ 部分检查失败，请先解决上述问题。")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

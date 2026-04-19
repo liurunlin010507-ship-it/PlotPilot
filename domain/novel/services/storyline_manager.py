@@ -1,11 +1,12 @@
 import uuid
 from typing import List
+
 from domain.novel.entities.storyline import Storyline
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
-from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 from domain.novel.repositories.storyline_repository import StorylineRepository
+from domain.novel.value_objects.novel_id import NovelId
+from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 
 
 class StorylineManager:
@@ -105,14 +106,16 @@ class StorylineManager:
         context_parts = [
             f"Storyline Type: {storyline.storyline_type.value}",
             f"Status: {storyline.status.value}",
-            f"Estimated Chapters: {storyline.estimated_chapter_start}-{storyline.estimated_chapter_end}"
+            f"Estimated Chapters: {storyline.estimated_chapter_start}-{storyline.estimated_chapter_end}",
         ]
 
         current_milestone = storyline.get_current_milestone()
         if current_milestone:
             context_parts.append(f"\nCurrent Milestone: {current_milestone.title}")
             context_parts.append(f"Description: {current_milestone.description}")
-            context_parts.append(f"Target Chapters: {current_milestone.target_chapter_start}-{current_milestone.target_chapter_end}")
+            context_parts.append(
+                f"Target Chapters: {current_milestone.target_chapter_start}-{current_milestone.target_chapter_end}"
+            )
             if current_milestone.prerequisites:
                 context_parts.append(f"Prerequisites: {', '.join(current_milestone.prerequisites)}")
             if current_milestone.triggers:

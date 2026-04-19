@@ -15,6 +15,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+.conda/
 .venv/
 venv/
 *.egg-info/
@@ -142,6 +143,9 @@ PlotPilot*.exe
 .cursor/*
 !.cursor/rules/
 mcps/
+
+# —— CLAUDE ——
+CLAUDE.md
 
 # ── Windows「副本」等临时拷贝（含「xxx - 副本.json」） ──
 *副本*

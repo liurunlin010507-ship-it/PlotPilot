@@ -1,6 +1,7 @@
 from typing import List
-from domain.novel.value_objects.novel_event import NovelEvent
+
 from domain.bible.value_objects.character_id import CharacterId
+from domain.novel.value_objects.novel_event import NovelEvent
 
 
 class EventTimeline:

@@ -7,21 +7,22 @@
 - 调用方只需提供 LLMService、Prompt、GenerationConfig、Pydantic 模型
 - 管线自动处理清洗/修复/校验/重试，返回 Pydantic 模型实例或 None
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
 import re
-from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
+from typing import List, Optional, Tuple, Type, TypeVar
 
-from pydantic import BaseModel, ValidationError
 from json_repair import repair_json
+from pydantic import BaseModel, ValidationError
 
-from domain.ai.services.llm_service import GenerationConfig, LLMService
-from domain.ai.value_objects.prompt import Prompt
 from application.ai.llm_output_sanitize import strip_reasoning_artifacts
 from application.ai.llm_retry_policy import LLM_MAX_TOTAL_ATTEMPTS
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def _is_retryable_llm_error(exc: Exception) -> bool:
 
 def _retry_delay_seconds(attempt: int) -> float:
     """简单指数退避，保持总等待可控。"""
-    return min(1.5 * (2 ** attempt), 8.0)
+    return min(1.5 * (2**attempt), 8.0)
 
 
 # ---------------------------------------------------------------------------
@@ -78,9 +79,7 @@ def sanitize_llm_output(raw: str) -> str:
 
     # 3. 去 markdown 围栏
     #    匹配 ```json ... ``` 或 ``` ... ```
-    fence_pattern = re.compile(
-        r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL
-    )
+    fence_pattern = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
     fence_match = fence_pattern.search(s)
     if fence_match:
         s = fence_match.group(1)
@@ -173,10 +172,7 @@ def validate_json_schema(
         return instance, []
     except ValidationError as e:
         err_list = e.errors()
-        msgs = [
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
-        ]
+        msgs = [f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}" for err in err_list[:12]]
         return None, msgs or [str(e)]
 
 
@@ -282,6 +278,7 @@ async def structured_json_generate(
 
     logger.error(
         "结构化 JSON 管线全部重试耗尽 (total_attempts=%d): %s",
-        total_attempts, last_errors,
+        total_attempts,
+        last_errors,
     )
     return None

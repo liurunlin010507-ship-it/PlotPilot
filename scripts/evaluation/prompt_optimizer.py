@@ -5,9 +5,9 @@ A/B测试不同提示词变体的效果。
 
 import asyncio
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
-from dataclasses import dataclass
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -22,6 +22,7 @@ from scripts.evaluation.base_evaluator import (
 @dataclass
 class PromptVariant:
     """提示词变体"""
+
     name: str
     system: str
     user_template: str
@@ -42,7 +43,7 @@ class PromptOptimizer(BaseEvaluator):
                 name="基础版",
                 system="你是专业的小说作家。",
                 user_template="请根据以下大纲创作章节：\n{outline}",
-                description="最简单的提示词"
+                description="最简单的提示词",
             ),
             PromptVariant(
                 name="增强版",
@@ -60,7 +61,7 @@ class PromptOptimizer(BaseEvaluator):
 {outline}
 
 开始撰写：""",
-                description="详细要求的提示词"
+                description="详细要求的提示词",
             ),
             PromptVariant(
                 name="节拍版",
@@ -80,7 +81,7 @@ class PromptOptimizer(BaseEvaluator):
 {beats}
 
 开始撰写：""",
-                description="带节拍分解的提示词"
+                description="带节拍分解的提示词",
             ),
         ],
         "macro": [
@@ -129,6 +130,7 @@ class PromptOptimizer(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         test_type = test_case.get("type", "chapter")
@@ -137,8 +139,8 @@ class PromptOptimizer(BaseEvaluator):
 
         try:
             llm = self._get_service("llm")
-            from domain.ai.value_objects.prompt import Prompt
             from domain.ai.services.llm_service import GenerationConfig
+            from domain.ai.value_objects.prompt import Prompt
 
             results = {}
             variant_list = self.VARIANTS.get(test_type, [])
@@ -172,7 +174,7 @@ class PromptOptimizer(BaseEvaluator):
                     name="Token效率",
                     score=8.0,
                     weight=0.8,
-                    details=f"平均输出tokens: {sum(r['tokens'] for r in results.values())//max(len(results),1)}",
+                    details=f"平均输出tokens: {sum(r['tokens'] for r in results.values()) // max(len(results), 1)}",
                 ),
             ]
 
@@ -209,4 +211,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

@@ -1,4 +1,3 @@
-import pytest
 from domain.bible.value_objects.character_importance import CharacterImportance
 
 

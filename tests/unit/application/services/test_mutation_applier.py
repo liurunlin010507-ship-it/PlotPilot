@@ -1,7 +1,10 @@
 """Mutation Applier 单元测试"""
+
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
 from application.services.mutation_applier import MutationApplier
+
 from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 
 
@@ -26,7 +29,7 @@ def sample_event():
         "chapter": 1,
         "event_summary": "原始摘要",
         "tags": ["情感:同情"],
-        "entities": []
+        "entities": [],
     }
 
 
@@ -92,7 +95,7 @@ def test_apply_multiple_mutations(mutation_applier, mock_event_repository, sampl
     mutations = [
         {"type": "add_tag", "tag": "性格:冷酷"},
         {"type": "replace_summary", "new_summary": "新摘要"},
-        {"type": "add_tag", "tag": "动机:复仇"}
+        {"type": "add_tag", "tag": "动机:复仇"},
     ]
 
     # Act
@@ -116,7 +119,7 @@ def test_apply_invalid_mutation_type(mutation_applier, mock_event_repository, sa
     mutations = [
         {"type": "add_tag", "tag": "性格:冷酷"},
         {"type": "invalid_type", "data": "some_data"},  # 无效类型
-        {"type": "replace_summary", "new_summary": "新摘要"}
+        {"type": "replace_summary", "new_summary": "新摘要"},
     ]
 
     # Act
@@ -139,7 +142,7 @@ def test_add_tag_deduplication(mutation_applier, mock_event_repository, sample_e
 
     mutations = [
         {"type": "add_tag", "tag": "情感:同情"},  # 重复标签
-        {"type": "add_tag", "tag": "性格:冷酷"}
+        {"type": "add_tag", "tag": "性格:冷酷"},
     ]
 
     # Act

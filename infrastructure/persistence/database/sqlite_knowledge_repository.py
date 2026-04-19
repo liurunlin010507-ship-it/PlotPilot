@@ -1,4 +1,5 @@
 """SQLite Knowledge Repository — 三元组扩展字段用子表，库内不存 JSON 文本列。"""
+
 from __future__ import annotations
 
 import logging
@@ -7,10 +8,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from domain.novel.value_objects.novel_id import NovelId
-from domain.knowledge.story_knowledge import StoryKnowledge
 from domain.knowledge.chapter_summary import ChapterSummary
 from domain.knowledge.knowledge_triple import KnowledgeTriple
+from domain.knowledge.story_knowledge import StoryKnowledge
+from domain.novel.value_objects.novel_id import NovelId
 from infrastructure.persistence.database.connection import DatabaseConnection
 
 logger = logging.getLogger(__name__)
@@ -53,9 +54,9 @@ class SqliteKnowledgeRepository:
         self.db.execute(sql, (knowledge_id, novel_id, 1, premise_lock, now, now))
         self.db.get_connection().commit()
 
-    def _load_triple_children(self, novel_id: str) -> tuple[
-        Dict[str, List[int]], Dict[str, List[str]], Dict[str, Dict[str, str]]
-    ]:
+    def _load_triple_children(
+        self, novel_id: str
+    ) -> tuple[Dict[str, List[int]], Dict[str, List[str]], Dict[str, Dict[str, str]]]:
         more: Dict[str, List[int]] = defaultdict(list)
         rows_m = self.db.fetch_all(
             """
@@ -157,9 +158,7 @@ class SqliteKnowledgeRepository:
                 (novel_id,),
             )
 
-    def _replace_triple_provenance(
-        self, conn: sqlite3.Connection, rows: List[Dict[str, Any]]
-    ) -> None:
+    def _replace_triple_provenance(self, conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> None:
         if not rows:
             return
         conn.execute("DELETE FROM triple_provenance WHERE triple_id = ?", (rows[0]["triple_id"],))
@@ -181,9 +180,7 @@ class SqliteKnowledgeRepository:
                 ),
             )
 
-    def _append_triple_provenance(
-        self, conn: sqlite3.Connection, rows: List[Dict[str, Any]]
-    ) -> None:
+    def _append_triple_provenance(self, conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> None:
         for r in _dedupe_provenance_rows(rows):
             conn.execute(
                 """
@@ -202,15 +199,13 @@ class SqliteKnowledgeRepository:
                 ),
             )
 
-    def get_triple_side_data_for_novel(self, novel_id: str) -> tuple[
-        dict[str, list[int]], dict[str, list[str]], dict[str, dict[str, str]]
-    ]:
+    def get_triple_side_data_for_novel(
+        self, novel_id: str
+    ) -> tuple[dict[str, list[int]], dict[str, list[str]], dict[str, dict[str, str]]]:
         """供 TripleRepository 等与 triples 子表对齐的读取。"""
         return self._load_triple_children(novel_id)
 
-    def _build_facts_from_triple_rows(
-        self, novel_id_str: str, triples_rows: List[Any]
-    ) -> List[KnowledgeTriple]:
+    def _build_facts_from_triple_rows(self, novel_id_str: str, triples_rows: List[Any]) -> List[KnowledgeTriple]:
         if not triples_rows:
             return []
         more, tags, attrs = self._load_triple_children(novel_id_str)
@@ -280,6 +275,7 @@ class SqliteKnowledgeRepository:
         summaries_rows = self.db.fetch_all(summaries_sql, (knowledge["id"],))
 
         import json
+
         chapters = []
         for row in summaries_rows:
             # 解析JSON字段
@@ -292,17 +288,19 @@ class SqliteKnowledgeRepository:
                     micro_beats = json.loads(row["micro_beats"])
             except (json.JSONDecodeError, TypeError) as e:
                 logger.warning("解析节拍数据失败: %s", e)
-            
-            chapters.append(ChapterSummary(
-                chapter_id=row["chapter_number"],
-                summary=row["summary"] or "",
-                key_events=row["key_events"] or "",
-                open_threads=row["open_threads"] or "",
-                consistency_note=row["consistency_note"] or "",
-                beat_sections=beat_sections,
-                micro_beats=micro_beats,
-                sync_status=row["sync_status"] or "synced",
-            ))
+
+            chapters.append(
+                ChapterSummary(
+                    chapter_id=row["chapter_number"],
+                    summary=row["summary"] or "",
+                    key_events=row["key_events"] or "",
+                    open_threads=row["open_threads"] or "",
+                    consistency_note=row["consistency_note"] or "",
+                    beat_sections=beat_sections,
+                    micro_beats=micro_beats,
+                    sync_status=row["sync_status"] or "synced",
+                )
+            )
 
         return StoryKnowledge(
             novel_id=novel_id_str,
@@ -495,9 +493,7 @@ class SqliteKnowledgeRepository:
             conn.rollback()
             raise
 
-    def find_story_node_id_for_chapter_number(
-        self, novel_id: str, chapter_number: int
-    ) -> Optional[str]:
+    def find_story_node_id_for_chapter_number(self, novel_id: str, chapter_number: int) -> Optional[str]:
         row = self.db.fetch_one(
             """
             SELECT id FROM story_nodes
@@ -508,9 +504,7 @@ class SqliteKnowledgeRepository:
         )
         return row["id"] if row else None
 
-    def list_chapter_inference_evidence(
-        self, novel_id: str, story_node_id: str
-    ) -> List[Dict[str, Any]]:
+    def list_chapter_inference_evidence(self, novel_id: str, story_node_id: str) -> List[Dict[str, Any]]:
         """本章 story_node 参与推断的 chapter_inferred 三元组及本节点下的证据行。"""
         id_rows = self.db.fetch_all(
             """
@@ -552,9 +546,7 @@ class SqliteKnowledgeRepository:
             )
         return out
 
-    def revoke_chapter_inference_for_story_node(
-        self, novel_id: str, story_node_id: str
-    ) -> Dict[str, int]:
+    def revoke_chapter_inference_for_story_node(self, novel_id: str, story_node_id: str) -> Dict[str, int]:
         """删除本章节节点下的溯源；若无剩余证据且为 chapter_inferred 则删除三元组。"""
         with self.db.transaction() as conn:
             cur = conn.execute(
@@ -731,20 +723,19 @@ class SqliteKnowledgeRepository:
             self._delete_triples_for_merge(conn, novel_id, payload_ids)
 
             for triple in raw_facts:
-                self._insert_triple_row(
-                    conn, novel_id, self._sanitize_fact_dict_for_write(triple), now
-                )
+                self._insert_triple_row(conn, novel_id, self._sanitize_fact_dict_for_write(triple), now)
 
             conn.execute("DELETE FROM chapter_summaries WHERE knowledge_id = ?", (knowledge_id,))
             for chapter in data.get("chapters", []):
                 chapter_number = chapter.get("number") or chapter.get("chapter_id")
                 summary_id = f"{knowledge_id}-ch{chapter_number}"
-                
+
                 # 将节拍数据转换为JSON字符串
                 import json
+
                 beat_sections_json = json.dumps(chapter.get("beat_sections", []), ensure_ascii=False)
                 micro_beats_json = json.dumps(chapter.get("micro_beats", []), ensure_ascii=False)
-                
+
                 conn.execute(
                     """
                     INSERT INTO chapter_summaries 
@@ -762,11 +753,18 @@ class SqliteKnowledgeRepository:
                         updated_at = excluded.updated_at
                     """,
                     (
-                        summary_id, knowledge_id, chapter_number, 
-                        chapter.get("summary", ""), chapter.get("key_events", ""),
-                        chapter.get("open_threads", ""), chapter.get("consistency_note", ""),
-                        beat_sections_json, micro_beats_json, 
-                        chapter.get("sync_status", "draft"), now, now
+                        summary_id,
+                        knowledge_id,
+                        chapter_number,
+                        chapter.get("summary", ""),
+                        chapter.get("key_events", ""),
+                        chapter.get("open_threads", ""),
+                        chapter.get("consistency_note", ""),
+                        beat_sections_json,
+                        micro_beats_json,
+                        chapter.get("sync_status", "draft"),
+                        now,
+                        now,
                     ),
                 )
 

@@ -1,4 +1,5 @@
 """仓库内路径（不依赖进程当前工作目录）。"""
+
 from __future__ import annotations
 
 import os

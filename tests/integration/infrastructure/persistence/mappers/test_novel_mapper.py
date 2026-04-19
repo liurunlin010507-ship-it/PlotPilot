@@ -1,13 +1,11 @@
 """NovelMapper 测试"""
+
+
 import pytest
-from datetime import datetime
-from domain.novel.entities.novel import Novel
+
 from domain.novel.entities.chapter import Chapter
+from domain.novel.entities.novel import Novel, NovelStage
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.value_objects.word_count import WordCount
-from domain.novel.value_objects.chapter_content import ChapterContent
-from domain.novel.entities.novel import NovelStage
 from infrastructure.persistence.mappers.novel_mapper import NovelMapper
 
 
@@ -17,11 +15,7 @@ class TestNovelMapper:
     def test_to_dict_minimal_novel(self):
         """测试最小化小说转换为字典"""
         novel = Novel(
-            id=NovelId("test-novel"),
-            title="测试小说",
-            author="测试作者",
-            target_chapters=10,
-            stage=NovelStage.PLANNING
+            id=NovelId("test-novel"), title="测试小说", author="测试作者", target_chapters=10, stage=NovelStage.PLANNING
         )
 
         data = NovelMapper.to_dict(novel)
@@ -35,20 +29,9 @@ class TestNovelMapper:
 
     def test_to_dict_with_chapters(self):
         """测试包含章节的小说转换"""
-        novel = Novel(
-            id=NovelId("test-novel"),
-            title="测试小说",
-            author="测试作者",
-            target_chapters=10
-        )
+        novel = Novel(id=NovelId("test-novel"), title="测试小说", author="测试作者", target_chapters=10)
 
-        chapter = Chapter(
-            id="chapter-1",
-            novel_id=NovelId("test-novel"),
-            number=1,
-            title="第一章",
-            content="章节内容"
-        )
+        chapter = Chapter(id="chapter-1", novel_id=NovelId("test-novel"), number=1, title="第一章", content="章节内容")
         novel.add_chapter(chapter)
 
         data = NovelMapper.to_dict(novel)
@@ -68,7 +51,7 @@ class TestNovelMapper:
             "author": "测试作者",
             "target_chapters": 10,
             "stage": "planning",
-            "chapters": []
+            "chapters": [],
         }
 
         novel = NovelMapper.from_dict(data)
@@ -95,9 +78,9 @@ class TestNovelMapper:
                     "number": 1,
                     "title": "第一章",
                     "content": "章节内容",
-                    "word_count": 4
+                    "word_count": 4,
                 }
-            ]
+            ],
         }
 
         novel = NovelMapper.from_dict(data)
@@ -112,20 +95,9 @@ class TestNovelMapper:
 
     def test_round_trip(self):
         """测试往返转换"""
-        original = Novel(
-            id=NovelId("test-novel"),
-            title="测试小说",
-            author="测试作者",
-            target_chapters=10
-        )
+        original = Novel(id=NovelId("test-novel"), title="测试小说", author="测试作者", target_chapters=10)
 
-        chapter = Chapter(
-            id="chapter-1",
-            novel_id=NovelId("test-novel"),
-            number=1,
-            title="第一章",
-            content="章节内容"
-        )
+        chapter = Chapter(id="chapter-1", novel_id=NovelId("test-novel"), number=1, title="第一章", content="章节内容")
         original.add_chapter(chapter)
 
         # 转换为字典再转回来
@@ -144,7 +116,7 @@ class TestNovelMapper:
             # 缺少 author
             "target_chapters": 10,
             "stage": "planning",
-            "chapters": []
+            "chapters": [],
         }
 
         with pytest.raises(ValueError, match="Missing required fields"):
@@ -158,7 +130,7 @@ class TestNovelMapper:
             "author": "测试作者",
             "target_chapters": 10,
             "stage": "invalid_stage",
-            "chapters": []
+            "chapters": [],
         }
 
         with pytest.raises(ValueError, match="Invalid novel data format"):
@@ -179,9 +151,9 @@ class TestNovelMapper:
                     "number": 1,
                     "title": "第一章",
                     "content": "章节内容",
-                    "word_count": 4
+                    "word_count": 4,
                 }
-            ]
+            ],
         }
 
         with pytest.raises(ValueError, match="Chapter missing required fields"):

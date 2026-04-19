@@ -1,9 +1,10 @@
 """
 Repository for Worldbuilding
 """
+
 import sqlite3
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 from domain.worldbuilding.worldbuilding import Worldbuilding
 
@@ -58,9 +59,12 @@ class WorldbuildingRepository:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM worldbuilding WHERE novel_id = ?
-            """, (novel_id,))
+            """,
+                (novel_id,),
+            )
             row = cursor.fetchone()
 
             if not row:
@@ -93,7 +97,8 @@ class WorldbuildingRepository:
         """保存世界观"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO worldbuilding (
                     id, novel_id,
                     power_system, physics_rules, magic_tech,
@@ -103,28 +108,32 @@ class WorldbuildingRepository:
                     food_clothing, language_slang, entertainment,
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                worldbuilding.id,
-                worldbuilding.novel_id,
-                worldbuilding.power_system,
-                worldbuilding.physics_rules,
-                worldbuilding.magic_tech,
-                worldbuilding.terrain,
-                worldbuilding.climate,
-                worldbuilding.resources,
-                worldbuilding.ecology,
-                worldbuilding.politics,
-                worldbuilding.economy,
-                worldbuilding.class_system,
-                worldbuilding.history,
-                worldbuilding.religion,
-                worldbuilding.taboos,
-                worldbuilding.food_clothing,
-                worldbuilding.language_slang,
-                worldbuilding.entertainment,
-                worldbuilding.created_at.isoformat() if isinstance(worldbuilding.created_at, datetime) else worldbuilding.created_at,
-                datetime.now().isoformat(),
-            ))
+            """,
+                (
+                    worldbuilding.id,
+                    worldbuilding.novel_id,
+                    worldbuilding.power_system,
+                    worldbuilding.physics_rules,
+                    worldbuilding.magic_tech,
+                    worldbuilding.terrain,
+                    worldbuilding.climate,
+                    worldbuilding.resources,
+                    worldbuilding.ecology,
+                    worldbuilding.politics,
+                    worldbuilding.economy,
+                    worldbuilding.class_system,
+                    worldbuilding.history,
+                    worldbuilding.religion,
+                    worldbuilding.taboos,
+                    worldbuilding.food_clothing,
+                    worldbuilding.language_slang,
+                    worldbuilding.entertainment,
+                    worldbuilding.created_at.isoformat()
+                    if isinstance(worldbuilding.created_at, datetime)
+                    else worldbuilding.created_at,
+                    datetime.now().isoformat(),
+                ),
+            )
             conn.commit()
 
     def delete_by_novel_id(self, novel_id: str) -> None:

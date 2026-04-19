@@ -1,4 +1,5 @@
 """Style constraint builder for voice fingerprint integration."""
+
 from typing import Optional
 
 

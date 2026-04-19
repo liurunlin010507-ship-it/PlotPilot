@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 通用工具函数
 ━━━━━━━━━━━━━━━━━━
@@ -6,16 +5,16 @@ aitex 通用工具函数
 不依赖 tkinter，可在纯控制台环境下使用。
 """
 
-import sys
 import os
+import shutil
 import socket
 import subprocess
-import shutil
+import sys
 import time
 
 # ── 当 tkinter 可用时使用隐藏窗口标志，否则为 0 ──
 try:
-    import tkinter as tk
+
     _TK_OK = True
     NO_WIN = subprocess.CREATE_NO_WINDOW
 except Exception:
@@ -27,6 +26,7 @@ except Exception:
 # 路径 & 项目信息
 # ══════════════════════════════════════════════
 
+
 def get_proj_dir():
     """返回项目根目录（aitex/）
 
@@ -34,7 +34,7 @@ def get_proj_dir():
       - PyInstaller exe: exe所在目录的上2级 (tools/aitext/ -> 项目根)
       - 普通 Python: __file__ 往上3级 (install -> scripts -> 项目根)
     """
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # PyInstaller 打包后: exe 在 dist/aitext/aitext.exe
         # 项目根 = exe 的父目录的父目录
         # 但如果 exe 被复制到了 tools/aitext/ 下，
@@ -76,6 +76,7 @@ def get_log_dir(proj_dir=None):
 # 端口
 # ══════════════════════════════════════════════
 
+
 def port_in_use(port):
     """检查端口是否被占用（仅本地 127.0.0.1）"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -94,12 +95,15 @@ def find_free_port(start=8005, max_try=20):
 def get_pid_by_port(port):
     """返回占用指定端口的进程 PID，找不到返回 None（Windows / Unix 均支持）"""
     import platform
+
     system = platform.system()
     try:
         if system == "Windows":
             result = subprocess.run(
                 ["netstat", "-ano"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 creationflags=NO_WIN,
             )
             for line in result.stdout.splitlines():
@@ -113,7 +117,9 @@ def get_pid_by_port(port):
         else:
             result = subprocess.run(
                 ["lsof", "-ti", f"TCP:{port}", "-sTCP:LISTEN"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             pid_str = result.stdout.strip().split("\n")[0]
             if pid_str:
@@ -161,7 +167,7 @@ def read_lock(proj_dir=None):
     if not os.path.exists(path):
         return None
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             parts = f.read().strip().split("|")
             pid = int(parts[0])
             port = int(parts[1]) if len(parts) > 1 else DEFAULT_PORT
@@ -196,7 +202,8 @@ def is_process_alive(pid):
     try:
         proc = subprocess.run(
             ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             creationflags=NO_WIN,
         )
         return str(pid) in proc.stdout
@@ -207,17 +214,20 @@ def is_process_alive(pid):
 def kill_process(pid, timeout=3):
     """优雅终止进程 → 强杀（跨平台）"""
     import platform
+
     system = platform.system()
     try:
         if system == "Windows":
             # Windows: 使用 taskkill
             subprocess.run(
                 ["taskkill", "/PID", str(pid), "/T", "/F"],
-                capture_output=True, creationflags=NO_WIN,
+                capture_output=True,
+                creationflags=NO_WIN,
             )
         else:
             # Unix: 使用 signal
             import signal
+
             os.kill(pid, signal.SIGTERM)
             time.sleep(min(timeout, 3))
             if is_process_alive(pid):
@@ -231,6 +241,7 @@ def kill_process(pid, timeout=3):
 # ══════════════════════════════════════════════
 # Python 环境检测
 # ══════════════════════════════════════════════
+
 
 def find_python():
     """
@@ -285,7 +296,9 @@ def find_python():
             try:
                 r = subprocess.run(
                     ["py", f"-{ver_flag}", "--version"],
-                    capture_output=True, text=True, timeout=5,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                     creationflags=NO_WIN,
                 )
                 ver = (r.stdout + r.stderr).strip()
@@ -323,8 +336,8 @@ def _find_embedded_python(proj_dir):
     search_dirs.append(dev_embed)
 
     # B) PyInstaller 打包后的路径（zip 在 _MEIPASS/tools/ 下）
-    if getattr(sys, 'frozen', False):
-        meipass = getattr(sys, '_MEIPASS', None)
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             # zip 被 --add-data 打包到 tools/ 下，解压后 python_embed/ 在这里
             search_dirs.append(os.path.join(meipass, "tools", "python_embed"))
@@ -367,8 +380,8 @@ def ensure_embedded_python(proj_dir=None, on_log=None):
     search_tools_dirs = [os.path.join(proj_dir, "tools")]
 
     # PyInstaller 模式：zip 可能被打包到 _MEIPASS/tools/ 下
-    if getattr(sys, 'frozen', False):
-        meipass = getattr(sys, '_MEIPASS', None)
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             search_tools_dirs.append(os.path.join(meipass, "tools"))
             # 也检查 _MEIPASS 根目录（旧兼容）
@@ -392,7 +405,7 @@ def ensure_embedded_python(proj_dir=None, on_log=None):
             try:
                 test_file = os.path.join(_embed_dir, ".write_test")
                 os.makedirs(_embed_dir, exist_ok=True)
-                with open(test_file, 'w') as f:
+                with open(test_file, "w") as f:
                     f.write("test")
                 os.remove(test_file)
                 embed_dir = _embed_dir
@@ -403,17 +416,18 @@ def ensure_embedded_python(proj_dir=None, on_log=None):
         # 查找 zip 文件
         if not zip_file and os.path.isdir(tools_dir):
             for f in os.listdir(tools_dir):
-                if re.match(r'python-\d+\.\d+\.\d+-embed-amd64\.zip$', f):
+                if re.match(r"python-\d+\.\d+\.\d+-embed-amd64\.zip$", f):
                     zip_file = os.path.join(tools_dir, f)
                     break
 
     # 已有可写目标 + 找到 zip → 解压
     if embed_dir and zip_file:
         import zipfile
+
         _log(f"正在解压 Python 内嵌包: {os.path.basename(zip_file)}...", "title")
         try:
             os.makedirs(embed_dir, exist_ok=True)
-            with zipfile.ZipFile(zip_file, 'r') as zf:
+            with zipfile.ZipFile(zip_file, "r") as zf:
                 zf.extractall(embed_dir)
             _log("Python 内嵌包解压完成 ✓", "ok")
             return True
@@ -431,7 +445,9 @@ def _get_version(exe):
     try:
         r = subprocess.run(
             [exe, "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             creationflags=NO_WIN,
         )
         return (r.stdout + r.stderr).strip() or None
@@ -444,7 +460,8 @@ def check_uvicorn(exe):
     try:
         r = subprocess.run(
             [exe, "-c", "import uvicorn"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
             creationflags=NO_WIN,
         )
         return r.returncode == 0
@@ -472,7 +489,9 @@ def ensure_venv(proj_dir=None, system_python=None):
 
     r = subprocess.run(
         [system_python, "-m", "venv", ".venv"],
-        cwd=proj_dir, capture_output=True, text=True,
+        cwd=proj_dir,
+        capture_output=True,
+        text=True,
         creationflags=NO_WIN,
     )
     if r.returncode != 0:
@@ -486,6 +505,7 @@ def ensure_venv(proj_dir=None, system_python=None):
 # 崩溃日志
 # ══════════════════════════════════════════════
 
+
 def save_crash_log(exc, tb_text="", proj_dir=None):
     """追加写入崩溃日志"""
     if proj_dir is None:
@@ -494,11 +514,11 @@ def save_crash_log(exc, tb_text="", proj_dir=None):
         log_dir = get_log_dir(proj_dir)
         path = os.path.join(log_dir, "crash.log")
         with open(path, "a", encoding="utf-8") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"CRASH @ {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"Python: {sys.version}\n")
             f.write(f"Exception: {exc}\n\n")
             f.write(tb_text)
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
     except Exception:
         pass

@@ -29,6 +29,7 @@ class SceneDirectorAnalyzeRequest(BaseModel):
         chapter_number: Chapter number (must be >= 1)
         outline: Scene outline text (must not be empty or whitespace-only)
     """
+
     chapter_number: int = Field(ge=1)
     outline: str = Field(min_length=1)
 
@@ -56,6 +57,7 @@ class SceneDirectorAnalysis(BaseModel):
             actions and emotions without revealing hidden character settings.
             Defaults to None for backward compatibility.
     """
+
     characters: List[str] = Field(default_factory=list)
     locations: List[str] = Field(default_factory=list)
     action_types: List[str] = Field(default_factory=list)
@@ -72,6 +74,7 @@ class SceneDirectorAnalyzeResponse(SceneDirectorAnalysis):
     for future response-specific fields or validation logic. Currently identical
     to parent but provides semantic clarity that this is a response object.
     """
+
     pass
 
 
@@ -84,6 +87,7 @@ class ContextRetrieveRequest(BaseModel):
         scene_director_result: Optional scene director analysis result for filtering
         max_tokens: Maximum tokens for context (default 35000, range 4096-120000)
     """
+
     chapter_number: int = Field(ge=1)
     outline: str = Field(min_length=1)
     scene_director_result: Optional[Dict[str, Any]] = None
@@ -106,6 +110,7 @@ class ContextRetrieveResponse(BaseModel):
         layer3: Layer 3 recent context with content field
         token_usage: Token usage breakdown by layer and total
     """
+
     layer1: Dict[str, Any]
     layer2: Dict[str, Any]
     layer3: Dict[str, Any]

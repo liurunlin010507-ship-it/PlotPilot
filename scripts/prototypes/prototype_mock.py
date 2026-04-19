@@ -10,22 +10,21 @@
 - 不花费 API 费用
 - 5 分钟内完成 30 章流程验证
 """
-import asyncio
-import logging
-import json
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+import asyncio
+import json
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 class MockForeshadowLedger:
     """模拟伏笔账本"""
+
     def __init__(self):
         self.planted = []
         self.resolved = []
@@ -108,7 +107,7 @@ class AutoPilotPrototype:
         await asyncio.sleep(0.5)  # 模拟 LLM 延迟
 
         self.current_act_id = "act_001"
-        logger.info(f"  ✓ 宏观骨架已生成：3 幕，每幕 10 章")
+        logger.info("  ✓ 宏观骨架已生成：3 幕，每幕 10 章")
         logger.info(f"  ✓ 当前幕: {self.current_act_id}")
 
     async def _execute_act(self, act_id: str):
@@ -150,7 +149,7 @@ class AutoPilotPrototype:
             logger.info("  → 调用 GenerationService.generate_chapter_stream()")
             await asyncio.sleep(0.5)
             content = f"[模拟正文内容 - 第 {chapter_num} 章，约 2500 字]"
-            logger.info(f"  ✓ 正文已生成: 2500 字")
+            logger.info("  ✓ 正文已生成: 2500 字")
 
             # E. 回收伏笔
             for f in ready_foreshadows:
@@ -160,12 +159,9 @@ class AutoPilotPrototype:
             asyncio.create_task(self._async_fan_out(chapter_num, content))
 
             # 保存章节
-            self.generated_chapters.append({
-                "chapter": chapter_num,
-                "act": act_id,
-                "content": content,
-                "word_count": 2500
-            })
+            self.generated_chapters.append(
+                {"chapter": chapter_num, "act": act_id, "content": content, "word_count": 2500}
+            )
 
     async def _async_fan_out(self, chapter_num: int, content: str):
         """异步扇出：后台处理（模拟）"""
@@ -184,8 +180,8 @@ class AutoPilotPrototype:
         act_number = int(self.current_act_id.split("_")[1]) + 1
         next_act_id = f"act_{act_number:03d}"
 
-        logger.info(f"  → 调用 PlanningService.create_next_act()")
-        logger.info(f"  → 输入: 前一幕摘要 + 待回收伏笔")
+        logger.info("  → 调用 PlanningService.create_next_act()")
+        logger.info("  → 输入: 前一幕摘要 + 待回收伏笔")
         await asyncio.sleep(0.5)
 
         self.current_act_id = next_act_id
@@ -207,14 +203,14 @@ class AutoPilotPrototype:
 
         logger.info(f"\n总章节数: {len(self.generated_chapters)}")
         logger.info(f"总字数: {total_words:,}")
-        logger.info(f"\n伏笔统计:")
+        logger.info("\n伏笔统计:")
         logger.info(f"  总埋设: {total_planted}")
         logger.info(f"  已回收: {resolved}")
         logger.info(f"  待回收: {pending}")
         logger.info(f"  回收率: {resolve_rate:.1f}%")
 
         # 检查断层
-        logger.info(f"\n断层检查:")
+        logger.info("\n断层检查:")
         for i in range(1, 4):
             boundary = i * 10
             if boundary <= len(self.generated_chapters):
@@ -235,14 +231,14 @@ class AutoPilotPrototype:
                 "total_planted": total_planted,
                 "resolved": resolved,
                 "pending": pending,
-                "resolve_rate": f"{resolve_rate:.1f}%"
+                "resolve_rate": f"{resolve_rate:.1f}%",
             },
             "chapters": self.generated_chapters,
             "pending_foreshadows": self.foreshadow_ledger.planted,
-            "resolved_foreshadows": self.foreshadow_ledger.resolved
+            "resolved_foreshadows": self.foreshadow_ledger.resolved,
         }
 
-        with open(report_file, 'w', encoding='utf-8') as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             json.dump(report, f, ensure_ascii=False, indent=2)
 
         logger.info(f"\n报告已保存: {report_file}")
@@ -267,8 +263,7 @@ class AutoPilotPrototype:
 
 async def main():
     prototype = AutoPilotPrototype(
-        novel_id="test_mock_001",
-        core_idea="主角穿越到赛博朋克修仙界，发现所有的系统本质上都是夺舍程序..."
+        novel_id="test_mock_001", core_idea="主角穿越到赛博朋克修仙界，发现所有的系统本质上都是夺舍程序..."
     )
     await prototype.run()
 

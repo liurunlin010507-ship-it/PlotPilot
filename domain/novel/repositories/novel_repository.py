@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from domain.novel.entities.novel import Novel, AutopilotStatus
+
+from domain.novel.entities.novel import AutopilotStatus, Novel
 from domain.novel.value_objects.novel_id import NovelId
 
 

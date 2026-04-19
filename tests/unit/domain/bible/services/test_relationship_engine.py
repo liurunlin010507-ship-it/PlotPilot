@@ -1,12 +1,12 @@
-import pytest
 import time
-from domain.bible.value_objects.character_id import CharacterId
-from domain.bible.value_objects.relationship import Relationship, RelationType
-from domain.bible.value_objects.relationship_graph import RelationshipGraph
+
 from domain.bible.services.relationship_engine import (
     RelationshipEngine,
     RelationshipTrend,
 )
+from domain.bible.value_objects.character_id import CharacterId
+from domain.bible.value_objects.relationship import Relationship, RelationType
+from domain.bible.value_objects.relationship_graph import RelationshipGraph
 
 
 class TestRelationshipEngineBasics:
@@ -25,11 +25,7 @@ class TestRelationshipEngineBasics:
 
         char1 = CharacterId("alice")
         char2 = CharacterId("bob")
-        rel = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Met at school"
-        )
+        rel = Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="Met at school")
 
         engine.add_relationship(char1, char2, rel)
 

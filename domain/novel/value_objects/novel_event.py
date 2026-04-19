@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
+
 from domain.bible.value_objects.character_id import CharacterId
 
 
@@ -14,11 +15,12 @@ class EventType(str, Enum):
     - REVELATION: 揭示
     - DECISION: 决定
     """
+
     CHARACTER_INTRODUCTION = "character_introduction"  # 角色介绍
-    RELATIONSHIP_CHANGE = "relationship_change"        # 关系变化
-    CONFLICT = "conflict"                              # 冲突
-    REVELATION = "revelation"                          # 揭示
-    DECISION = "decision"                              # 决定
+    RELATIONSHIP_CHANGE = "relationship_change"  # 关系变化
+    CONFLICT = "conflict"  # 冲突
+    REVELATION = "revelation"  # 揭示
+    DECISION = "decision"  # 决定
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,7 @@ class NovelEvent:
         ...     involved_characters=(char_id,)
         ... )
     """
+
     chapter_number: int
     event_type: EventType
     description: str

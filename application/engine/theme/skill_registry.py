@@ -94,12 +94,14 @@ class ThemeSkillRegistry:
         for skill in self._skills.values():
             genres = skill.compatible_genres
             if not genres or genre_key in genres:
-                result.append({
-                    "key": skill.skill_key,
-                    "name": skill.skill_name,
-                    "description": skill.skill_description,
-                    "compatible_genres": genres,
-                })
+                result.append(
+                    {
+                        "key": skill.skill_key,
+                        "name": skill.skill_name,
+                        "description": skill.skill_description,
+                        "compatible_genres": genres,
+                    }
+                )
         return result
 
     def get_skills_by_keys(self, skill_keys: List[str]) -> List[ThemeSkill]:
@@ -111,11 +113,7 @@ class ThemeSkillRegistry:
         Returns:
             匹配的 ThemeSkill 实例列表
         """
-        return [
-            self._skills[k]
-            for k in skill_keys
-            if k in self._skills
-        ]
+        return [self._skills[k] for k in skill_keys if k in self._skills]
 
     @property
     def registered_keys(self) -> List[str]:
@@ -145,11 +143,10 @@ class ThemeSkillRegistry:
         ]
 
         import importlib
+
         for module_name, class_name, display_name in _BUILTIN_SKILLS:
             try:
-                mod = importlib.import_module(
-                    f"application.engine.theme.skills.{module_name}"
-                )
+                mod = importlib.import_module(f"application.engine.theme.skills.{module_name}")
                 cls = getattr(mod, class_name)
                 self.register(cls())
                 count += 1

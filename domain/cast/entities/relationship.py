@@ -1,9 +1,11 @@
 """Relationship entity"""
+
 from dataclasses import dataclass, field
 from typing import List
-from domain.cast.value_objects.relationship_id import RelationshipId
-from domain.cast.value_objects.character_id import CharacterId
+
 from domain.cast.entities.story_event import StoryEvent
+from domain.cast.value_objects.character_id import CharacterId
+from domain.cast.value_objects.relationship_id import RelationshipId
 
 
 @dataclass

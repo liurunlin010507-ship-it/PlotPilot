@@ -1,8 +1,8 @@
 """ConflictDetectionService 单元测试"""
+
 import pytest
-from application.services.conflict_detection_service import ConflictDetectionService
-from application.dtos.ghost_annotation import GhostAnnotation
 from application.dtos.scene_director_dto import SceneDirectorAnalysis
+from application.services.conflict_detection_service import ConflictDetectionService
 
 
 class TestConflictDetectionService:
@@ -16,14 +16,8 @@ class TestConflictDetectionService:
     def test_detect_magic_conflict(self, service):
         """测试检测魔法系统冲突"""
         outline = "李明释放火球术攻击敌人"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -41,14 +35,8 @@ class TestConflictDetectionService:
     def test_detect_no_conflict_when_magic_matches(self, service):
         """测试魔法类型匹配时无冲突"""
         outline = "李明释放火球术攻击敌人"
-        entity_states = {
-            "char-001": {
-                "magic_type": "火系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "火系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -57,14 +45,8 @@ class TestConflictDetectionService:
     def test_detect_weapon_conflict(self, service):
         """测试检测武器冲突"""
         outline = "李明拔剑攻击"
-        entity_states = {
-            "char-001": {
-                "weapon": "弓"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"weapon": "弓"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -78,14 +60,8 @@ class TestConflictDetectionService:
     def test_detect_no_conflict_when_weapon_matches(self, service):
         """测试武器匹配时无冲突"""
         outline = "李明拔剑攻击"
-        entity_states = {
-            "char-001": {
-                "weapon": "剑"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"weapon": "剑"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -94,15 +70,8 @@ class TestConflictDetectionService:
     def test_detect_multiple_conflicts(self, service):
         """测试检测多个冲突"""
         outline = "李明释放火球术，然后拔剑攻击"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系",
-                "weapon": "弓"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系", "weapon": "弓"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -117,14 +86,8 @@ class TestConflictDetectionService:
     def test_detect_no_conflicts_when_entity_not_in_outline(self, service):
         """测试实体不在大纲中时无冲突"""
         outline = "王总独自思考"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -134,9 +97,7 @@ class TestConflictDetectionService:
         """测试没有实体状态时无冲突"""
         outline = "李明释放火球术"
         entity_states = {}
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -145,12 +106,8 @@ class TestConflictDetectionService:
     def test_detect_no_conflicts_when_entity_has_no_state(self, service):
         """测试实体没有状态时无冲突"""
         outline = "李明释放火球术"
-        entity_states = {
-            "char-001": {}
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -159,21 +116,15 @@ class TestConflictDetectionService:
     def test_detect_with_scene_director(self, service):
         """测试使用场记分析结果"""
         outline = "李明释放火球术"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系"}}
+        name_to_entity_id = {"李明": "char-001"}
         scene_director = SceneDirectorAnalysis(
             characters=["李明"],
             locations=["战场"],
             action_types=["combat"],
             trigger_keywords=["魔法"],
             emotional_state="tense",
-            pov="李明"
+            pov="李明",
         )
 
         annotations = service.detect(outline, entity_states, name_to_entity_id, scene_director)
@@ -196,14 +147,8 @@ class TestConflictDetectionService:
     def test_detect_ice_magic_conflict(self, service):
         """测试冰系魔法冲突"""
         outline = "李明释放冰系魔法"
-        entity_states = {
-            "char-001": {
-                "magic_type": "火系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "火系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -213,14 +158,8 @@ class TestConflictDetectionService:
     def test_detect_lightning_magic_conflict(self, service):
         """测试雷系魔法冲突"""
         outline = "李明释放雷电攻击"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -230,14 +169,8 @@ class TestConflictDetectionService:
     def test_detect_wind_magic_conflict(self, service):
         """测试风系魔法冲突"""
         outline = "李明释放风系魔法"
-        entity_states = {
-            "char-001": {
-                "magic_type": "火系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "火系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -247,14 +180,8 @@ class TestConflictDetectionService:
     def test_detect_bow_weapon_conflict(self, service):
         """测试弓箭武器冲突"""
         outline = "李明射箭攻击"
-        entity_states = {
-            "char-001": {
-                "weapon": "剑"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"weapon": "剑"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -264,14 +191,8 @@ class TestConflictDetectionService:
     def test_detect_gun_weapon_conflict(self, service):
         """测试枪械武器冲突"""
         outline = "李明开枪射击"
-        entity_states = {
-            "char-001": {
-                "weapon": "剑"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"weapon": "剑"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 
@@ -281,14 +202,8 @@ class TestConflictDetectionService:
     def test_detect_case_insensitive(self, service):
         """测试大小写不敏感"""
         outline = "李明释放火球术"
-        entity_states = {
-            "char-001": {
-                "magic_type": "水系"
-            }
-        }
-        name_to_entity_id = {
-            "李明": "char-001"
-        }
+        entity_states = {"char-001": {"magic_type": "水系"}}
+        name_to_entity_id = {"李明": "char-001"}
 
         annotations = service.detect(outline, entity_states, name_to_entity_id)
 

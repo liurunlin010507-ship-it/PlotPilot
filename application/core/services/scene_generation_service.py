@@ -4,12 +4,12 @@
 """
 
 import logging
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from domain.novel.value_objects.scene import Scene
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
 from application.engine.services.scene_director_service import SceneDirectorService
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
+from domain.novel.value_objects.scene import Scene
 
 if TYPE_CHECKING:
     from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
@@ -40,11 +40,7 @@ class SceneGenerationService:
         self.embedding_service = embedding_service
 
     async def generate_scene(
-        self,
-        scene: Scene,
-        chapter_number: int,
-        previous_scenes: List[str],
-        bible_context: Optional[Dict] = None
+        self, scene: Scene, chapter_number: int, previous_scenes: List[str], bible_context: Optional[Dict] = None
     ) -> str:
         """生成单个场景的正文
 
@@ -61,17 +57,15 @@ class SceneGenerationService:
 
         # 1. 场记分析
         scene_analysis = await self.scene_director.analyze(
-            chapter_number=chapter_number,
-            outline=f"{scene.title}\n{scene.goal}"
+            chapter_number=chapter_number, outline=f"{scene.title}\n{scene.goal}"
         )
-        logger.debug(f"Scene analysis: characters={scene_analysis.characters}, "
-                    f"locations={scene_analysis.locations}, pov={scene_analysis.pov}")
+        logger.debug(
+            f"Scene analysis: characters={scene_analysis.characters}, "
+            f"locations={scene_analysis.locations}, pov={scene_analysis.pov}"
+        )
 
         # 2. 向量检索过滤上下文（POV 防火墙）
-        relevant_context = await self._retrieve_relevant_context(
-            scene=scene,
-            scene_analysis=scene_analysis
-        )
+        relevant_context = await self._retrieve_relevant_context(scene=scene, scene_analysis=scene_analysis)
 
         # 3. 构建提示词
         prompt = self._build_scene_prompt(
@@ -79,7 +73,7 @@ class SceneGenerationService:
             scene_analysis=scene_analysis,
             relevant_context=relevant_context,
             previous_scenes=previous_scenes,
-            bible_context=bible_context
+            bible_context=bible_context,
         )
 
         # 4. 生成正文
@@ -87,9 +81,9 @@ class SceneGenerationService:
         response = await self.llm_service.generate(prompt, config)
 
         # 提取响应文本
-        if hasattr(response, 'content'):
+        if hasattr(response, "content"):
             content = response.content
-        elif hasattr(response, 'text'):
+        elif hasattr(response, "text"):
             content = response.text
         else:
             content = str(response)
@@ -97,11 +91,7 @@ class SceneGenerationService:
         logger.info(f"Scene generated: {len(content)} characters")
         return content.strip()
 
-    async def _retrieve_relevant_context(
-        self,
-        scene: Scene,
-        scene_analysis
-    ) -> Dict:
+    async def _retrieve_relevant_context(self, scene: Scene, scene_analysis) -> Dict:
         """向量检索：获取与场景相关的上下文
 
         Phase 2.1 简化版：暂时返回空上下文
@@ -110,11 +100,7 @@ class SceneGenerationService:
         # - 检索相关人物信息（POV 防火墙）
         # - 检索相关地点信息
         # - 检索相关伏笔
-        return {
-            "characters": [],
-            "locations": [],
-            "foreshadowings": []
-        }
+        return {"characters": [], "locations": [], "foreshadowings": []}
 
     def _build_scene_prompt(
         self,
@@ -122,7 +108,7 @@ class SceneGenerationService:
         scene_analysis,
         relevant_context: Dict,
         previous_scenes: List[str],
-        bible_context: Optional[Dict]
+        bible_context: Optional[Dict],
     ) -> Prompt:
         """构建场景生成提示词"""
 
@@ -147,8 +133,8 @@ class SceneGenerationService:
 标题：{scene.title}
 目标：{scene.goal}
 POV 角色：{scene.pov_character}
-地点：{scene.location or '未指定'}
-情绪基调：{scene.tone or '未指定'}
+地点：{scene.location or "未指定"}
+情绪基调：{scene.tone or "未指定"}
 预估字数：{scene.estimated_words}
 
 """
@@ -177,7 +163,4 @@ POV 角色：{scene.pov_character}
 
         user_prompt += "\n\n请生成场景正文："
 
-        return Prompt(
-            system=system_prompt,
-            user=user_prompt
-        )
+        return Prompt(system=system_prompt, user=user_prompt)

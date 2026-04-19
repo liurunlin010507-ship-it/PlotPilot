@@ -6,17 +6,18 @@
 3. 最终一致性：分析结果最终会更新到数据库
 4. 熔断保护：队列满时丢弃任务，避免内存爆炸
 """
-import logging
+
 import asyncio
-import threading
+import logging
 import queue
+import threading
 import time
 import uuid
-from typing import Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict
 
-from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.chapter_id import ChapterId
+from domain.novel.value_objects.novel_id import NovelId
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +32,9 @@ class TaskType(Enum):
 
 class BackgroundTask:
     """后台任务"""
+
     def __init__(
-        self,
-        task_id: str,
-        task_type: TaskType,
-        novel_id: NovelId,
-        chapter_id: ChapterId,
-        payload: Dict[str, Any]
+        self, task_id: str, task_type: TaskType, novel_id: NovelId, chapter_id: ChapterId, payload: Dict[str, Any]
     ):
         self.task_id = task_id
         self.task_type = task_type
@@ -86,7 +83,7 @@ class BackgroundTaskService:
                 task_type=task_type,
                 novel_id=novel_id,
                 chapter_id=chapter_id,
-                payload=payload
+                payload=payload,
             )
             self._queue.put_nowait(task)
             logger.debug(f"[BG] 任务已入队：{task_type.value}")
@@ -115,7 +112,7 @@ class BackgroundTaskService:
                 if attempt == max_retries:
                     logger.error(f"[BG] 任务最终失败 {task.task_type.value}：{e}")
                 else:
-                    wait = 2 ** attempt  # 指数退避：1s, 2s
+                    wait = 2**attempt  # 指数退避：1s, 2s
                     logger.warning(f"[BG] 任务失败，{wait}s 后重试：{e}")
                     time.sleep(wait)
 
@@ -136,9 +133,7 @@ class BackgroundTaskService:
             return
 
         self.voice_drift_service.score_chapter(
-            novel_id=task.novel_id.value,
-            chapter_number=chapter_number,
-            content=content
+            novel_id=task.novel_id.value, chapter_number=chapter_number, content=content
         )
         logger.info(f"[BG] 文风分析完成：第 {chapter_number} 章")
 

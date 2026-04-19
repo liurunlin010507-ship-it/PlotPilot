@@ -1,4 +1,3 @@
-import pytest
 from domain.novel.value_objects.tension_level import TensionLevel
 
 

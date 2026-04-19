@@ -49,13 +49,14 @@ class ChapterGenerationEvaluator(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         try:
             # 直接使用LLM测试章节生成
             llm = self._get_service("llm")
-            from domain.ai.value_objects.prompt import Prompt
             from domain.ai.services.llm_service import GenerationConfig
+            from domain.ai.value_objects.prompt import Prompt
 
             system_prompt = """你是一位专业的小说作家，正在创作一部玄幻小说。
 写作要求：
@@ -67,10 +68,10 @@ class ChapterGenerationEvaluator(BaseEvaluator):
             user_prompt = f"""请根据以下大纲创作章节：
 
 【背景】
-{test_case.get('context', '')}
+{test_case.get("context", "")}
 
 【本章大纲】
-{test_case.get('outline', '')}
+{test_case.get("outline", "")}
 
 开始撰写："""
 
@@ -117,50 +118,60 @@ class ChapterGenerationEvaluator(BaseEvaluator):
         word_count = len(content)
         expected_words = test_case.get("expected_words", 2500)
         word_score = self._evaluate_word_count(word_count, expected_words)
-        metrics.append(create_metric(
-            name="字数控制",
-            score=word_score,
-            weight=1.5,
-            details=f"实际字数: {word_count}, 目标: {expected_words}",
-        ))
+        metrics.append(
+            create_metric(
+                name="字数控制",
+                score=word_score,
+                weight=1.5,
+                details=f"实际字数: {word_count}, 目标: {expected_words}",
+            )
+        )
 
         # 2. 对话质量
         dialogue_score, dialogue_details = self._evaluate_dialogue(content)
-        metrics.append(create_metric(
-            name="对话质量",
-            score=dialogue_score,
-            weight=1.2,
-            details=dialogue_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="对话质量",
+                score=dialogue_score,
+                weight=1.2,
+                details=dialogue_details,
+            )
+        )
 
         # 3. 感官描写
         sensory_score, sensory_details = self._evaluate_sensory(content)
-        metrics.append(create_metric(
-            name="感官描写",
-            score=sensory_score,
-            weight=1.0,
-            details=sensory_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="感官描写",
+                score=sensory_score,
+                weight=1.0,
+                details=sensory_details,
+            )
+        )
 
         # 4. 情节连贯性
         coherence_score, coherence_details = self._evaluate_coherence(content, test_case)
-        metrics.append(create_metric(
-            name="情节连贯性",
-            score=coherence_score,
-            weight=1.3,
-            details=coherence_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="情节连贯性",
+                score=coherence_score,
+                weight=1.3,
+                details=coherence_details,
+            )
+        )
 
         # 5. 预期元素
         elements_score, elements_details = self._evaluate_expected_elements(
             content, test_case.get("expected_elements", [])
         )
-        metrics.append(create_metric(
-            name="预期元素",
-            score=elements_score,
-            weight=0.8,
-            details=elements_details,
-        ))
+        metrics.append(
+            create_metric(
+                name="预期元素",
+                score=elements_score,
+                weight=0.8,
+                details=elements_details,
+            )
+        )
 
         return metrics
 
@@ -301,4 +312,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

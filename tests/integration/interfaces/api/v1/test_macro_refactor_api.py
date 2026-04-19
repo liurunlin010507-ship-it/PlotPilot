@@ -1,6 +1,8 @@
 """Macro Refactor API 集成测试"""
+
 import pytest
 from fastapi.testclient import TestClient
+
 from interfaces.main import app
 
 
@@ -32,7 +34,7 @@ class TestMacroRefactorAPI:
         # 创建测试小说
         db.execute(
             "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-            (novel_id, "Test Novel", "test-novel-macro-refactor", 10)
+            (novel_id, "Test Novel", "test-novel-macro-refactor", 10),
         )
         db.get_connection().commit()
 
@@ -42,21 +44,21 @@ class TestMacroRefactorAPI:
             chapter_number=1,
             event_summary="主角冲动行事",
             mutations=[],
-            tags=["动机:冲动", "情绪:激动"]
+            tags=["动机:冲动", "情绪:激动"],
         )
         repo.append_event(
             novel_id=novel_id,
             chapter_number=2,
             event_summary="主角愤怒爆发",
             mutations=[],
-            tags=["情绪:愤怒", "行为:鲁莽"]
+            tags=["情绪:愤怒", "行为:鲁莽"],
         )
         repo.append_event(
             novel_id=novel_id,
             chapter_number=3,
             event_summary="主角冷静分析",
             mutations=[],
-            tags=["动机:理性", "情绪:冷静"]
+            tags=["动机:理性", "情绪:冷静"],
         )
 
         yield novel_id
@@ -71,10 +73,7 @@ class TestMacroRefactorAPI:
         novel_id = setup_test_data
 
         # 发送请求
-        response = client.get(
-            f"/api/v1/novels/{novel_id}/macro-refactor/breakpoints",
-            params={"trait": "冷酷"}
-        )
+        response = client.get(f"/api/v1/novels/{novel_id}/macro-refactor/breakpoints", params={"trait": "冷酷"})
 
         # 验证响应
         assert response.status_code == 200
@@ -102,10 +101,7 @@ class TestMacroRefactorAPI:
         # 使用自定义冲突标签
         response = client.get(
             f"/api/v1/novels/{novel_id}/macro-refactor/breakpoints",
-            params={
-                "trait": "理性",
-                "conflict_tags": "动机:冲动,情绪:激动"
-            }
+            params={"trait": "理性", "conflict_tags": "动机:冲动,情绪:激动"},
         )
 
         # 验证响应
@@ -123,10 +119,7 @@ class TestMacroRefactorAPI:
         # 使用不会冲突的自定义标签
         response = client.get(
             f"/api/v1/novels/{novel_id}/macro-refactor/breakpoints",
-            params={
-                "trait": "测试",
-                "conflict_tags": "不存在的标签"
-            }
+            params={"trait": "测试", "conflict_tags": "不存在的标签"},
         )
 
         # 验证响应
@@ -144,14 +137,11 @@ class TestMacroRefactorAPI:
             "event_id": "evt_001",
             "author_intent": "让角色表现得更冷酷",
             "current_event_summary": "角色冲动地救了一个陌生人",
-            "current_tags": ["动机:冲动", "情感:同情"]
+            "current_tags": ["动机:冲动", "情感:同情"],
         }
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/macro-refactor/proposals",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/macro-refactor/proposals", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -180,10 +170,7 @@ class TestMacroRefactorAPI:
         }
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/macro-refactor/proposals",
-            json=invalid_request
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/macro-refactor/proposals", json=invalid_request)
 
         # 应该返回 422 验证错误
         assert response.status_code == 422
@@ -208,16 +195,13 @@ class TestMacroRefactorAPI:
             "mutations": [
                 {"type": "add_tag", "tag": "性格:冷酷"},
                 {"type": "remove_tag", "tag": "动机:冲动"},
-                {"type": "replace_summary", "new_summary": "主角冷静地拒绝帮助"}
+                {"type": "replace_summary", "new_summary": "主角冷静地拒绝帮助"},
             ],
-            "reason": "修正人设冲突"
+            "reason": "修正人设冲突",
         }
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/macro-refactor/apply",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/macro-refactor/apply", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -253,10 +237,7 @@ class TestMacroRefactorAPI:
         }
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/macro-refactor/apply",
-            json=invalid_request
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/macro-refactor/apply", json=invalid_request)
 
         # 应该返回 422 验证错误
         assert response.status_code == 422
@@ -266,17 +247,10 @@ class TestMacroRefactorAPI:
         novel_id = setup_test_data
 
         # 使用不存在的 event_id
-        request_data = {
-            "event_id": "nonexistent-event-id",
-            "mutations": [{"type": "add_tag", "tag": "测试"}]
-        }
+        request_data = {"event_id": "nonexistent-event-id", "mutations": [{"type": "add_tag", "tag": "测试"}]}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/macro-refactor/apply",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/macro-refactor/apply", json=request_data)
 
         # 应该返回 400 错误
         assert response.status_code == 400
-

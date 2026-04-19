@@ -1,15 +1,13 @@
 """监控大盘 API endpoints - 提供张力曲线、人声漂移、伏笔统计等监控数据"""
 
 import logging
-from typing import List, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends
+from typing import List
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
 from domain.novel.value_objects.novel_id import NovelId
-from interfaces.api.dependencies import (
-    get_novel_repository,
-    get_chapter_repository,
-    get_foreshadowing_repository
-)
+from interfaces.api.dependencies import get_chapter_repository, get_foreshadowing_repository, get_novel_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/novels", tags=["monitor"])
@@ -56,21 +54,14 @@ async def get_tension_curve(novel_id: str):
         points = []
         for ch in chapters:
             # 从章节元数据中获取张力值（0-100），转换为 0-10 范围
-            raw_tension = getattr(ch, 'tension_score', None) or 50.0
+            raw_tension = getattr(ch, "tension_score", None) or 50.0
             tension = float(raw_tension) / 10.0  # 转换为 0-10 范围
-            points.append(TensionPoint(
-                chapter=ch.number,
-                tension=tension,
-                title=ch.title or f"第{ch.number}章"
-            ))
+            points.append(TensionPoint(chapter=ch.number, tension=tension, title=ch.title or f"第{ch.number}章"))
 
         # 按章节号排序
         points.sort(key=lambda p: p.chapter)
 
-        return TensionCurveResponse(
-            novel_id=novel_id,
-            points=points
-        )
+        return TensionCurveResponse(novel_id=novel_id, points=points)
 
     except Exception as e:
         logger.error(f"Error fetching tension curve: {e}", exc_info=True)
@@ -96,10 +87,10 @@ async def get_voice_drift(novel_id: str):
         results = []
 
         # 从小说的角色列表中获取
-        characters = getattr(novel, 'characters', [])
+        characters = getattr(novel, "characters", [])
         for char in characters[:5]:  # 限制返回前5个角色
-            char_id = getattr(char, 'id', str(char))
-            char_name = getattr(char, 'name', char_id)
+            char_id = getattr(char, "id", str(char))
+            char_name = getattr(char, "name", char_id)
 
             # Mock: 随机生成漂移分数
             drift_score = 0.15  # 实际应该从分析结果中获取
@@ -110,13 +101,15 @@ async def get_voice_drift(novel_id: str):
             elif drift_score > 0.3:
                 status = "warning"
 
-            results.append(VoiceDriftResponse(
-                character_id=char_id,
-                character_name=char_name,
-                drift_score=drift_score,
-                status=status,
-                sample_count=10
-            ))
+            results.append(
+                VoiceDriftResponse(
+                    character_id=char_id,
+                    character_name=char_name,
+                    drift_score=drift_score,
+                    status=status,
+                    sample_count=10,
+                )
+            )
 
         return results
 
@@ -143,11 +136,7 @@ async def get_foreshadow_stats(novel_id: str):
         if not registry:
             # 如果没有伏笔数据，返回空统计
             return ForeshadowStatsResponse(
-                total_planted=0,
-                total_resolved=0,
-                pending=0,
-                forgotten_risk=0,
-                resolution_rate=0.0
+                total_planted=0, total_resolved=0, pending=0, forgotten_risk=0, resolution_rate=0.0
             )
 
         # 获取所有潜台词条目（伏笔）
@@ -176,7 +165,7 @@ async def get_foreshadow_stats(novel_id: str):
             total_resolved=total_resolved,
             pending=pending,
             forgotten_risk=forgotten_risk,
-            resolution_rate=round(resolution_rate, 1)
+            resolution_rate=round(resolution_rate, 1),
         )
 
     except Exception as e:

@@ -1,11 +1,12 @@
 import pytest
-from domain.novel.value_objects.consistency_context import ConsistencyContext
+
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character_registry import CharacterRegistry
+from domain.bible.value_objects.relationship_graph import RelationshipGraph
 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
 from domain.novel.entities.plot_arc import PlotArc
+from domain.novel.value_objects.consistency_context import ConsistencyContext
 from domain.novel.value_objects.event_timeline import EventTimeline
-from domain.bible.value_objects.relationship_graph import RelationshipGraph
 from domain.novel.value_objects.novel_id import NovelId
 
 
@@ -28,7 +29,7 @@ class TestConsistencyContext:
             foreshadowing_registry=foreshadowing_registry,
             plot_arc=plot_arc,
             event_timeline=event_timeline,
-            relationship_graph=relationship_graph
+            relationship_graph=relationship_graph,
         )
 
         assert context.bible == bible
@@ -54,7 +55,7 @@ class TestConsistencyContext:
             foreshadowing_registry=foreshadowing_registry,
             plot_arc=plot_arc,
             event_timeline=event_timeline,
-            relationship_graph=relationship_graph
+            relationship_graph=relationship_graph,
         )
 
         with pytest.raises(AttributeError):
@@ -69,11 +70,7 @@ class TestConsistencyContext:
         bible = Bible(id="bible-1", novel_id=novel_id)
 
         char_id = CharacterId("char-1")
-        character = Character(
-            id=char_id,
-            name="张三",
-            description="主角"
-        )
+        character = Character(id=char_id, name="张三", description="主角")
         bible.add_character(character)
 
         context = ConsistencyContext(
@@ -82,7 +79,7 @@ class TestConsistencyContext:
             foreshadowing_registry=ForeshadowingRegistry(id="foreshadow-1", novel_id=novel_id),
             plot_arc=PlotArc(id="arc-1", novel_id=novel_id),
             event_timeline=EventTimeline(),
-            relationship_graph=RelationshipGraph()
+            relationship_graph=RelationshipGraph(),
         )
 
         found_char = context.bible.get_character(char_id)
@@ -91,11 +88,7 @@ class TestConsistencyContext:
 
     def test_get_foreshadowing_from_registry(self):
         """测试从注册表获取伏笔"""
-        from domain.novel.value_objects.foreshadowing import (
-            Foreshadowing,
-            ForeshadowingStatus,
-            ImportanceLevel
-        )
+        from domain.novel.value_objects.foreshadowing import Foreshadowing, ForeshadowingStatus, ImportanceLevel
 
         novel_id = NovelId("novel-1")
         foreshadowing_registry = ForeshadowingRegistry(id="foreshadow-1", novel_id=novel_id)
@@ -105,7 +98,7 @@ class TestConsistencyContext:
             planted_in_chapter=1,
             description="神秘预言",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
         foreshadowing_registry.register(foreshadowing)
 
@@ -115,7 +108,7 @@ class TestConsistencyContext:
             foreshadowing_registry=foreshadowing_registry,
             plot_arc=PlotArc(id="arc-1", novel_id=novel_id),
             event_timeline=EventTimeline(),
-            relationship_graph=RelationshipGraph()
+            relationship_graph=RelationshipGraph(),
         )
 
         found = context.foreshadowing_registry.get_by_id("f-1")
@@ -124,8 +117,8 @@ class TestConsistencyContext:
 
     def test_get_events_from_timeline(self):
         """测试从时间线获取事件"""
-        from domain.novel.value_objects.novel_event import NovelEvent, EventType
         from domain.bible.value_objects.character_id import CharacterId
+        from domain.novel.value_objects.novel_event import EventType, NovelEvent
 
         event_timeline = EventTimeline()
         char_id = CharacterId("char-1")
@@ -134,7 +127,7 @@ class TestConsistencyContext:
             chapter_number=1,
             event_type=EventType.CHARACTER_INTRODUCTION,
             description="主角登场",
-            involved_characters=(char_id,)
+            involved_characters=(char_id,),
         )
         event_timeline.add_event(event)
 
@@ -145,7 +138,7 @@ class TestConsistencyContext:
             foreshadowing_registry=ForeshadowingRegistry(id="foreshadow-1", novel_id=novel_id),
             plot_arc=PlotArc(id="arc-1", novel_id=novel_id),
             event_timeline=event_timeline,
-            relationship_graph=RelationshipGraph()
+            relationship_graph=RelationshipGraph(),
         )
 
         events = context.event_timeline.events

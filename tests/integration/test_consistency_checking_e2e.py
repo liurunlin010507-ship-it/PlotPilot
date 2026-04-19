@@ -1,22 +1,24 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 from application.services.state_extractor import StateExtractor
 from application.services.state_updater import StateUpdater
-from domain.novel.services.consistency_checker import ConsistencyChecker
-from domain.novel.value_objects.consistency_context import ConsistencyContext
-from domain.ai.services.llm_service import LLMService, GenerationResult
+
+from domain.ai.services.llm_service import GenerationResult, LLMService
 from domain.ai.value_objects.token_usage import TokenUsage
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character import Character
 from domain.bible.entities.character_registry import CharacterRegistry
+from domain.bible.repositories.bible_repository import BibleRepository
 from domain.bible.value_objects.character_id import CharacterId
+from domain.bible.value_objects.relationship_graph import RelationshipGraph
 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
 from domain.novel.entities.plot_arc import PlotArc
-from domain.novel.value_objects.event_timeline import EventTimeline
-from domain.bible.value_objects.relationship_graph import RelationshipGraph
-from domain.novel.value_objects.novel_id import NovelId
-from domain.bible.repositories.bible_repository import BibleRepository
 from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
+from domain.novel.services.consistency_checker import ConsistencyChecker
+from domain.novel.value_objects.consistency_context import ConsistencyContext
+from domain.novel.value_objects.event_timeline import EventTimeline
+from domain.novel.value_objects.novel_id import NovelId
 
 
 class TestConsistencyCheckingEndToEnd:
@@ -34,8 +36,7 @@ class TestConsistencyCheckingEndToEnd:
         # 创建服务
         self.extractor = StateExtractor(llm_service=self.llm_service)
         self.updater = StateUpdater(
-            bible_repository=self.bible_repository,
-            foreshadowing_repository=self.foreshadowing_repository
+            bible_repository=self.bible_repository, foreshadowing_repository=self.foreshadowing_repository
         )
         self.checker = ConsistencyChecker()
 
@@ -54,10 +55,12 @@ class TestConsistencyCheckingEndToEnd:
         # 1. 提取章节状态
         content = "张三是一个勇敢的战士，第一次出现在第5章。"
 
-        self.llm_service.generate = AsyncMock(return_value=GenerationResult(
-            content='{"new_characters": [{"name": "张三", "description": "勇敢的战士", "first_appearance": 5}], "character_actions": [], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
-            token_usage=TokenUsage(input_tokens=100, output_tokens=50)
-        ))
+        self.llm_service.generate = AsyncMock(
+            return_value=GenerationResult(
+                content='{"new_characters": [{"name": "张三", "description": "勇敢的战士", "first_appearance": 5}], "character_actions": [], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
+                token_usage=TokenUsage(input_tokens=100, output_tokens=50),
+            )
+        )
 
         chapter_state = await self.extractor.extract_chapter_state(content=content)
 
@@ -65,11 +68,7 @@ class TestConsistencyCheckingEndToEnd:
         self.bible_repository.get_by_novel_id.return_value = self.bible
         self.foreshadowing_repository.get_by_novel_id.return_value = self.foreshadowing_registry
 
-        self.updater.update_from_chapter(
-            novel_id="novel-1",
-            chapter_number=5,
-            chapter_state=chapter_state
-        )
+        self.updater.update_from_chapter(novel_id="novel-1", chapter_number=5, chapter_state=chapter_state)
 
         # 3. 一致性检查
         context = ConsistencyContext(
@@ -78,13 +77,10 @@ class TestConsistencyCheckingEndToEnd:
             foreshadowing_registry=self.foreshadowing_registry,
             plot_arc=self.plot_arc,
             event_timeline=self.event_timeline,
-            relationship_graph=self.relationship_graph
+            relationship_graph=self.relationship_graph,
         )
 
-        report = self.checker.check_all(
-            chapter_state=chapter_state,
-            context=context
-        )
+        report = self.checker.check_all(chapter_state=chapter_state, context=context)
 
         # 验证结果
         assert len(chapter_state.new_characters) == 1
@@ -97,10 +93,12 @@ class TestConsistencyCheckingEndToEnd:
         # 1. 提取章节状态（包含不存在的角色）
         content = "不存在的角色做了某事。"
 
-        self.llm_service.generate = AsyncMock(return_value=GenerationResult(
-            content='{"new_characters": [], "character_actions": [{"character_id": "nonexistent", "action": "做了某事", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
-            token_usage=TokenUsage(input_tokens=100, output_tokens=50)
-        ))
+        self.llm_service.generate = AsyncMock(
+            return_value=GenerationResult(
+                content='{"new_characters": [], "character_actions": [{"character_id": "nonexistent", "action": "做了某事", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
+                token_usage=TokenUsage(input_tokens=100, output_tokens=50),
+            )
+        )
 
         chapter_state = await self.extractor.extract_chapter_state(content=content)
 
@@ -111,13 +109,10 @@ class TestConsistencyCheckingEndToEnd:
             foreshadowing_registry=self.foreshadowing_registry,
             plot_arc=self.plot_arc,
             event_timeline=self.event_timeline,
-            relationship_graph=self.relationship_graph
+            relationship_graph=self.relationship_graph,
         )
 
-        report = self.checker.check_all(
-            chapter_state=chapter_state,
-            context=context
-        )
+        report = self.checker.check_all(chapter_state=chapter_state, context=context)
 
         # 验证结果
         assert len(report.issues) > 0
@@ -130,10 +125,12 @@ class TestConsistencyCheckingEndToEnd:
         # 1. 提取章节状态（埋下伏笔）
         content = "一个神秘的预言被提及。"
 
-        self.llm_service.generate = AsyncMock(return_value=GenerationResult(
-            content='{"new_characters": [], "character_actions": [], "relationship_changes": [], "foreshadowing_planted": [{"description": "神秘的预言", "chapter": 5}], "foreshadowing_resolved": [], "events": []}',
-            token_usage=TokenUsage(input_tokens=100, output_tokens=50)
-        ))
+        self.llm_service.generate = AsyncMock(
+            return_value=GenerationResult(
+                content='{"new_characters": [], "character_actions": [], "relationship_changes": [], "foreshadowing_planted": [{"description": "神秘的预言", "chapter": 5}], "foreshadowing_resolved": [], "events": []}',
+                token_usage=TokenUsage(input_tokens=100, output_tokens=50),
+            )
+        )
 
         chapter_state = await self.extractor.extract_chapter_state(content=content)
 
@@ -141,11 +138,7 @@ class TestConsistencyCheckingEndToEnd:
         self.bible_repository.get_by_novel_id.return_value = self.bible
         self.foreshadowing_repository.get_by_novel_id.return_value = self.foreshadowing_registry
 
-        self.updater.update_from_chapter(
-            novel_id="novel-1",
-            chapter_number=5,
-            chapter_state=chapter_state
-        )
+        self.updater.update_from_chapter(novel_id="novel-1", chapter_number=5, chapter_state=chapter_state)
 
         # 3. 一致性检查
         context = ConsistencyContext(
@@ -154,13 +147,10 @@ class TestConsistencyCheckingEndToEnd:
             foreshadowing_registry=self.foreshadowing_registry,
             plot_arc=self.plot_arc,
             event_timeline=self.event_timeline,
-            relationship_graph=self.relationship_graph
+            relationship_graph=self.relationship_graph,
         )
 
-        report = self.checker.check_all(
-            chapter_state=chapter_state,
-            context=context
-        )
+        report = self.checker.check_all(chapter_state=chapter_state, context=context)
 
         # 验证结果
         assert len(chapter_state.foreshadowing_planted) == 1
@@ -183,10 +173,12 @@ class TestConsistencyCheckingEndToEnd:
         一个神秘的预言被提及。
         """
 
-        self.llm_service.generate = AsyncMock(return_value=GenerationResult(
-            content='{"new_characters": [], "character_actions": [{"character_id": "char-1", "action": "做出了重要决定", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [{"description": "神秘的预言", "chapter": 5}], "foreshadowing_resolved": [], "events": []}',
-            token_usage=TokenUsage(input_tokens=200, output_tokens=100)
-        ))
+        self.llm_service.generate = AsyncMock(
+            return_value=GenerationResult(
+                content='{"new_characters": [], "character_actions": [{"character_id": "char-1", "action": "做出了重要决定", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [{"description": "神秘的预言", "chapter": 5}], "foreshadowing_resolved": [], "events": []}',
+                token_usage=TokenUsage(input_tokens=200, output_tokens=100),
+            )
+        )
 
         chapter_state = await self.extractor.extract_chapter_state(content=content)
 
@@ -194,11 +186,7 @@ class TestConsistencyCheckingEndToEnd:
         self.bible_repository.get_by_novel_id.return_value = self.bible
         self.foreshadowing_repository.get_by_novel_id.return_value = self.foreshadowing_registry
 
-        self.updater.update_from_chapter(
-            novel_id="novel-1",
-            chapter_number=5,
-            chapter_state=chapter_state
-        )
+        self.updater.update_from_chapter(novel_id="novel-1", chapter_number=5, chapter_state=chapter_state)
 
         # 3. 一致性检查
         context = ConsistencyContext(
@@ -207,13 +195,10 @@ class TestConsistencyCheckingEndToEnd:
             foreshadowing_registry=self.foreshadowing_registry,
             plot_arc=self.plot_arc,
             event_timeline=self.event_timeline,
-            relationship_graph=self.relationship_graph
+            relationship_graph=self.relationship_graph,
         )
 
-        report = self.checker.check_all(
-            chapter_state=chapter_state,
-            context=context
-        )
+        report = self.checker.check_all(chapter_state=chapter_state, context=context)
 
         # 验证结果
         assert len(chapter_state.character_actions) == 1
@@ -227,10 +212,12 @@ class TestConsistencyCheckingEndToEnd:
         # 1. 提取章节状态（包含不存在的角色）
         content = "不存在的角色做了某事。"
 
-        self.llm_service.generate = AsyncMock(return_value=GenerationResult(
-            content='{"new_characters": [], "character_actions": [{"character_id": "nonexistent", "action": "做了某事", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
-            token_usage=TokenUsage(input_tokens=100, output_tokens=50)
-        ))
+        self.llm_service.generate = AsyncMock(
+            return_value=GenerationResult(
+                content='{"new_characters": [], "character_actions": [{"character_id": "nonexistent", "action": "做了某事", "chapter": 5}], "relationship_changes": [], "foreshadowing_planted": [], "foreshadowing_resolved": [], "events": []}',
+                token_usage=TokenUsage(input_tokens=100, output_tokens=50),
+            )
+        )
 
         chapter_state = await self.extractor.extract_chapter_state(content=content)
 
@@ -241,24 +228,17 @@ class TestConsistencyCheckingEndToEnd:
             foreshadowing_registry=self.foreshadowing_registry,
             plot_arc=self.plot_arc,
             event_timeline=self.event_timeline,
-            relationship_graph=self.relationship_graph
+            relationship_graph=self.relationship_graph,
         )
 
-        report = self.checker.check_all(
-            chapter_state=chapter_state,
-            context=context
-        )
+        report = self.checker.check_all(chapter_state=chapter_state, context=context)
 
         # 3. 如果有严重问题，不应该更新
         if report.has_critical_issues():
             # 不调用 updater
             pass
         else:
-            self.updater.update_from_chapter(
-                novel_id="novel-1",
-                chapter_number=5,
-                chapter_state=chapter_state
-            )
+            self.updater.update_from_chapter(novel_id="novel-1", chapter_number=5, chapter_state=chapter_state)
 
         # 验证结果
         assert report.has_critical_issues()

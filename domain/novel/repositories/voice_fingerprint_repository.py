@@ -1,4 +1,5 @@
 """Voice fingerprint repository interface."""
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -7,9 +8,7 @@ class VoiceFingerprintRepository(ABC):
     """Repository for voice fingerprint data."""
 
     @abstractmethod
-    def get_by_novel(
-        self, novel_id: str, pov_character_id: Optional[str] = None
-    ) -> Optional[dict]:
+    def get_by_novel(self, novel_id: str, pov_character_id: Optional[str] = None) -> Optional[dict]:
         """Get fingerprint by novel ID and optional POV character.
 
         Args:

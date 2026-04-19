@@ -1,0 +1,44 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    paths:
+      - "**.py"
+      - "tests/e2e/**"
+  push:
+    branches: [master]
+    paths:
+      - "**.py"
+      - "tests/e2e/**"
+
+jobs:
+  backend-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run e2e tests (headless, no LLM calls)
+        run: |
+          pytest tests/e2e \
+            -v \
+            --tb=short \
+            -m "not slow" \
+            --junitxml=test-results-e2e.xml
+        env:
+          ANTHROPIC_API_KEY: "test-placeholder"
+          ARK_API_KEY: "test-placeholder"
+
+      - name: Upload e2e results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results-e2e.xml

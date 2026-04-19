@@ -1,4 +1,5 @@
 """从 novels.premise 解析建档时写入的「类型 / 世界观基调」前缀（与前端 premisePresets 逻辑对齐）。"""
+
 from __future__ import annotations
 
 import re

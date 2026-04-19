@@ -1,17 +1,18 @@
 """Voice API 路由"""
+
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field
 from typing import List, Optional
 
-from application.analyst.services.voice_sample_service import VoiceSampleService
-from interfaces.api.dependencies import (
-    get_voice_sample_service,
-    get_voice_fingerprint_service,
-    get_voice_drift_service,
-)
-from domain.shared.exceptions import EntityNotFoundError
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import BaseModel, Field
 
+from application.analyst.services.voice_sample_service import VoiceSampleService
+from domain.shared.exceptions import EntityNotFoundError
+from interfaces.api.dependencies import (
+    get_voice_drift_service,
+    get_voice_fingerprint_service,
+    get_voice_sample_service,
+)
 
 router = APIRouter(tags=["voice"])
 
@@ -19,6 +20,7 @@ router = APIRouter(tags=["voice"])
 # Request Models
 class VoiceSampleRequest(BaseModel):
     """文风样本请求"""
+
     ai_original: str = Field(..., min_length=1, description="AI 原文")
     author_refined: str = Field(..., min_length=1, description="作者改稿")
     chapter_number: int = Field(..., ge=1, description="章节号")
@@ -28,11 +30,13 @@ class VoiceSampleRequest(BaseModel):
 # Response Models
 class VoiceSampleResponse(BaseModel):
     """文风样本响应"""
+
     sample_id: str = Field(..., description="样本 ID")
 
 
 class VoiceFingerprintResponse(BaseModel):
     """文风指纹响应"""
+
     adjective_density: float = Field(..., description="形容词密度")
     avg_sentence_length: float = Field(..., description="平均句长")
     sentence_count: int = Field(..., description="句子数量")
@@ -45,12 +49,12 @@ class VoiceFingerprintResponse(BaseModel):
     response_model=VoiceSampleResponse,
     status_code=201,
     summary="创建文风样本",
-    description="添加 AI 原文和作者改稿的文风样本对"
+    description="添加 AI 原文和作者改稿的文风样本对",
 )
 def create_voice_sample(
     novel_id: str = Path(..., description="小说 ID"),
     request: VoiceSampleRequest = ...,
-    service: VoiceSampleService = Depends(get_voice_sample_service)
+    service: VoiceSampleService = Depends(get_voice_sample_service),
 ) -> VoiceSampleResponse:
     """
     创建文风样本
@@ -69,7 +73,7 @@ def create_voice_sample(
             chapter_number=request.chapter_number,
             scene_type=request.scene_type,
             ai_original=request.ai_original,
-            author_refined=request.author_refined
+            author_refined=request.author_refined,
         )
         return VoiceSampleResponse(sample_id=sample_id)
     except EntityNotFoundError as e:
@@ -83,12 +87,12 @@ def create_voice_sample(
     response_model=VoiceFingerprintResponse,
     status_code=200,
     summary="获取文风指纹",
-    description="获取小说的文风指纹统计数据"
+    description="获取小说的文风指纹统计数据",
 )
 def get_voice_fingerprint(
     novel_id: str = Path(..., description="小说 ID"),
     pov_character_id: Optional[str] = Query(None, description="POV 角色 ID"),
-    service=Depends(get_voice_fingerprint_service)
+    service=Depends(get_voice_fingerprint_service),
 ) -> VoiceFingerprintResponse:
     """
     获取文风指纹
@@ -110,7 +114,7 @@ def get_voice_fingerprint(
                 avg_sentence_length=0.0,
                 sentence_count=0,
                 sample_count=0,
-                last_updated=datetime.now().isoformat()
+                last_updated=datetime.now().isoformat(),
             )
 
         return VoiceFingerprintResponse(
@@ -118,7 +122,7 @@ def get_voice_fingerprint(
             avg_sentence_length=fingerprint["avg_sentence_length"],
             sentence_count=fingerprint["sentence_count"],
             sample_count=fingerprint["sample_count"],
-            last_updated=fingerprint["last_updated"]
+            last_updated=fingerprint["last_updated"],
         )
     except HTTPException:
         raise
@@ -127,6 +131,7 @@ def get_voice_fingerprint(
 
 
 # ----- 文风漂移监控 -----
+
 
 class StyleScoreItem(BaseModel):
     chapter_number: int
@@ -162,7 +167,7 @@ class ScoreChapterResponse(BaseModel):
     response_model=ScoreChapterResponse,
     status_code=200,
     summary="计算章节文风评分",
-    description="计算指定章节内容与作者指纹的相似度并持久化"
+    description="计算指定章节内容与作者指纹的相似度并持久化",
 )
 def score_chapter_style(
     novel_id: str = Path(..., description="小说 ID"),
@@ -190,7 +195,7 @@ def score_chapter_style(
     response_model=DriftReportResponse,
     status_code=200,
     summary="获取文风漂移报告",
-    description="返回全量章节评分序列与当前漂移告警状态"
+    description="返回全量章节评分序列与当前漂移告警状态",
 )
 def get_drift_report(
     novel_id: str = Path(..., description="小说 ID"),

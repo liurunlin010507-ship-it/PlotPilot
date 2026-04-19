@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 依赖安装器
 ━━━━━━━━━━━━━━
@@ -27,20 +26,18 @@ import subprocess
 import threading
 import time
 
-from theme import OK_C, WARN_C, ERR_C, ACCENT2, TEXT, BG3
-from utils import get_proj_dir, get_log_dir, NO_WIN
-
+from utils import NO_WIN, get_log_dir, get_proj_dir
 
 # ══════════════════════════════════════════════
 # 中国 pip 镜像源列表（按推荐优先级排序）
 # ══════════════════════════════════════════════
 PIP_MIRRORS = [
-    {"name": "阿里云",   "url": "https://mirrors.aliyun.com/pypi/simple/",        "host": "mirrors.aliyun.com"},
-    {"name": "清华大学", "url": "https://pypi.tuna.tsinghua.edu.cn/simple/",       "host": "pypi.tuna.tsinghua.edu.cn"},
-    {"name": "中科大",   "url": "https://pypi.mirrors.ustc.edu.cn/simple/",         "host": "pypi.mirrors.ustc.edu.cn"},
-    {"name": "腾讯云",   "url": "https://mirrors.cloud.tencent.com/pypi/simple/",   "host": "mirrors.cloud.tencent.com"},
-    {"name": "华为云",   "url": "https://repo.huaweicloud.com/repository/pypi/simple/", "host": "repo.huaweicloud.com"},
-    {"name": "官方源",   "url": "https://pypi.org/simple/",                          "host": "pypi.org"},
+    {"name": "阿里云", "url": "https://mirrors.aliyun.com/pypi/simple/", "host": "mirrors.aliyun.com"},
+    {"name": "清华大学", "url": "https://pypi.tuna.tsinghua.edu.cn/simple/", "host": "pypi.tuna.tsinghua.edu.cn"},
+    {"name": "中科大", "url": "https://pypi.mirrors.ustc.edu.cn/simple/", "host": "pypi.mirrors.ustc.edu.cn"},
+    {"name": "腾讯云", "url": "https://mirrors.cloud.tencent.com/pypi/simple/", "host": "mirrors.cloud.tencent.com"},
+    {"name": "华为云", "url": "https://repo.huaweicloud.com/repository/pypi/simple/", "host": "repo.huaweicloud.com"},
+    {"name": "官方源", "url": "https://pypi.org/simple/", "host": "pypi.org"},
 ]
 
 
@@ -57,8 +54,7 @@ class PipInstaller:
 
     PIP_TIMEOUT = 600  # 单次 pip install 最大等待 10 分钟
 
-    def __init__(self, venv_py, on_log=None, on_progress=None,
-                 on_heartbeat=None):
+    def __init__(self, venv_py, on_log=None, on_progress=None, on_heartbeat=None):
         self.venv_py = venv_py
         self.proj_dir = get_proj_dir()
         self.on_log = on_log or (lambda *a: None)
@@ -102,10 +98,18 @@ class PipInstaller:
 
         m = PIP_MIRRORS[0]  # 用阿里云升级
         cmd = [
-            self.venv_py, "-m", "pip", "install",
-            "--upgrade", "pip", "setuptools", "wheel",
-            "-i", m["url"],
-            "--trusted-host", m["host"],
+            self.venv_py,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel",
+            "-i",
+            m["url"],
+            "--trusted-host",
+            m["host"],
             "--no-cache-dir",
             "--disable-pip-version-check",
             "-q",
@@ -113,9 +117,13 @@ class PipInstaller:
 
         try:
             proc = subprocess.Popen(
-                cmd, cwd=self.proj_dir,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, encoding="utf-8", errors="replace",
+                cmd,
+                cwd=self.proj_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
                 creationflags=NO_WIN,
             )
             output, _ = proc.communicate(timeout=300)  # 5 分钟超时
@@ -186,8 +194,7 @@ class PipInstaller:
     # 内部实现
     # ══════════════════════════════════════════════
 
-    def _do_install(self, req_file_name, batch_label, batch_icon,
-                    start_pct, end_pct, step_idx):
+    def _do_install(self, req_file_name, batch_label, batch_icon, start_pct, end_pct, step_idx):
         """通用安装流程：升级 pip → 安装指定 requirements 文件 → fallback"""
         # 步骤 0：强制升级 pip
         if not self._upgrade_pip():
@@ -196,12 +203,12 @@ class PipInstaller:
         # 清空旧日志
         try:
             with open(self._log_file, "w", encoding="utf-8") as f:
-                f.write(f"=== aitext pip install log ===\n")
+                f.write("=== aitext pip install log ===\n")
                 f.write(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write(f"req_file: {req_file_name}\n")
                 f.write(f"venv_py: {self.venv_py}\n")
                 f.write(f"proj_dir: {self.proj_dir}\n")
-                f.write(f"{'='*52}\n\n")
+                f.write(f"{'=' * 52}\n\n")
         except Exception:
             pass
 
@@ -214,13 +221,23 @@ class PipInstaller:
 
         m = self._current_mirror()
         cmd = [
-            self.venv_py, "-m", "pip", "install", "-r", req_file,
-            "-i", m["url"],
-            "--trusted-host", m["host"],
-            "--timeout", str(self.PIP_TIMEOUT),
-            "--retries", "1",
+            self.venv_py,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            req_file,
+            "-i",
+            m["url"],
+            "--trusted-host",
+            m["host"],
+            "--timeout",
+            str(self.PIP_TIMEOUT),
+            "--retries",
+            "1",
             "--no-cache-dir",
-            "--progress-bar", "off",
+            "--progress-bar",
+            "off",
             "--disable-pip-version-check",
         ]
 
@@ -241,11 +258,11 @@ class PipInstaller:
                 # 更新 cmd 中的镜像
                 cmd = self._build_cmd_with_mirror(cmd, m)
 
-            self._write_log(f"\n--- Attempt {attempt+1}/{max_mirrors}: {m['name']} ---")
+            self._write_log(f"\n--- Attempt {attempt + 1}/{max_mirrors}: {m['name']} ---")
 
-            if self._run_install(cmd, is_batch=True,
-                                  start_pct=start_pct, end_pct=end_pct,
-                                  step_idx=step_idx, batch_label=batch_label):
+            if self._run_install(
+                cmd, is_batch=True, start_pct=start_pct, end_pct=end_pct, step_idx=step_idx, batch_label=batch_label
+            ):
                 self._write_log(f"\n=== INSTALL SUCCESS ({req_file_name}) ===")
                 self._log("", "info")
                 self._log("=" * 52, "ok")
@@ -269,8 +286,7 @@ class PipInstaller:
                 cmd[i + 1] = mirror["host"]
         return cmd
 
-    def _run_install(self, cmd, is_batch=False,
-                     start_pct=25, end_pct=55, step_idx=-1, batch_label=""):
+    def _run_install(self, cmd, is_batch=False, start_pct=25, end_pct=55, step_idx=-1, batch_label=""):
         """执行一次 pip install，返回是否成功。
 
         Args:
@@ -284,10 +300,15 @@ class PipInstaller:
         # 启动子进程
         try:
             proc = subprocess.Popen(
-                cmd, cwd=self.proj_dir,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, encoding="utf-8", errors="replace",
-                bufsize=1, creationflags=NO_WIN,
+                cmd,
+                cwd=self.proj_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+                creationflags=NO_WIN,
             )
         except Exception as e:
             self._log(f"!!! 无法启动 pip 进程: {e}", "error")
@@ -325,12 +346,10 @@ class PipInstaller:
             if "Successfully installed" in line:
                 self._log(line, "ok")
 
-            elif ("error" in line.lower() and "ERROR" in line) or \
-                 line.startswith("ERROR"):
+            elif ("error" in line.lower() and "ERROR" in line) or line.startswith("ERROR"):
                 self._log(line, "error")
 
-            elif "warning" in line.lower() or "WARNING" in line or \
-                 line.startswith("WARNING"):
+            elif "warning" in line.lower() or "WARNING" in line or line.startswith("WARNING"):
                 self._log(line, "warn")
 
             elif line.startswith("Collecting"):
@@ -347,7 +366,7 @@ class PipInstaller:
                 self._dl_start = time.time()
 
             elif line.startswith("Downloading"):
-                fname_match = re.search(r'/([^/]+\.(?:whl|tar\.gz|zip))', line)
+                fname_match = re.search(r"/([^/]+\.(?:whl|tar\.gz|zip))", line)
                 pkg_name = fname_match.group(1) if fname_match else line.strip()[11:60]
                 self._dl_pkg = pkg_name
                 self._dl_start = time.time()

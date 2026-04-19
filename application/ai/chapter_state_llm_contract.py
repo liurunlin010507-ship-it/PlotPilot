@@ -3,6 +3,7 @@
 与 `StateExtractor` 共用：提示词与 Pydantic 根对象 `extra=forbid`，避免模型塞无关顶层字段。
 列表元素为 object（dict），内部键保持宽松，与现有 StateUpdater 消费方式一致。
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -80,8 +81,7 @@ def parse_chapter_state_llm_response(
     except ValidationError as e:
         err_list = e.errors()
         msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
+            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}" for err in err_list[:12]
         )
         return None, [msg or str(e)]
 

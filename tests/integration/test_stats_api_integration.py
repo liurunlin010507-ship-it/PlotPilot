@@ -1,6 +1,8 @@
 """Integration test for stats API with adapter"""
+
 import pytest
 from fastapi.testclient import TestClient
+
 from interfaces.main import app
 
 

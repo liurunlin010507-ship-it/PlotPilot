@@ -2,10 +2,10 @@
 章节场景 Repository
 """
 
-import sqlite3
 import json
-from typing import List, Optional
+import sqlite3
 from datetime import datetime
+from typing import List, Optional
 
 from domain.structure.chapter_scene import ChapterScene
 
@@ -27,84 +27,16 @@ class ChapterSceneRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO chapter_scenes (
                     id, chapter_id, scene_number, order_index,
                     location_id, timeline, summary, purpose,
                     content, word_count, characters,
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                scene.id,
-                scene.chapter_id,
-                scene.scene_number,
-                scene.order_index,
-                scene.location_id,
-                scene.timeline,
-                scene.summary,
-                scene.purpose,
-                scene.content,
-                scene.word_count,
-                json.dumps(scene.characters),
-                scene.created_at.isoformat(),
-                scene.updated_at.isoformat(),
-            ))
-            conn.commit()
-            return scene
-        finally:
-            conn.close()
-
-    async def update(self, scene: ChapterScene) -> ChapterScene:
-        """更新章节场景"""
-        scene.updated_at = datetime.now()
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE chapter_scenes SET
-                    scene_number = ?,
-                    order_index = ?,
-                    location_id = ?,
-                    timeline = ?,
-                    summary = ?,
-                    purpose = ?,
-                    content = ?,
-                    word_count = ?,
-                    characters = ?,
-                    updated_at = ?
-                WHERE id = ?
-            """, (
-                scene.scene_number,
-                scene.order_index,
-                scene.location_id,
-                scene.timeline,
-                scene.summary,
-                scene.purpose,
-                scene.content,
-                scene.word_count,
-                json.dumps(scene.characters),
-                scene.updated_at.isoformat(),
-                scene.id,
-            ))
-            conn.commit()
-            return scene
-        finally:
-            conn.close()
-
-    async def save_batch(self, scenes: List[ChapterScene]) -> List[ChapterScene]:
-        """批量保存章节场景"""
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            for scene in scenes:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO chapter_scenes (
-                        id, chapter_id, scene_number, order_index,
-                        location_id, timeline, summary, purpose,
-                        content, word_count, characters,
-                        created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+            """,
+                (
                     scene.id,
                     scene.chapter_id,
                     scene.scene_number,
@@ -118,7 +50,84 @@ class ChapterSceneRepository:
                     json.dumps(scene.characters),
                     scene.created_at.isoformat(),
                     scene.updated_at.isoformat(),
-                ))
+                ),
+            )
+            conn.commit()
+            return scene
+        finally:
+            conn.close()
+
+    async def update(self, scene: ChapterScene) -> ChapterScene:
+        """更新章节场景"""
+        scene.updated_at = datetime.now()
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE chapter_scenes SET
+                    scene_number = ?,
+                    order_index = ?,
+                    location_id = ?,
+                    timeline = ?,
+                    summary = ?,
+                    purpose = ?,
+                    content = ?,
+                    word_count = ?,
+                    characters = ?,
+                    updated_at = ?
+                WHERE id = ?
+            """,
+                (
+                    scene.scene_number,
+                    scene.order_index,
+                    scene.location_id,
+                    scene.timeline,
+                    scene.summary,
+                    scene.purpose,
+                    scene.content,
+                    scene.word_count,
+                    json.dumps(scene.characters),
+                    scene.updated_at.isoformat(),
+                    scene.id,
+                ),
+            )
+            conn.commit()
+            return scene
+        finally:
+            conn.close()
+
+    async def save_batch(self, scenes: List[ChapterScene]) -> List[ChapterScene]:
+        """批量保存章节场景"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            for scene in scenes:
+                cursor.execute(
+                    """
+                    INSERT OR REPLACE INTO chapter_scenes (
+                        id, chapter_id, scene_number, order_index,
+                        location_id, timeline, summary, purpose,
+                        content, word_count, characters,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        scene.id,
+                        scene.chapter_id,
+                        scene.scene_number,
+                        scene.order_index,
+                        scene.location_id,
+                        scene.timeline,
+                        scene.summary,
+                        scene.purpose,
+                        scene.content,
+                        scene.word_count,
+                        json.dumps(scene.characters),
+                        scene.created_at.isoformat(),
+                        scene.updated_at.isoformat(),
+                    ),
+                )
             conn.commit()
             return scenes
         finally:
@@ -140,11 +149,14 @@ class ChapterSceneRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM chapter_scenes
                 WHERE chapter_id = ?
                 ORDER BY order_index, scene_number
-            """, (chapter_id,))
+            """,
+                (chapter_id,),
+            )
             rows = cursor.fetchall()
             return [self._row_to_entity(row) for row in rows]
         finally:

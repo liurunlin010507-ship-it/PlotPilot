@@ -1,17 +1,20 @@
 """AIGenerationService 单元测试"""
+
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
-from domain.novel.entities.novel import Novel, NovelStage
-from domain.novel.value_objects.novel_id import NovelId
+from application.services.ai_generation_service import AIGenerationService
+
+from domain.ai.services.llm_service import GenerationResult
+from domain.ai.value_objects.prompt import Prompt
+from domain.ai.value_objects.token_usage import TokenUsage
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character import Character
 from domain.bible.entities.world_setting import WorldSetting
 from domain.bible.value_objects.character_id import CharacterId
-from domain.ai.services.llm_service import GenerationResult, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
-from domain.ai.value_objects.token_usage import TokenUsage
+from domain.novel.entities.novel import Novel, NovelStage
+from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
-from application.services.ai_generation_service import AIGenerationService
 
 
 class TestAIGenerationService:
@@ -36,20 +39,14 @@ class TestAIGenerationService:
     def service(self, mock_llm_service, mock_novel_repository, mock_bible_repository):
         """创建服务实例"""
         return AIGenerationService(
-            llm_service=mock_llm_service,
-            novel_repository=mock_novel_repository,
-            bible_repository=mock_bible_repository
+            llm_service=mock_llm_service, novel_repository=mock_novel_repository, bible_repository=mock_bible_repository
         )
 
     @pytest.fixture
     def sample_novel(self):
         """创建示例小说"""
         return Novel(
-            id=NovelId("test-novel"),
-            title="测试小说",
-            author="测试作者",
-            target_chapters=10,
-            stage=NovelStage.WRITING
+            id=NovelId("test-novel"), title="测试小说", author="测试作者", target_chapters=10, stage=NovelStage.WRITING
         )
 
     @pytest.fixture
@@ -58,32 +55,18 @@ class TestAIGenerationService:
         bible = Bible(id="bible-1", novel_id=NovelId("test-novel"))
 
         # 添加人物
-        character = Character(
-            id=CharacterId("char-1"),
-            name="张三",
-            description="主角，勇敢的战士"
-        )
+        character = Character(id=CharacterId("char-1"), name="张三", description="主角，勇敢的战士")
         bible.add_character(character)
 
         # 添加世界设定
-        setting = WorldSetting(
-            id="setting-1",
-            name="魔法学院",
-            description="培养魔法师的地方",
-            setting_type="location"
-        )
+        setting = WorldSetting(id="setting-1", name="魔法学院", description="培养魔法师的地方", setting_type="location")
         bible.add_world_setting(setting)
 
         return bible
 
     @pytest.mark.asyncio
     async def test_generate_chapter_success(
-        self,
-        service,
-        mock_llm_service,
-        mock_novel_repository,
-        mock_bible_repository,
-        sample_novel
+        self, service, mock_llm_service, mock_novel_repository, mock_bible_repository, sample_novel
     ):
         """测试成功生成章节"""
         # 准备 mock 数据
@@ -92,17 +75,12 @@ class TestAIGenerationService:
 
         # Mock LLM 返回
         mock_result = GenerationResult(
-            content="这是生成的章节内容...",
-            token_usage=TokenUsage(input_tokens=100, output_tokens=200)
+            content="这是生成的章节内容...", token_usage=TokenUsage(input_tokens=100, output_tokens=200)
         )
         mock_llm_service.generate = AsyncMock(return_value=mock_result)
 
         # 执行
-        content = await service.generate_chapter(
-            novel_id="test-novel",
-            chapter_number=1,
-            outline="主角开始冒险"
-        )
+        content = await service.generate_chapter(novel_id="test-novel", chapter_number=1, outline="主角开始冒险")
 
         # 验证
         assert content == "这是生成的章节内容..."
@@ -112,13 +90,7 @@ class TestAIGenerationService:
 
     @pytest.mark.asyncio
     async def test_generate_chapter_with_bible(
-        self,
-        service,
-        mock_llm_service,
-        mock_novel_repository,
-        mock_bible_repository,
-        sample_novel,
-        sample_bible
+        self, service, mock_llm_service, mock_novel_repository, mock_bible_repository, sample_novel, sample_bible
     ):
         """测试使用 Bible 生成章节"""
         # 准备 mock 数据
@@ -127,17 +99,12 @@ class TestAIGenerationService:
 
         # Mock LLM 返回
         mock_result = GenerationResult(
-            content="包含人物和世界设定的章节内容...",
-            token_usage=TokenUsage(input_tokens=150, output_tokens=300)
+            content="包含人物和世界设定的章节内容...", token_usage=TokenUsage(input_tokens=150, output_tokens=300)
         )
         mock_llm_service.generate = AsyncMock(return_value=mock_result)
 
         # 执行
-        content = await service.generate_chapter(
-            novel_id="test-novel",
-            chapter_number=2,
-            outline="主角遇到张三"
-        )
+        content = await service.generate_chapter(novel_id="test-novel", chapter_number=2, outline="主角遇到张三")
 
         # 验证
         assert content == "包含人物和世界设定的章节内容..."
@@ -154,12 +121,7 @@ class TestAIGenerationService:
 
     @pytest.mark.asyncio
     async def test_generate_chapter_without_bible(
-        self,
-        service,
-        mock_llm_service,
-        mock_novel_repository,
-        mock_bible_repository,
-        sample_novel
+        self, service, mock_llm_service, mock_novel_repository, mock_bible_repository, sample_novel
     ):
         """测试没有 Bible 时生成章节"""
         # 准备 mock 数据
@@ -168,17 +130,12 @@ class TestAIGenerationService:
 
         # Mock LLM 返回
         mock_result = GenerationResult(
-            content="没有 Bible 的章节内容...",
-            token_usage=TokenUsage(input_tokens=80, output_tokens=150)
+            content="没有 Bible 的章节内容...", token_usage=TokenUsage(input_tokens=80, output_tokens=150)
         )
         mock_llm_service.generate = AsyncMock(return_value=mock_result)
 
         # 执行
-        content = await service.generate_chapter(
-            novel_id="test-novel",
-            chapter_number=3,
-            outline="简单的情节"
-        )
+        content = await service.generate_chapter(novel_id="test-novel", chapter_number=3, outline="简单的情节")
 
         # 验证
         assert content == "没有 Bible 的章节内容..."
@@ -192,23 +149,14 @@ class TestAIGenerationService:
         assert "测试小说" in prompt.system
 
     @pytest.mark.asyncio
-    async def test_generate_chapter_novel_not_found(
-        self,
-        service,
-        mock_novel_repository,
-        mock_bible_repository
-    ):
+    async def test_generate_chapter_novel_not_found(self, service, mock_novel_repository, mock_bible_repository):
         """测试小说不存在时抛出异常"""
         # 准备 mock 数据
         mock_novel_repository.get_by_id.return_value = None
 
         # 执行并验证
         with pytest.raises(EntityNotFoundError) as exc_info:
-            await service.generate_chapter(
-                novel_id="nonexistent",
-                chapter_number=1,
-                outline="测试大纲"
-            )
+            await service.generate_chapter(novel_id="nonexistent", chapter_number=1, outline="测试大纲")
 
         # 验证异常信息
         assert exc_info.value.entity_type == "Novel"
@@ -221,10 +169,7 @@ class TestAIGenerationService:
         """测试构建章节提示词"""
         # 执行
         prompt = service._build_chapter_prompt(
-            novel=sample_novel,
-            bible=sample_bible,
-            chapter_number=5,
-            outline="测试大纲内容"
+            novel=sample_novel, bible=sample_bible, chapter_number=5, outline="测试大纲内容"
         )
 
         # 验证
@@ -243,39 +188,22 @@ class TestAIGenerationService:
         assert "测试大纲内容" in prompt.user
 
     @pytest.mark.asyncio
-    async def test_generate_chapter_empty_outline(
-        self,
-        service,
-        mock_novel_repository
-    ):
+    async def test_generate_chapter_empty_outline(self, service, mock_novel_repository):
         """测试空大纲时抛出异常"""
         # 测试空字符串
         with pytest.raises(ValueError, match="Outline cannot be empty"):
-            await service.generate_chapter(
-                novel_id="test-novel",
-                chapter_number=1,
-                outline=""
-            )
+            await service.generate_chapter(novel_id="test-novel", chapter_number=1, outline="")
 
         # 测试只有空格
         with pytest.raises(ValueError, match="Outline cannot be empty"):
-            await service.generate_chapter(
-                novel_id="test-novel",
-                chapter_number=1,
-                outline="   "
-            )
+            await service.generate_chapter(novel_id="test-novel", chapter_number=1, outline="   ")
 
         # 验证没有调用仓储
         mock_novel_repository.get_by_id.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_generate_chapter_llm_error(
-        self,
-        service,
-        mock_llm_service,
-        mock_novel_repository,
-        mock_bible_repository,
-        sample_novel
+        self, service, mock_llm_service, mock_novel_repository, mock_bible_repository, sample_novel
     ):
         """测试 LLM 调用失败时的异常处理"""
         # 准备 mock 数据
@@ -287,13 +215,8 @@ class TestAIGenerationService:
 
         # 执行并验证
         with pytest.raises(RuntimeError, match="Failed to generate chapter"):
-            await service.generate_chapter(
-                novel_id="test-novel",
-                chapter_number=1,
-                outline="测试大纲"
-            )
+            await service.generate_chapter(novel_id="test-novel", chapter_number=1, outline="测试大纲")
 
         # 验证调用了仓储
         mock_novel_repository.get_by_id.assert_called_once()
         mock_bible_repository.get_by_novel_id.assert_called_once()
-

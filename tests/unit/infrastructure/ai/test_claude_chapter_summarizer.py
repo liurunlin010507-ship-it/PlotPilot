@@ -1,10 +1,13 @@
 """ClaudeChapterSummarizer 测试"""
+
 import os
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-from infrastructure.ai.claude_chapter_summarizer import ClaudeChapterSummarizer
+
 from domain.ai.services.llm_service import GenerationResult
 from domain.ai.value_objects.token_usage import TokenUsage
+from infrastructure.ai.claude_chapter_summarizer import ClaudeChapterSummarizer
 
 
 class TestClaudeChapterSummarizer:
@@ -31,8 +34,7 @@ class TestClaudeChapterSummarizer:
         expected_summary = "This is a concise summary of the chapter."
 
         mock_result = GenerationResult(
-            content=expected_summary,
-            token_usage=TokenUsage(input_tokens=100, output_tokens=20)
+            content=expected_summary, token_usage=TokenUsage(input_tokens=100, output_tokens=20)
         )
         mock_llm_service.generate.return_value = mock_result
 
@@ -55,8 +57,7 @@ class TestClaudeChapterSummarizer:
         expected_summary = "Short summary."
 
         mock_result = GenerationResult(
-            content=expected_summary,
-            token_usage=TokenUsage(input_tokens=50, output_tokens=10)
+            content=expected_summary, token_usage=TokenUsage(input_tokens=50, output_tokens=10)
         )
         mock_llm_service.generate.return_value = mock_result
 
@@ -97,10 +98,7 @@ class TestClaudeChapterSummarizer:
                 ClaudeChapterSummarizer(mock_llm_service)
 
 
-@pytest.mark.skipif(
-    os.getenv("ANTHROPIC_API_KEY") is None,
-    reason="ANTHROPIC_API_KEY not set"
-)
+@pytest.mark.skipif(os.getenv("ANTHROPIC_API_KEY") is None, reason="ANTHROPIC_API_KEY not set")
 class TestClaudeChapterSummarizerIntegration:
     """ClaudeChapterSummarizer 集成测试（需要真实 API key）"""
 
@@ -117,13 +115,16 @@ class TestClaudeChapterSummarizerIntegration:
     @pytest.mark.asyncio
     async def test_real_summarize(self, summarizer):
         """测试真实摘要生成"""
-        content = """
+        content = (
+            """
         In the beginning of the chapter, the protagonist wakes up in a strange room.
         They don't remember how they got there. The walls are covered with mysterious symbols.
         As they explore the room, they find a hidden door behind a bookshelf.
         The door leads to a long corridor with flickering lights.
         At the end of the corridor, they hear voices speaking in an unknown language.
-        """ * 10  # Make it longer to test summarization
+        """
+            * 10
+        )  # Make it longer to test summarization
 
         result = await summarizer.summarize(content, max_length=200)
 

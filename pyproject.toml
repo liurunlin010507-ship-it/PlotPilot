@@ -10,3 +10,36 @@ addopts = ["-v", "--strict-markers"]
 unit = "unit tests"
 integration = "integration tests"
 slow = "slow tests"
+
+# ── Ruff: lint + format ──
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+exclude = [".conda", "node_modules", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ── MyPy: 静态类型检查 ──
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+explicit_package_bases = true
+exclude = [".conda/", "node_modules/", "tests/"]
+
+# ── Coverage ──
+[tool.coverage.run]
+source = ["domain", "application", "infrastructure", "interfaces"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:", "pass"]

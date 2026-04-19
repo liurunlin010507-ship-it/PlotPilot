@@ -8,11 +8,12 @@
 """
 
 from typing import Dict, List, Optional
+
 from application.engine.theme.theme_agent import (
-    ThemeAgent,
-    ThemeDirectives,
-    ThemeAuditCriteria,
     BeatTemplate,
+    ThemeAgent,
+    ThemeAuditCriteria,
+    ThemeDirectives,
 )
 
 

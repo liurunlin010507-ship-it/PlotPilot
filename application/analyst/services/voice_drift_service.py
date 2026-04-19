@@ -6,9 +6,10 @@
 
 连续 N 章低于阈值时发出告警。
 """
-import re
+
 import logging
-from typing import TYPE_CHECKING, List, Optional
+import re
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from application.analyst.services.llm_voice_analysis_service import LLMVoiceAnalysisService
@@ -132,9 +133,7 @@ class VoiceDriftService:
         自动建立基准：前 5 章用于建立基准，之后开始检测漂移。
         """
         # 1. 分析当前章节风格
-        style_vector = await self.llm_voice_service.analyze_chapter_style(
-            novel_id, chapter_number, content
-        )
+        style_vector = await self.llm_voice_service.analyze_chapter_style(novel_id, chapter_number, content)
 
         # 2. 获取或建立基准
         baseline = self._get_or_init_baseline(novel_id)
@@ -170,8 +169,7 @@ class VoiceDriftService:
         drift_alert = self._check_drift_alert(novel_id)
 
         logger.debug(
-            "LLM 文风评分完成 novel=%s ch=%d similarity=%s drift=%s",
-            novel_id, chapter_number, similarity, drift_alert
+            "LLM 文风评分完成 novel=%s ch=%d similarity=%s drift=%s", novel_id, chapter_number, similarity, drift_alert
         )
 
         return {
@@ -270,6 +268,7 @@ class VoiceDriftService:
 
         归一化方式：以指纹值为参照，计算相对差异后映射到 [0,1]。
         """
+
         def _relative_closeness(a: float, b: float) -> float:
             """返回 a 与 b 的接近程度 (0~1)，b 为参照基准。"""
             if b == 0:

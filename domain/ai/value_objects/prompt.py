@@ -1,11 +1,12 @@
 # domain/ai/value_objects/prompt.py
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 @dataclass(frozen=True)
 class Prompt:
     """提示词值对象"""
+
     system: str
     user: str
 

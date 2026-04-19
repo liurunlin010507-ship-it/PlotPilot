@@ -1,13 +1,15 @@
 """测试 SQLite Cast Repository"""
+
 import pytest
+
 from domain.cast.aggregates.cast_graph import CastGraph
 from domain.cast.entities.character import Character
 from domain.cast.entities.relationship import Relationship
 from domain.cast.value_objects.character_id import CharacterId
 from domain.cast.value_objects.relationship_id import RelationshipId
 from domain.novel.value_objects.novel_id import NovelId
-from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
 from infrastructure.persistence.database.connection import get_database
+from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
 
 
 @pytest.fixture
@@ -24,19 +26,9 @@ def sample_cast_graph():
     cast_graph = CastGraph(id="cast_001", novel_id=novel_id)
 
     # 添加角色
-    char1 = Character(
-        id=CharacterId("char_001"),
-        name="李明",
-        role="主角",
-        traits="剑术高超，青山派弟子"
-    )
+    char1 = Character(id=CharacterId("char_001"), name="李明", role="主角", traits="剑术高超，青山派弟子")
 
-    char2 = Character(
-        id=CharacterId("char_002"),
-        name="王总",
-        role="反派",
-        traits="亦敌亦友"
-    )
+    char2 = Character(id=CharacterId("char_002"), name="王总", role="反派", traits="亦敌亦友")
 
     cast_graph.add_character(char1)
     cast_graph.add_character(char2)
@@ -46,7 +38,7 @@ def sample_cast_graph():
         id=RelationshipId("rel_001"),
         source_id=CharacterId("char_001"),
         target_id=CharacterId("char_002"),
-        label="亦敌亦友"
+        label="亦敌亦友",
     )
     cast_graph.add_relationship(relationship)
 
@@ -79,10 +71,7 @@ def test_update_cast_graph(repository, sample_cast_graph):
     repository.save(sample_cast_graph)
 
     # 修改并再次保存
-    char3 = Character(
-        id=CharacterId("char_003"),
-        name="张三"
-    )
+    char3 = Character(id=CharacterId("char_003"), name="张三")
     sample_cast_graph.add_character(char3)
     repository.save(sample_cast_graph)
 
@@ -130,7 +119,7 @@ def test_json_flexibility(repository):
         name="李明",
         role="主角",
         traits="剑术高超，拥有龙族血脉",
-        note="武器：剑\n血脉：龙族\n状态：被诅咒"
+        note="武器：剑\n血脉：龙族\n状态：被诅咒",
     )
 
     cast_graph.add_character(char)

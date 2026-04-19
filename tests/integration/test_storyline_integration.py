@@ -1,13 +1,14 @@
-import pytest
-import tempfile
 import shutil
-from pathlib import Path
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
-from domain.novel.value_objects.storyline_milestone import StorylineMilestone
-from domain.novel.services.storyline_manager import StorylineManager
+import tempfile
+
+import pytest
 from infrastructure.persistence.repositories.file_storyline_repository import FileStorylineRepository
+
+from domain.novel.services.storyline_manager import StorylineManager
+from domain.novel.value_objects.novel_id import NovelId
+from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 from infrastructure.persistence.storage.file_storage import FileStorage
 
 
@@ -34,10 +35,7 @@ class TestStorylineIntegration:
 
         # Create storyline
         storyline = storyline_manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.ROMANCE,
-            estimated_chapter_start=5,
-            estimated_chapter_end=20
+            novel_id=novel_id, storyline_type=StorylineType.ROMANCE, estimated_chapter_start=5, estimated_chapter_end=20
         )
 
         assert storyline.id is not None
@@ -57,10 +55,7 @@ class TestStorylineIntegration:
 
         # Create storyline
         storyline = storyline_manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.MYSTERY,
-            estimated_chapter_start=1,
-            estimated_chapter_end=30
+            novel_id=novel_id, storyline_type=StorylineType.MYSTERY, estimated_chapter_start=1, estimated_chapter_end=30
         )
 
         # Add milestones
@@ -71,7 +66,7 @@ class TestStorylineIntegration:
             target_chapter_start=1,
             target_chapter_end=3,
             prerequisites=[],
-            triggers=["mystery_found"]
+            triggers=["mystery_found"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -80,7 +75,7 @@ class TestStorylineIntegration:
             target_chapter_start=5,
             target_chapter_end=15,
             prerequisites=["mystery_found"],
-            triggers=["clues_gathered"]
+            triggers=["clues_gathered"],
         )
         milestone3 = StorylineMilestone(
             order=2,
@@ -89,7 +84,7 @@ class TestStorylineIntegration:
             target_chapter_start=25,
             target_chapter_end=30,
             prerequisites=["clues_gathered"],
-            triggers=["solved"]
+            triggers=["solved"],
         )
 
         storyline.add_milestone(milestone1)
@@ -122,24 +117,15 @@ class TestStorylineIntegration:
 
         # Create multiple storylines
         romance = storyline_manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.ROMANCE,
-            estimated_chapter_start=5,
-            estimated_chapter_end=25
+            novel_id=novel_id, storyline_type=StorylineType.ROMANCE, estimated_chapter_start=5, estimated_chapter_end=25
         )
 
         revenge = storyline_manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.REVENGE,
-            estimated_chapter_start=1,
-            estimated_chapter_end=30
+            novel_id=novel_id, storyline_type=StorylineType.REVENGE, estimated_chapter_start=1, estimated_chapter_end=30
         )
 
         growth = storyline_manager.create_storyline(
-            novel_id=novel_id,
-            storyline_type=StorylineType.GROWTH,
-            estimated_chapter_start=1,
-            estimated_chapter_end=30
+            novel_id=novel_id, storyline_type=StorylineType.GROWTH, estimated_chapter_start=1, estimated_chapter_end=30
         )
 
         # Retrieve all storylines for the novel
@@ -160,7 +146,7 @@ class TestStorylineIntegration:
             novel_id=novel_id,
             storyline_type=StorylineType.ADVENTURE,
             estimated_chapter_start=1,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         # Verify it exists
@@ -183,7 +169,7 @@ class TestStorylineIntegration:
             novel_id=novel_id,
             storyline_type=StorylineType.POLITICAL,
             estimated_chapter_start=1,
-            estimated_chapter_end=50
+            estimated_chapter_end=50,
         )
 
         milestone1 = StorylineMilestone(
@@ -193,7 +179,7 @@ class TestStorylineIntegration:
             target_chapter_start=1,
             target_chapter_end=10,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -202,7 +188,7 @@ class TestStorylineIntegration:
             target_chapter_start=20,
             target_chapter_end=30,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
 
         storyline.add_milestone(milestone1)

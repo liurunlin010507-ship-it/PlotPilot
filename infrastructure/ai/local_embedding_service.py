@@ -15,17 +15,19 @@ import os
 from typing import List
 
 # 设置离线模式（不触发网络请求）
-os.environ['HF_HUB_OFFLINE'] = '1'
-os.environ['TRANSFORMERS_OFFLINE'] = '1'
-os.environ['HF_DATASETS_OFFLINE'] = '1'
-if os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true':
-    os.environ['CURL_CA_BUNDLE'] = ''
-    os.environ['REQUESTS_CA_BUNDLE'] = ''
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+if os.getenv("DISABLE_SSL_VERIFY", "false").lower() == "true":
+    os.environ["CURL_CA_BUNDLE"] = ""
+    os.environ["REQUESTS_CA_BUNDLE"] = ""
     import logging as _l
+
     _l.getLogger(__name__).warning("SSL certificate verification is DISABLED via DISABLE_SSL_VERIFY=true")
 
 import logging
 from pathlib import Path
+
 from domain.ai.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -76,9 +78,7 @@ class LocalEmbeddingService(EmbeddingService):
             model_path = str(model_name).strip()
 
         if not model_path:
-            raise ValueError(
-                "未配置本地嵌入模型：请在嵌入设置中填写 model_path，或设置环境变量 EMBEDDING_MODEL_PATH。"
-            )
+            raise ValueError("未配置本地嵌入模型：请在嵌入设置中填写 model_path，或设置环境变量 EMBEDDING_MODEL_PATH。")
 
         # 判断是否为 HuggingFace 模型 ID（含 "/" 的短字符串且非本机绝对路径）
         _original_model_name = model_path
@@ -113,10 +113,10 @@ class LocalEmbeddingService(EmbeddingService):
 
         # 检测设备
         if use_gpu and torch.cuda.is_available():
-            device = 'cuda'
+            device = "cuda"
             logger.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
         else:
-            device = 'cpu'
+            device = "cpu"
             logger.info("Using CPU")
 
         # 加载模型 - 使用 trust_remote_code=False 避免执行远程代码
@@ -165,7 +165,7 @@ class LocalEmbeddingService(EmbeddingService):
                 texts,
                 convert_to_numpy=True,
                 batch_size=32,  # GPU 可以使用更大的 batch size
-                show_progress_bar=len(texts) > 100  # 大批量时显示进度
+                show_progress_bar=len(texts) > 100,  # 大批量时显示进度
             )
             return embeddings.tolist()
         except Exception as e:

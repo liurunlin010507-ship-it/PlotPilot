@@ -1,14 +1,15 @@
 """Bible 数据传输对象"""
+
 from dataclasses import dataclass
-from typing import List, Optional, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional
 
 if TYPE_CHECKING:
     from domain.bible.entities.bible import Bible
     from domain.bible.entities.character import Character
-    from domain.bible.entities.world_setting import WorldSetting
     from domain.bible.entities.location import Location
-    from domain.bible.entities.timeline_note import TimelineNote
     from domain.bible.entities.style_note import StyleNote
+    from domain.bible.entities.timeline_note import TimelineNote
+    from domain.bible.entities.world_setting import WorldSetting
 
 
 @dataclass
@@ -20,6 +21,7 @@ class CharacterDTO:
     - hidden_profile: 隐藏信息（如卧底身份），仅在 reveal_chapter 后可见
     - reveal_chapter: 揭示章节号，None 表示总是可见
     """
+
     id: str
     name: str
     description: str
@@ -37,7 +39,7 @@ class CharacterDTO:
             raise ValueError(f"reveal_chapter must be >= 1, got {self.reveal_chapter}")
 
     @classmethod
-    def from_domain(cls, character: 'Character') -> 'CharacterDTO':
+    def from_domain(cls, character: "Character") -> "CharacterDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -51,9 +53,9 @@ class CharacterDTO:
             name=character.name,
             description=character.description,
             relationships=character.relationships.copy(),
-            public_profile=getattr(character, 'public_profile', ''),
-            hidden_profile=getattr(character, 'hidden_profile', ''),
-            reveal_chapter=getattr(character, 'reveal_chapter', None),
+            public_profile=getattr(character, "public_profile", ""),
+            hidden_profile=getattr(character, "hidden_profile", ""),
+            reveal_chapter=getattr(character, "reveal_chapter", None),
             mental_state=getattr(character, "mental_state", None) or "NORMAL",
             verbal_tic=getattr(character, "verbal_tic", None) or "",
             idle_behavior=getattr(character, "idle_behavior", None) or "",
@@ -63,13 +65,14 @@ class CharacterDTO:
 @dataclass
 class WorldSettingDTO:
     """世界设定 DTO"""
+
     id: str
     name: str
     description: str
     setting_type: str
 
     @classmethod
-    def from_domain(cls, setting: 'WorldSetting') -> 'WorldSettingDTO':
+    def from_domain(cls, setting: "WorldSetting") -> "WorldSettingDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -78,17 +81,13 @@ class WorldSettingDTO:
         Returns:
             WorldSettingDTO
         """
-        return cls(
-            id=setting.id,
-            name=setting.name,
-            description=setting.description,
-            setting_type=setting.setting_type
-        )
+        return cls(id=setting.id, name=setting.name, description=setting.description, setting_type=setting.setting_type)
 
 
 @dataclass
 class LocationDTO:
     """地点 DTO"""
+
     id: str
     name: str
     description: str
@@ -96,7 +95,7 @@ class LocationDTO:
     parent_id: Optional[str] = None
 
     @classmethod
-    def from_domain(cls, location: 'Location') -> 'LocationDTO':
+    def from_domain(cls, location: "Location") -> "LocationDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -117,13 +116,14 @@ class LocationDTO:
 @dataclass
 class TimelineNoteDTO:
     """时间线笔记 DTO"""
+
     id: str
     event: str
     time_point: str
     description: str
 
     @classmethod
-    def from_domain(cls, note: 'TimelineNote') -> 'TimelineNoteDTO':
+    def from_domain(cls, note: "TimelineNote") -> "TimelineNoteDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -132,23 +132,19 @@ class TimelineNoteDTO:
         Returns:
             TimelineNoteDTO
         """
-        return cls(
-            id=note.id,
-            event=note.event,
-            time_point=note.time_point,
-            description=note.description
-        )
+        return cls(id=note.id, event=note.event, time_point=note.time_point, description=note.description)
 
 
 @dataclass
 class StyleNoteDTO:
     """风格笔记 DTO"""
+
     id: str
     category: str
     content: str
 
     @classmethod
-    def from_domain(cls, note: 'StyleNote') -> 'StyleNoteDTO':
+    def from_domain(cls, note: "StyleNote") -> "StyleNoteDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -157,16 +153,13 @@ class StyleNoteDTO:
         Returns:
             StyleNoteDTO
         """
-        return cls(
-            id=note.id,
-            category=note.category,
-            content=note.content
-        )
+        return cls(id=note.id, category=note.category, content=note.content)
 
 
 @dataclass
 class BibleDTO:
     """Bible DTO"""
+
     id: str
     novel_id: str
     characters: List[CharacterDTO]
@@ -176,7 +169,7 @@ class BibleDTO:
     style_notes: List[StyleNoteDTO]
 
     @classmethod
-    def from_domain(cls, bible: 'Bible') -> 'BibleDTO':
+    def from_domain(cls, bible: "Bible") -> "BibleDTO":
         """从领域对象创建 DTO
 
         Args:
@@ -192,5 +185,5 @@ class BibleDTO:
             world_settings=[WorldSettingDTO.from_domain(s) for s in bible.world_settings],
             locations=[LocationDTO.from_domain(loc) for loc in bible.locations],
             timeline_notes=[TimelineNoteDTO.from_domain(n) for n in bible.timeline_notes],
-            style_notes=[StyleNoteDTO.from_domain(n) for n in bible.style_notes]
+            style_notes=[StyleNoteDTO.from_domain(n) for n in bible.style_notes],
         )

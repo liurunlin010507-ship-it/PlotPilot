@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ChapterContent:
     """章节内容值对象"""
+
     raw_text: str
 
     def __post_init__(self):

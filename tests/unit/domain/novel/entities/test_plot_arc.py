@@ -1,4 +1,5 @@
 import pytest
+
 from domain.novel.entities.plot_arc import PlotArc
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
@@ -23,16 +24,10 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=1,
-            point_type=PlotPointType.OPENING,
-            description="Story begins",
-            tension=TensionLevel.LOW
+            chapter_number=1, point_type=PlotPointType.OPENING, description="Story begins", tension=TensionLevel.LOW
         )
         point2 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Major conflict",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Major conflict", tension=TensionLevel.PEAK
         )
 
         plot_arc.add_plot_point(point1)
@@ -48,22 +43,16 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Major conflict",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Major conflict", tension=TensionLevel.PEAK
         )
         point2 = PlotPoint(
-            chapter_number=1,
-            point_type=PlotPointType.OPENING,
-            description="Story begins",
-            tension=TensionLevel.LOW
+            chapter_number=1, point_type=PlotPointType.OPENING, description="Story begins", tension=TensionLevel.LOW
         )
         point3 = PlotPoint(
             chapter_number=3,
             point_type=PlotPointType.RISING_ACTION,
             description="Rising tension",
-            tension=TensionLevel.MEDIUM
+            tension=TensionLevel.MEDIUM,
         )
 
         plot_arc.add_plot_point(point1)
@@ -81,16 +70,10 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=1,
-            point_type=PlotPointType.OPENING,
-            description="Story begins",
-            tension=TensionLevel.LOW
+            chapter_number=1, point_type=PlotPointType.OPENING, description="Story begins", tension=TensionLevel.LOW
         )
         point2 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Major conflict",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Major conflict", tension=TensionLevel.PEAK
         )
 
         plot_arc.add_plot_point(point1)
@@ -108,13 +91,13 @@ class TestPlotArc:
             chapter_number=1,
             point_type=PlotPointType.OPENING,
             description="Story begins",
-            tension=TensionLevel.LOW  # 1
+            tension=TensionLevel.LOW,  # 1
         )
         point2 = PlotPoint(
             chapter_number=5,
             point_type=PlotPointType.CLIMAX,
             description="Major conflict",
-            tension=TensionLevel.PEAK  # 4
+            tension=TensionLevel.PEAK,  # 4
         )
 
         plot_arc.add_plot_point(point1)
@@ -130,10 +113,7 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.OPENING,
-            description="Story begins",
-            tension=TensionLevel.LOW
+            chapter_number=5, point_type=PlotPointType.OPENING, description="Story begins", tension=TensionLevel.LOW
         )
 
         plot_arc.add_plot_point(point1)
@@ -148,10 +128,7 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Major conflict",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Major conflict", tension=TensionLevel.PEAK
         )
 
         plot_arc.add_plot_point(point1)
@@ -174,22 +151,13 @@ class TestPlotArc:
         plot_arc = PlotArc(id="arc-1", novel_id=novel_id)
 
         point1 = PlotPoint(
-            chapter_number=1,
-            point_type=PlotPointType.OPENING,
-            description="Story begins",
-            tension=TensionLevel.LOW
+            chapter_number=1, point_type=PlotPointType.OPENING, description="Story begins", tension=TensionLevel.LOW
         )
         point2 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Major conflict",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Major conflict", tension=TensionLevel.PEAK
         )
         point3 = PlotPoint(
-            chapter_number=10,
-            point_type=PlotPointType.RESOLUTION,
-            description="Story ends",
-            tension=TensionLevel.LOW
+            chapter_number=10, point_type=PlotPointType.RESOLUTION, description="Story ends", tension=TensionLevel.LOW
         )
 
         plot_arc.add_plot_point(point1)
@@ -251,16 +219,10 @@ class TestPlotArc:
 
         # Add two points with the same chapter number (edge case)
         point1 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.OPENING,
-            description="First event",
-            tension=TensionLevel.LOW
+            chapter_number=5, point_type=PlotPointType.OPENING, description="First event", tension=TensionLevel.LOW
         )
         point2 = PlotPoint(
-            chapter_number=5,
-            point_type=PlotPointType.CLIMAX,
-            description="Second event",
-            tension=TensionLevel.PEAK
+            chapter_number=5, point_type=PlotPointType.CLIMAX, description="Second event", tension=TensionLevel.PEAK
         )
 
         plot_arc.add_plot_point(point1)

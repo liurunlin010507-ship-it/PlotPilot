@@ -3,10 +3,10 @@
 This adapter reads statistics data from the SQLite database instead of
 the legacy file-based storage system.
 """
-from pathlib import Path
-from typing import Optional, Dict, List
+
 import logging
 import re
+from typing import Dict, List, Optional
 
 from infrastructure.persistence.database.connection import DatabaseConnection
 
@@ -61,7 +61,7 @@ class SqliteStatsRepositoryAdapter:
         try:
             sql = "SELECT id FROM novels ORDER BY created_at DESC"
             rows = self.db.fetch_all(sql)
-            slugs = [row['id'] for row in rows]
+            slugs = [row["id"] for row in rows]
             logger.info(f"Found {len(slugs)} novels in database")
             return slugs
         except Exception as e:
@@ -126,10 +126,12 @@ class SqliteStatsRepositoryAdapter:
 
             outline_chapters = []
             for row in rows:
-                outline_chapters.append({
-                    "id": row["number"],
-                    "title": row.get("title", "").strip(),
-                })
+                outline_chapters.append(
+                    {
+                        "id": row["number"],
+                        "title": row.get("title", "").strip(),
+                    }
+                )
 
             return {"chapters": outline_chapters}
         except Exception as e:
@@ -184,13 +186,13 @@ class SqliteStatsRepositoryAdapter:
             return 0
 
         # Count Chinese characters (including CJK Unified Ideographs and Extension blocks)
-        chinese_pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]'
+        chinese_pattern = r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]"
         chinese_chars = len(re.findall(chinese_pattern, text))
 
         # Count English words (ASCII letters sequences)
         # Remove Chinese text first to avoid double-counting
-        english_text = re.sub(chinese_pattern, '', text)
-        english_words = len(re.findall(r'\b[a-zA-Z]+\b', english_text))
+        english_text = re.sub(chinese_pattern, "", text)
+        english_words = len(re.findall(r"\b[a-zA-Z]+\b", english_text))
 
         total_words = chinese_chars + english_words
         logger.debug(f"Word count: {total_words} (Chinese: {chinese_chars}, English: {english_words})")

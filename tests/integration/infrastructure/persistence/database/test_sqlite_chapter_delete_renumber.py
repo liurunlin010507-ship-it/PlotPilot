@@ -5,19 +5,12 @@ from pathlib import Path
 import pytest
 
 from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.value_objects.novel_id import NovelId
 from infrastructure.persistence.database.connection import DatabaseConnection
 from infrastructure.persistence.database.sqlite_chapter_repository import (
     SqliteChapterRepository,
 )
 
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[5]
-    / "infrastructure"
-    / "persistence"
-    / "database"
-    / "schema.sql"
-)
+SCHEMA_PATH = Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture

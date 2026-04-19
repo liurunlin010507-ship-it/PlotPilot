@@ -1,9 +1,6 @@
 import pytest
-from domain.novel.value_objects.foreshadowing import (
-    Foreshadowing,
-    ForeshadowingStatus,
-    ImportanceLevel
-)
+
+from domain.novel.value_objects.foreshadowing import Foreshadowing, ForeshadowingStatus, ImportanceLevel
 
 
 def test_foreshadowing_creation():
@@ -13,7 +10,7 @@ def test_foreshadowing_creation():
         planted_in_chapter=1,
         description="主角在开场时提到的神秘预言",
         importance=ImportanceLevel.HIGH,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     assert foreshadowing.id == "fh-001"
     assert foreshadowing.planted_in_chapter == 1
@@ -47,7 +44,7 @@ def test_foreshadowing_with_suggested_resolve_chapter():
         description="神秘人物的身份暗示",
         importance=ImportanceLevel.CRITICAL,
         status=ForeshadowingStatus.PLANTED,
-        suggested_resolve_chapter=10
+        suggested_resolve_chapter=10,
     )
     assert foreshadowing.suggested_resolve_chapter == 10
     assert foreshadowing.resolved_in_chapter is None
@@ -62,7 +59,7 @@ def test_foreshadowing_resolved():
         importance=ImportanceLevel.MEDIUM,
         status=ForeshadowingStatus.RESOLVED,
         suggested_resolve_chapter=8,
-        resolved_in_chapter=7
+        resolved_in_chapter=7,
     )
     assert foreshadowing.status == ForeshadowingStatus.RESOLVED
     assert foreshadowing.resolved_in_chapter == 7
@@ -75,7 +72,7 @@ def test_foreshadowing_immutable():
         planted_in_chapter=1,
         description="预言",
         importance=ImportanceLevel.LOW,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     with pytest.raises(AttributeError):
         foreshadowing.status = ForeshadowingStatus.RESOLVED
@@ -89,7 +86,7 @@ def test_foreshadowing_planted_chapter_validation():
             planted_in_chapter=0,
             description="无效章节",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
     with pytest.raises(ValueError, match="planted_in_chapter must be >= 1"):
@@ -98,7 +95,7 @@ def test_foreshadowing_planted_chapter_validation():
             planted_in_chapter=-1,
             description="负数章节",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
 
@@ -110,7 +107,7 @@ def test_foreshadowing_description_validation():
             planted_in_chapter=1,
             description="",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
     with pytest.raises(ValueError, match="description cannot be empty"):
@@ -119,7 +116,7 @@ def test_foreshadowing_description_validation():
             planted_in_chapter=1,
             description="   ",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
 
@@ -131,7 +128,7 @@ def test_foreshadowing_resolved_status_validation():
             planted_in_chapter=1,
             description="已解决但缺少章节",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.RESOLVED
+            status=ForeshadowingStatus.RESOLVED,
         )
 
 
@@ -143,7 +140,7 @@ def test_foreshadowing_resolved_with_chapter():
         description="正确的已解决伏笔",
         importance=ImportanceLevel.LOW,
         status=ForeshadowingStatus.RESOLVED,
-        resolved_in_chapter=5
+        resolved_in_chapter=5,
     )
     assert foreshadowing.status == ForeshadowingStatus.RESOLVED
     assert foreshadowing.resolved_in_chapter == 5
@@ -156,21 +153,21 @@ def test_foreshadowing_equality():
         planted_in_chapter=1,
         description="预言",
         importance=ImportanceLevel.HIGH,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     foreshadowing2 = Foreshadowing(
         id="fh-011",
         planted_in_chapter=1,
         description="预言",
         importance=ImportanceLevel.HIGH,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     foreshadowing3 = Foreshadowing(
         id="fh-012",
         planted_in_chapter=2,
         description="另一个预言",
         importance=ImportanceLevel.LOW,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
 
     assert foreshadowing1 == foreshadowing2
@@ -184,7 +181,7 @@ def test_foreshadowing_abandoned_status():
         planted_in_chapter=1,
         description="被放弃的伏笔",
         importance=ImportanceLevel.LOW,
-        status=ForeshadowingStatus.ABANDONED
+        status=ForeshadowingStatus.ABANDONED,
     )
     assert foreshadowing.status == ForeshadowingStatus.ABANDONED
     assert foreshadowing.resolved_in_chapter is None
@@ -197,28 +194,28 @@ def test_foreshadowing_different_importance_levels():
         planted_in_chapter=1,
         description="低重要性",
         importance=ImportanceLevel.LOW,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     medium = Foreshadowing(
         id="fh-015",
         planted_in_chapter=1,
         description="中等重要性",
         importance=ImportanceLevel.MEDIUM,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     high = Foreshadowing(
         id="fh-016",
         planted_in_chapter=1,
         description="高重要性",
         importance=ImportanceLevel.HIGH,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
     critical = Foreshadowing(
         id="fh-017",
         planted_in_chapter=1,
         description="关键重要性",
         importance=ImportanceLevel.CRITICAL,
-        status=ForeshadowingStatus.PLANTED
+        status=ForeshadowingStatus.PLANTED,
     )
 
     assert low.importance == ImportanceLevel.LOW
@@ -237,7 +234,7 @@ def test_suggested_resolve_chapter_validation():
             description="无效建议章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=0
+            suggested_resolve_chapter=0,
         )
 
     with pytest.raises(ValueError, match="suggested_resolve_chapter must be >= 1"):
@@ -247,7 +244,7 @@ def test_suggested_resolve_chapter_validation():
             description="负数建议章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=-1
+            suggested_resolve_chapter=-1,
         )
 
 
@@ -260,7 +257,7 @@ def test_resolved_in_chapter_validation():
             description="无效解决章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.RESOLVED,
-            resolved_in_chapter=0
+            resolved_in_chapter=0,
         )
 
     with pytest.raises(ValueError, match="resolved_in_chapter must be >= 1"):
@@ -270,7 +267,7 @@ def test_resolved_in_chapter_validation():
             description="负数解决章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.RESOLVED,
-            resolved_in_chapter=-1
+            resolved_in_chapter=-1,
         )
 
 
@@ -283,7 +280,7 @@ def test_resolved_in_chapter_business_rule():
             description="解决章节早于埋下章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.RESOLVED,
-            resolved_in_chapter=3
+            resolved_in_chapter=3,
         )
 
     # 同一章节解决应该可以
@@ -293,7 +290,7 @@ def test_resolved_in_chapter_business_rule():
         description="同章节解决",
         importance=ImportanceLevel.LOW,
         status=ForeshadowingStatus.RESOLVED,
-        resolved_in_chapter=5
+        resolved_in_chapter=5,
     )
     assert foreshadowing.resolved_in_chapter == 5
 
@@ -307,7 +304,7 @@ def test_suggested_resolve_chapter_business_rule():
             description="建议章节早于埋下章节",
             importance=ImportanceLevel.LOW,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=3
+            suggested_resolve_chapter=3,
         )
 
     # 同一章节建议应该可以
@@ -317,6 +314,6 @@ def test_suggested_resolve_chapter_business_rule():
         description="同章节建议",
         importance=ImportanceLevel.LOW,
         status=ForeshadowingStatus.PLANTED,
-        suggested_resolve_chapter=5
+        suggested_resolve_chapter=5,
     )
     assert foreshadowing.suggested_resolve_chapter == 5

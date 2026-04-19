@@ -1,8 +1,9 @@
 """Mutation Applier Service - 应用 mutations 到事件"""
-import logging
-from typing import List, Dict, Any, Optional
-from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 
+import logging
+from typing import Any, Dict, List, Optional
+
+from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,7 @@ class MutationApplier:
         self.event_repository = event_repository
 
     def apply_mutations(
-        self,
-        novel_id: str,
-        event_id: str,
-        mutations: List[Dict[str, Any]],
-        reason: Optional[str] = None
+        self, novel_id: str, event_id: str, mutations: List[Dict[str, Any]], reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         应用 mutations 到事件
@@ -76,14 +73,7 @@ class MutationApplier:
 
         # 更新事件到数据库
         self.event_repository.update_event(
-            novel_id=novel_id,
-            event_id=event_id,
-            event_summary=event["event_summary"],
-            tags=event["tags"]
+            novel_id=novel_id, event_id=event_id, event_summary=event["event_summary"], tags=event["tags"]
         )
 
-        return {
-            "success": True,
-            "updated_event": event,
-            "applied_mutations": applied_mutations
-        }
+        return {"success": True, "updated_event": event, "applied_mutations": applied_mutations}

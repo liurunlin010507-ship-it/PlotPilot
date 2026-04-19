@@ -1,27 +1,24 @@
+import logging
 import re
 import uuid
-import logging
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from domain.novel.value_objects.chapter_state import ChapterState
-from domain.novel.value_objects.novel_id import NovelId
+from typing import Any, Dict, List, Optional
+
 from domain.bible.entities.character import Character
-from domain.bible.value_objects.character_id import CharacterId
-from domain.novel.value_objects.foreshadowing import (
-    Foreshadowing,
-    ForeshadowingStatus,
-    ImportanceLevel
-)
-from domain.novel.value_objects.timeline_event import TimelineEvent
-from domain.novel.entities.storyline import Storyline
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.bible.repositories.bible_repository import BibleRepository
-from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
-from domain.novel.repositories.timeline_repository import TimelineRepository
-from domain.novel.repositories.storyline_repository import StorylineRepository
+from domain.bible.value_objects.character_id import CharacterId
 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
+from domain.novel.entities.storyline import Storyline
 from domain.novel.entities.timeline_registry import TimelineRegistry
+from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
+from domain.novel.repositories.storyline_repository import StorylineRepository
+from domain.novel.repositories.timeline_repository import TimelineRepository
+from domain.novel.value_objects.chapter_state import ChapterState
+from domain.novel.value_objects.foreshadowing import Foreshadowing, ForeshadowingStatus, ImportanceLevel
+from domain.novel.value_objects.novel_id import NovelId
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
+from domain.novel.value_objects.timeline_event import TimelineEvent
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +60,7 @@ class StateUpdater:
         storyline_repository: Optional[StorylineRepository] = None,
         knowledge_service=None,
         chapter_repository=None,
-        db_connection=None
+        db_connection=None,
     ):
         self.bible_repository = bible_repository
         self.foreshadowing_repository = foreshadowing_repository
@@ -73,12 +70,7 @@ class StateUpdater:
         self.chapter_repository = chapter_repository
         self.db_connection = db_connection
 
-    def update_from_chapter(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        chapter_state: ChapterState
-    ) -> None:
+    def update_from_chapter(self, novel_id: str, chapter_number: int, chapter_state: ChapterState) -> None:
         """从章节状态更新所有相关对象
 
         Args:
@@ -107,15 +99,15 @@ class StateUpdater:
                 for char_data in chapter_state.new_characters:
                     char_id = CharacterId(str(uuid.uuid4()))
                     character = Character(
-                        id=char_id,
-                        name=char_data.get("name", "未知角色"),
-                        description=char_data.get("description", "")
+                        id=char_id, name=char_data.get("name", "未知角色"), description=char_data.get("description", "")
                     )
                     bible.add_character(character)
                     logger.debug(f"Added character: {char_data.get('name')}")
 
                 self.bible_repository.save(bible)
-                logger.info(f"Bible updated: added {len(chapter_state.new_characters)} new characters for novel {novel_id}")
+                logger.info(
+                    f"Bible updated: added {len(chapter_state.new_characters)} new characters for novel {novel_id}"
+                )
         else:
             logger.debug("No new characters to add")
 
@@ -129,21 +121,16 @@ class StateUpdater:
             foreshadowing_registry = self.foreshadowing_repository.get_by_novel_id(novel_id_obj)
             if foreshadowing_registry is None:
                 logger.info(f"ForeshadowingRegistry not found for novel {novel_id}, creating new one")
-                foreshadowing_registry = ForeshadowingRegistry(
-                    id=str(uuid.uuid4()),
-                    novel_id=novel_id_obj
-                )
+                foreshadowing_registry = ForeshadowingRegistry(id=str(uuid.uuid4()), novel_id=novel_id_obj)
 
             # 添加新伏笔
             for foreshadow_data in chapter_state.foreshadowing_planted:
                 foreshadowing = Foreshadowing(
                     id=str(uuid.uuid4()),
-                    planted_in_chapter=_safe_chapter_int(
-                        foreshadow_data.get("chapter"), chapter_number
-                    ),
+                    planted_in_chapter=_safe_chapter_int(foreshadow_data.get("chapter"), chapter_number),
                     description=foreshadow_data.get("description", ""),
                     importance=ImportanceLevel.MEDIUM,
-                    status=ForeshadowingStatus.PLANTED
+                    status=ForeshadowingStatus.PLANTED,
                 )
                 foreshadowing_registry.register(foreshadowing)
                 logger.debug(f"Planted foreshadowing: {foreshadow_data.get('description', '')[:50]}")
@@ -151,17 +138,14 @@ class StateUpdater:
             # 解决伏笔
             for resolved_data in chapter_state.foreshadowing_resolved:
                 fid = self._resolve_foreshadowing_id(foreshadowing_registry, resolved_data)
-                resolved_ch = _safe_chapter_int(
-                    resolved_data.get("chapter"), chapter_number
-                )
+                resolved_ch = _safe_chapter_int(resolved_data.get("chapter"), chapter_number)
                 if not fid:
-                    logger.warning("Skipping foreshadowing resolution with no identifiable reference: %s", resolved_data)
+                    logger.warning(
+                        "Skipping foreshadowing resolution with no identifiable reference: %s", resolved_data
+                    )
                     continue
                 try:
-                    foreshadowing_registry.mark_resolved(
-                        foreshadowing_id=fid,
-                        resolved_in_chapter=resolved_ch
-                    )
+                    foreshadowing_registry.mark_resolved(foreshadowing_id=fid, resolved_in_chapter=resolved_ch)
                     logger.debug(f"Resolved foreshadowing: {fid}")
                 except Exception as e:
                     logger.warning(f"Failed to resolve foreshadowing {fid}: {e}")
@@ -177,10 +161,7 @@ class StateUpdater:
             timeline_registry = self.timeline_repository.get_by_novel_id(novel_id_obj)
             if timeline_registry is None:
                 logger.info(f"TimelineRegistry not found for novel {novel_id}, creating new one")
-                timeline_registry = TimelineRegistry(
-                    id=str(uuid.uuid4()),
-                    novel_id=novel_id_obj
-                )
+                timeline_registry = TimelineRegistry(id=str(uuid.uuid4()), novel_id=novel_id_obj)
 
             # 添加时间线事件
             for event_data in chapter_state.timeline_events:
@@ -189,7 +170,7 @@ class StateUpdater:
                     chapter_number=chapter_number,
                     event=event_data.get("event", ""),
                     timestamp=event_data.get("timestamp", ""),
-                    timestamp_type=event_data.get("timestamp_type", "vague")
+                    timestamp_type=event_data.get("timestamp_type", "vague"),
                 )
                 timeline_registry.add_event(timeline_event)
                 logger.debug(f"Added timeline event: {event_data.get('event', '')[:50]}")
@@ -256,7 +237,7 @@ class StateUpdater:
                     name=new_data.get("name", ""),
                     description=new_data.get("description", ""),
                     last_active_chapter=chapter_number,
-                    progress_summary=f"在第{chapter_number}章引入"
+                    progress_summary=f"在第{chapter_number}章引入",
                 )
                 self.storyline_repository.save(new_storyline)
                 logger.debug(f"Created new storyline: {new_data.get('name', '')}")
@@ -319,12 +300,7 @@ class StateUpdater:
             return ""
         return fid
 
-    def _update_knowledge(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        chapter_state: ChapterState
-    ) -> None:
+    def _update_knowledge(self, novel_id: str, chapter_number: int, chapter_state: ChapterState) -> None:
         """更新 Knowledge 中的章节摘要和知识三元组
 
         Args:
@@ -342,9 +318,7 @@ class StateUpdater:
             # 构建新角色描述
             new_chars_desc = ""
             if chapter_state.new_characters:
-                new_chars_desc = "新登场：" + "、".join(
-                    c.get("name", "") for c in chapter_state.new_characters
-                )
+                new_chars_desc = "新登场：" + "、".join(c.get("name", "") for c in chapter_state.new_characters)
 
             key_events = events_desc or new_chars_desc or "（本章无特殊标注事件）"
 
@@ -362,7 +336,7 @@ class StateUpdater:
                 open_threads=open_threads,
                 consistency_note="",
                 beat_sections=[],
-                sync_status="auto"
+                sync_status="auto",
             )
             logger.info(f"Knowledge chapter summary updated for novel {novel_id}, chapter {chapter_number}")
 
@@ -379,17 +353,12 @@ class StateUpdater:
                         predicate="登场于",
                         object=f"第{chapter_number}章",
                         chapter_id=chapter_number,
-                        note=char_desc[:100]
+                        note=char_desc[:100],
                     )
         except Exception as e:
             logger.warning(f"Failed to update Knowledge for novel {novel_id}: {e}")
 
-    def _write_chapter_elements(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        new_characters: List[Dict[str, Any]]
-    ) -> None:
+    def _write_chapter_elements(self, novel_id: str, chapter_number: int, new_characters: List[Dict[str, Any]]) -> None:
         """写入角色出场信息到 chapter_elements 表
 
         Args:
@@ -399,7 +368,6 @@ class StateUpdater:
         """
         try:
             # 获取 chapter_id（需要查询 story_nodes 表）
-            from domain.novel.value_objects.chapter_id import ChapterId
 
             # 简化实现：直接使用数据库连接查询
             # 实际项目中应该通过 chapter_repository 获取
@@ -412,7 +380,7 @@ class StateUpdater:
                 WHERE novel_id = ? AND node_type = 'chapter' AND number = ?
                 LIMIT 1
                 """,
-                (novel_id, chapter_number)
+                (novel_id, chapter_number),
             )
             row = cursor.fetchone()
 
@@ -436,7 +404,7 @@ class StateUpdater:
                     WHERE novel_id = ? AND name = ?
                     LIMIT 1
                     """,
-                    (novel_id, char_name)
+                    (novel_id, char_name),
                 )
                 char_row = cursor.fetchone()
                 char_id = char_row[0] if char_row else str(uuid.uuid4())
@@ -453,15 +421,7 @@ class StateUpdater:
                         )
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                         """,
-                        (
-                            element_id,
-                            chapter_id,
-                            'character',
-                            char_id,
-                            'appears',
-                            'normal',
-                            datetime.now().isoformat()
-                        )
+                        (element_id, chapter_id, "character", char_id, "appears", "normal", datetime.now().isoformat()),
                     )
                     inserted_count += 1
                 except Exception as e:

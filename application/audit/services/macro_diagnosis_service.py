@@ -1,8 +1,9 @@
 """宏观诊断服务 - 自动扫描 + 结果存储"""
+
 import json
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from application.audit.dtos.macro_refactor_dto import LogicBreakpoint
@@ -36,15 +37,17 @@ def build_silent_context_patch(
     tags_str = "、".join(sorted(tags_set)[:8]) if tags_set else (trait or "预设人设")
     reason_part = "；".join(reasons[:3])
     return (
-        "【系统叙事校准】注意：" + reason_part
-        + "。后续生成须强化「" + tags_str
+        "【系统叙事校准】注意："
+        + reason_part
+        + "。后续生成须强化「"
+        + tags_str
         + "」所要求的行为倾向，避免继续偏离预设标签。"
     )
 
 
 class MacroDiagnosisResult:
     """宏观诊断结果"""
-    
+
     def __init__(
         self,
         id: str,
@@ -55,7 +58,7 @@ class MacroDiagnosisResult:
         breakpoints: List[LogicBreakpoint],
         status: str = "completed",
         error_message: Optional[str] = None,
-        created_at: Optional[datetime] = None
+        created_at: Optional[datetime] = None,
     ):
         self.id = id
         self.novel_id = novel_id
@@ -66,7 +69,7 @@ class MacroDiagnosisResult:
         self.status = status
         self.error_message = error_message
         self.created_at = created_at or datetime.now(timezone.utc)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -75,41 +78,32 @@ class MacroDiagnosisResult:
             "trait": self.trait,
             "conflict_tags": self.conflict_tags,
             "breakpoints": [
-                {
-                    "event_id": bp.event_id,
-                    "chapter": bp.chapter,
-                    "reason": bp.reason,
-                    "tags": bp.tags
-                }
+                {"event_id": bp.event_id, "chapter": bp.chapter, "reason": bp.reason, "tags": bp.tags}
                 for bp in self.breakpoints
             ],
             "breakpoint_count": len(self.breakpoints),
             "status": self.status,
             "error_message": self.error_message,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 
 class MacroDiagnosisService:
     """宏观诊断服务 - 自动扫描 + 结果存储
-    
+
     职责：
     1. 执行全人设扫描（使用内置规则）
     2. 存储诊断结果到数据库
     3. 提供查询接口获取最新结果
     """
-    
+
     # 默认扫描的人设标签（从内置规则中选取）
     DEFAULT_SCAN_TRAITS = ["冷酷", "理性", "谨慎", "温和"]
-    
-    def __init__(
-        self,
-        db: DatabaseConnection,
-        scanner: MacroRefactorScanner
-    ):
+
+    def __init__(self, db: DatabaseConnection, scanner: MacroRefactorScanner):
         self.db = db
         self.scanner = scanner
-    
+
     def run_full_diagnosis(
         self,
         novel_id: str,
@@ -118,29 +112,29 @@ class MacroDiagnosisService:
         total_words_at_run: int = 0,
     ) -> MacroDiagnosisResult:
         """执行完整诊断（扫描所有内置人设标签）
-        
+
         Args:
             novel_id: 小说 ID
             trigger_reason: 触发原因
             traits: 要扫描的人设标签列表（可选，默认扫描全部内置规则）
-        
+
         Returns:
             MacroDiagnosisResult: 诊断结果
         """
         diagnosis_id = str(uuid4())
         scan_traits = traits or self.DEFAULT_SCAN_TRAITS
         all_breakpoints: List[LogicBreakpoint] = []
-        
+
         try:
             # 对每个人设标签执行扫描
             for trait in scan_traits:
                 breakpoints = self.scanner.scan_breakpoints(
                     novel_id=novel_id,
                     trait=trait,
-                    conflict_tags=None  # 使用内置规则
+                    conflict_tags=None,  # 使用内置规则
                 )
                 all_breakpoints.extend(breakpoints)
-            
+
             # 创建结果对象
             result = MacroDiagnosisResult(
                 id=diagnosis_id,
@@ -149,23 +143,23 @@ class MacroDiagnosisService:
                 trait=",".join(scan_traits),  # 多标签合并
                 conflict_tags=[],
                 breakpoints=all_breakpoints,
-                status="completed"
+                status="completed",
             )
-            
+
             # 存储到数据库（含静默 context_patch 与字数锚点）
             self._save_result(result, total_words_at_run=total_words_at_run)
-            
+
             logger.info(
                 f"[MacroDiagnosis] 完成诊断 novel={novel_id} "
                 f"trigger={trigger_reason} traits={scan_traits} "
                 f"breakpoints={len(all_breakpoints)}"
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"[MacroDiagnosis] 诊断失败 novel={novel_id}: {e}", exc_info=True)
-            
+
             # 存储失败结果
             result = MacroDiagnosisResult(
                 id=diagnosis_id,
@@ -175,39 +169,31 @@ class MacroDiagnosisService:
                 conflict_tags=[],
                 breakpoints=[],
                 status="failed",
-                error_message=str(e)
+                error_message=str(e),
             )
             self._save_result(result, total_words_at_run=total_words_at_run)
-            
+
             return result
-    
+
     def run_single_trait_diagnosis(
-        self,
-        novel_id: str,
-        trait: str,
-        conflict_tags: Optional[List[str]] = None,
-        trigger_reason: str = "manual"
+        self, novel_id: str, trait: str, conflict_tags: Optional[List[str]] = None, trigger_reason: str = "manual"
     ) -> MacroDiagnosisResult:
         """执行单人设诊断
-        
+
         Args:
             novel_id: 小说 ID
             trait: 目标人设标签
             conflict_tags: 自定义冲突标签（可选）
             trigger_reason: 触发原因
-        
+
         Returns:
             MacroDiagnosisResult: 诊断结果
         """
         diagnosis_id = str(uuid4())
-        
+
         try:
-            breakpoints = self.scanner.scan_breakpoints(
-                novel_id=novel_id,
-                trait=trait,
-                conflict_tags=conflict_tags
-            )
-            
+            breakpoints = self.scanner.scan_breakpoints(novel_id=novel_id, trait=trait, conflict_tags=conflict_tags)
+
             result = MacroDiagnosisResult(
                 id=diagnosis_id,
                 novel_id=novel_id,
@@ -215,21 +201,20 @@ class MacroDiagnosisService:
                 trait=trait,
                 conflict_tags=conflict_tags or [],
                 breakpoints=breakpoints,
-                status="completed"
+                status="completed",
             )
-            
+
             self._save_result(result, total_words_at_run=0)
-            
+
             logger.info(
-                f"[MacroDiagnosis] 完成单人设诊断 novel={novel_id} "
-                f"trait={trait} breakpoints={len(breakpoints)}"
+                f"[MacroDiagnosis] 完成单人设诊断 novel={novel_id} trait={trait} breakpoints={len(breakpoints)}"
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"[MacroDiagnosis] 单人设诊断失败 novel={novel_id}: {e}", exc_info=True)
-            
+
             result = MacroDiagnosisResult(
                 id=diagnosis_id,
                 novel_id=novel_id,
@@ -238,18 +223,18 @@ class MacroDiagnosisService:
                 conflict_tags=conflict_tags or [],
                 breakpoints=[],
                 status="failed",
-                error_message=str(e)
+                error_message=str(e),
             )
             self._save_result(result, total_words_at_run=0)
-            
+
             return result
-    
+
     def get_latest_result(self, novel_id: str) -> Optional[Dict[str, Any]]:
         """获取最新的诊断结果
-        
+
         Args:
             novel_id: 小说 ID
-        
+
         Returns:
             最新诊断结果字典，无结果返回 None
         """
@@ -263,10 +248,10 @@ class MacroDiagnosisService:
             LIMIT 1
         """
         row = self.db.fetch_one(sql, (novel_id,))
-        
+
         if not row:
             return None
-        
+
         return {
             "id": row["id"],
             "novel_id": row["novel_id"],
@@ -280,20 +265,16 @@ class MacroDiagnosisService:
             "resolved_at": row["resolved_at"],
             "resolved_by": row["resolved_by"],
             "error_message": row["error_message"],
-            "created_at": row["created_at"]
+            "created_at": row["created_at"],
         }
-    
-    def list_results(
-        self,
-        novel_id: str,
-        limit: int = 10
-    ) -> List[Dict[str, Any]]:
+
+    def list_results(self, novel_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """获取诊断历史列表
-        
+
         Args:
             novel_id: 小说 ID
             limit: 最大返回数量
-        
+
         Returns:
             诊断结果列表
         """
@@ -307,7 +288,7 @@ class MacroDiagnosisService:
             LIMIT ?
         """
         rows = self.db.fetch_all(sql, (novel_id, limit))
-        
+
         return [
             {
                 "id": row["id"],
@@ -322,26 +303,21 @@ class MacroDiagnosisService:
                 "resolved_at": row["resolved_at"],
                 "resolved_by": row["resolved_by"],
                 "error_message": row["error_message"],
-                "created_at": row["created_at"]
+                "created_at": row["created_at"],
             }
             for row in rows
         ]
-    
-    def mark_resolved(
-        self,
-        novel_id: str,
-        diagnosis_id: str,
-        resolved_by: str = "manual"
-    ) -> bool:
+
+    def mark_resolved(self, novel_id: str, diagnosis_id: str, resolved_by: str = "manual") -> bool:
         """标记诊断结果为已解决
-        
+
         已解决的诊断结果不会再注入到提示词中。
-        
+
         Args:
             novel_id: 小说 ID
             diagnosis_id: 诊断结果 ID
             resolved_by: 解决方式（'manual' 或 'auto'）
-        
+
         Returns:
             是否成功标记
         """
@@ -354,22 +330,22 @@ class MacroDiagnosisService:
             """
             self.db.execute(sql, (now, resolved_by, diagnosis_id, novel_id))
             self.db.get_connection().commit()
-            
+
             logger.info(f"[MacroDiagnosis] 标记已解决: diagnosis_id={diagnosis_id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"[MacroDiagnosis] 标记已解决失败: {e}")
             return False
-    
+
     def get_latest_unresolved_result(self, novel_id: str) -> Optional[Dict[str, Any]]:
         """获取最新的未解决诊断结果
-        
+
         用于提示词注入，只返回未解决的诊断结果。
-        
+
         Args:
             novel_id: 小说 ID
-        
+
         Returns:
             最新未解决诊断结果，无结果返回 None
         """
@@ -383,10 +359,10 @@ class MacroDiagnosisService:
             LIMIT 1
         """
         row = self.db.fetch_one(sql, (novel_id,))
-        
+
         if not row:
             return None
-        
+
         return {
             "id": row["id"],
             "novel_id": row["novel_id"],
@@ -400,9 +376,9 @@ class MacroDiagnosisService:
             "resolved_at": row["resolved_at"],
             "resolved_by": row["resolved_by"],
             "error_message": row["error_message"],
-            "created_at": row["created_at"]
+            "created_at": row["created_at"],
         }
-    
+
     def _save_result(
         self,
         result: MacroDiagnosisResult,
@@ -410,32 +386,37 @@ class MacroDiagnosisService:
     ) -> None:
         """保存诊断结果到数据库（含静默注入用 context_patch）。"""
         breakpoints_json = json.dumps(
-            [{"event_id": bp.event_id, "chapter": bp.chapter, "reason": bp.reason, "tags": bp.tags}
-             for bp in result.breakpoints],
-            ensure_ascii=False
+            [
+                {"event_id": bp.event_id, "chapter": bp.chapter, "reason": bp.reason, "tags": bp.tags}
+                for bp in result.breakpoints
+            ],
+            ensure_ascii=False,
         )
         conflict_tags_json = json.dumps(result.conflict_tags, ensure_ascii=False)
         context_patch = ""
         if result.status == "completed" and result.breakpoints:
             context_patch = build_silent_context_patch(result.breakpoints, result.trait)
-        
+
         sql = """
             INSERT INTO macro_diagnosis_results
             (id, novel_id, trigger_reason, trait, conflict_tags, breakpoints, breakpoint_count,
              status, error_message, context_patch, total_words_at_run)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        self.db.execute(sql, (
-            result.id,
-            result.novel_id,
-            result.trigger_reason,
-            result.trait,
-            conflict_tags_json,
-            breakpoints_json,
-            len(result.breakpoints),
-            result.status,
-            result.error_message,
-            context_patch or None,
-            int(max(0, total_words_at_run)),
-        ))
+        self.db.execute(
+            sql,
+            (
+                result.id,
+                result.novel_id,
+                result.trigger_reason,
+                result.trait,
+                conflict_tags_json,
+                breakpoints_json,
+                len(result.breakpoints),
+                result.status,
+                result.error_message,
+                context_patch or None,
+                int(max(0, total_words_at_run)),
+            ),
+        )
         self.db.get_connection().commit()

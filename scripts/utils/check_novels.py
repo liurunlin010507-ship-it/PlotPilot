@@ -1,4 +1,5 @@
 """查询数据库中的小说"""
+
 import sys
 from pathlib import Path
 

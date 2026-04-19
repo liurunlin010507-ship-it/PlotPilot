@@ -5,6 +5,7 @@ from typing import List
 
 class IssueType(str, Enum):
     """一致性问题类型"""
+
     CHARACTER_INCONSISTENCY = "character_inconsistency"
     RELATIONSHIP_INCONSISTENCY = "relationship_inconsistency"
     EVENT_LOGIC_ERROR = "event_logic_error"
@@ -14,6 +15,7 @@ class IssueType(str, Enum):
 
 class Severity(str, Enum):
     """问题严重性级别"""
+
     CRITICAL = "critical"
     IMPORTANT = "important"
     MINOR = "minor"
@@ -22,6 +24,7 @@ class Severity(str, Enum):
 @dataclass(frozen=True)
 class Issue:
     """一致性问题值对象"""
+
     type: IssueType
     severity: Severity
     description: str
@@ -37,6 +40,7 @@ class Issue:
 @dataclass(frozen=True)
 class ConsistencyReport:
     """一致性检查报告值对象"""
+
     issues: List[Issue]
     warnings: List[Issue]
     suggestions: List[str]

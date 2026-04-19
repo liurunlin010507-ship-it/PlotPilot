@@ -1,4 +1,5 @@
 """三元组与章节元素/结构节点之间的显式溯源（推断证据链）。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

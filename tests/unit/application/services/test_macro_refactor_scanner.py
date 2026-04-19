@@ -1,8 +1,10 @@
 """Macro Refactor Scanner 单元测试"""
-import pytest
+
 from unittest.mock import Mock
-from application.services.macro_refactor_scanner import MacroRefactorScanner
+
+import pytest
 from application.dtos.macro_refactor_dto import LogicBreakpoint
+from application.services.macro_refactor_scanner import MacroRefactorScanner
 
 
 class TestMacroRefactorScanner:
@@ -28,22 +30,22 @@ class TestMacroRefactorScanner:
                 "chapter_number": 1,
                 "event_summary": "主角冲动行事",
                 "tags": ["动机:冲动", "情绪:激动"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-2",
                 "chapter_number": 2,
                 "event_summary": "主角愤怒爆发",
                 "tags": ["情绪:愤怒", "行为:鲁莽"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-3",
                 "chapter_number": 3,
                 "event_summary": "主角再次冲动",
                 "tags": ["动机:冲动"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         # Act
@@ -69,15 +71,15 @@ class TestMacroRefactorScanner:
                 "chapter_number": 1,
                 "event_summary": "主角冷静分析",
                 "tags": ["动机:理性", "情绪:冷静"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-2",
                 "chapter_number": 2,
                 "event_summary": "主角谨慎行动",
                 "tags": ["行为:谨慎"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         # Act
@@ -96,22 +98,22 @@ class TestMacroRefactorScanner:
                 "chapter_number": 1,
                 "event_summary": "主角冷静分析",
                 "tags": ["动机:理性"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-2",
                 "chapter_number": 2,
                 "event_summary": "主角冲动行事",
                 "tags": ["动机:冲动"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-3",
                 "chapter_number": 3,
                 "event_summary": "主角继续冷静",
                 "tags": ["情绪:冷静"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         # Act
@@ -144,23 +146,19 @@ class TestMacroRefactorScanner:
                 "chapter_number": 1,
                 "event_summary": "主角感性决策",
                 "tags": ["动机:感性"],
-                "mutations": []
+                "mutations": [],
             },
             {
                 "event_id": "event-2",
                 "chapter_number": 2,
                 "event_summary": "主角激动表现",
                 "tags": ["情绪:激动"],
-                "mutations": []
-            }
+                "mutations": [],
+            },
         ]
 
         # Act
-        breakpoints = scanner.scan_breakpoints(
-            novel_id,
-            trait="理性",
-            conflict_tags=["动机:感性", "情绪:激动"]
-        )
+        breakpoints = scanner.scan_breakpoints(novel_id, trait="理性", conflict_tags=["动机:感性", "情绪:激动"])
 
         # Assert
         assert len(breakpoints) == 2

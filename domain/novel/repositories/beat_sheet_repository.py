@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from domain.novel.entities.beat_sheet import BeatSheet
 
 

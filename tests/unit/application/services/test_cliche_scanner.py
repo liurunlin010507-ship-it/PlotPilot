@@ -1,7 +1,6 @@
 # tests/unit/application/services/test_cliche_scanner.py
 import pytest
-
-from application.services.cliche_scanner import ClicheScanner, ClicheHit
+from application.services.cliche_scanner import ClicheScanner
 
 
 class TestClicheScanner:
@@ -48,7 +47,7 @@ class TestClicheScanner:
         hit = hits[0]
         assert hit.start >= 0
         assert hit.end > hit.start
-        assert hit.text == text[hit.start:hit.end]
+        assert hit.text == text[hit.start : hit.end]
 
     def test_case_insensitive(self, scanner):
         """测试大小写不敏感（虽然中文没有大小写，但测试英文标点等）"""

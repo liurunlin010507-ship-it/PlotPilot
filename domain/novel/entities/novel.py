@@ -1,14 +1,16 @@
 # domain/novel/entities/novel.py
 from enum import Enum
-from typing import List, Optional, Dict, Any
-from domain.shared.base_entity import BaseEntity
-from domain.novel.value_objects.novel_id import NovelId
+from typing import Dict, List, Optional
+
 from domain.novel.entities.chapter import Chapter, ChapterStatus
+from domain.novel.value_objects.novel_id import NovelId
+from domain.shared.base_entity import BaseEntity
 from domain.shared.exceptions import InvalidOperationError
 
 
 class NovelStage(str, Enum):
     """小说阶段（细化为自动驾驶状态机）"""
+
     PLANNING = "planning"  # 旧版兼容
     MACRO_PLANNING = "macro_planning"  # 规划部/卷/幕
     ACT_PLANNING = "act_planning"  # 规划当前幕的章节（插入缓冲章）
@@ -21,6 +23,7 @@ class NovelStage(str, Enum):
 
 class AutopilotStatus(str, Enum):
     """自动驾驶状态"""
+
     STOPPED = "stopped"  # 人工接管/暂停
     RUNNING = "running"  # 全托管狂奔中
     ERROR = "error"  # 遇到阻断性错误，挂起等待急救
@@ -103,9 +106,7 @@ class Novel(BaseEntity):
         """添加章节（必须连续）"""
         expected_number = len(self.chapters) + 1
         if chapter.number != expected_number:
-            raise InvalidOperationError(
-                f"Chapter number must be {expected_number}, got {chapter.number}"
-            )
+            raise InvalidOperationError(f"Chapter number must be {expected_number}, got {chapter.number}")
         self.chapters.append(chapter)
 
     @property
@@ -116,6 +117,7 @@ class Novel(BaseEntity):
     def get_total_word_count(self):
         """获取总字数"""
         from domain.novel.value_objects.word_count import WordCount
+
         total = WordCount(0)
         for chapter in self.chapters:
             total = total + chapter.word_count

@@ -1,4 +1,5 @@
 """Voice fingerprint computation service."""
+
 import re
 from typing import List, Optional
 
@@ -56,17 +57,13 @@ class VoiceFingerprintService:
         # Calculate adjective density
         adjective_count = sum(1 for char in full_text if char in self.COMMON_ADJECTIVES)
         total_chars = len(full_text)
-        adjective_density = (
-            adjective_count / total_chars if total_chars > 0 else 0.0
-        )
+        adjective_density = adjective_count / total_chars if total_chars > 0 else 0.0
 
         # Calculate sentence metrics (split by Chinese punctuation)
         sentences = re.split(r"[。！？]", full_text)
         sentences = [s.strip() for s in sentences if s.strip()]
         sentence_count = len(sentences)
-        avg_sentence_length = (
-            sum(len(s) for s in sentences) / sentence_count if sentence_count > 0 else 0.0
-        )
+        avg_sentence_length = sum(len(s) for s in sentences) / sentence_count if sentence_count > 0 else 0.0
 
         return {
             "adjective_density": round(adjective_density, 4),
@@ -74,9 +71,7 @@ class VoiceFingerprintService:
             "sentence_count": sentence_count,
         }
 
-    def maybe_recompute(
-        self, novel_id: str, pov_character_id: Optional[str] = None
-    ) -> bool:
+    def maybe_recompute(self, novel_id: str, pov_character_id: Optional[str] = None) -> bool:
         """Check sample count and trigger recompute if threshold reached.
 
         Args:

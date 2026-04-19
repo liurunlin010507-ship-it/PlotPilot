@@ -1,6 +1,7 @@
 """Narrative Entity State Service - combines base + events + replay."""
 
 from typing import Optional
+
 from domain.novel.repositories.entity_base_repository import EntityBaseRepository
 from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 from domain.novel.services.narrative_state_replay import replay_entity_state
@@ -15,9 +16,7 @@ class NarrativeEntityStateService:
     """
 
     def __init__(
-        self,
-        entity_base_repository: EntityBaseRepository,
-        narrative_event_repository: NarrativeEventRepository
+        self, entity_base_repository: EntityBaseRepository, narrative_event_repository: NarrativeEventRepository
     ):
         """
         Initialize the service with required repositories.

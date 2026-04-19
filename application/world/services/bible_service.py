@@ -1,20 +1,21 @@
 """Bible 应用服务"""
+
 from typing import TYPE_CHECKING, Optional
 
+from application.world.dtos.bible_dto import BibleDTO, CharacterDTO
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character import Character
-from domain.bible.entities.world_setting import WorldSetting
 from domain.bible.entities.location import Location
-from domain.bible.entities.timeline_note import TimelineNote
 from domain.bible.entities.style_note import StyleNote
+from domain.bible.entities.timeline_note import TimelineNote
+from domain.bible.entities.world_setting import WorldSetting
+from domain.bible.repositories.bible_repository import BibleRepository
 from domain.bible.value_objects.character_id import CharacterId
 from domain.novel.entities.novel import Novel, NovelStage
-from domain.novel.value_objects.novel_id import NovelId
-from domain.bible.repositories.bible_repository import BibleRepository
-from domain.novel.repositories.novel_repository import NovelRepository
 from domain.novel.repositories.chapter_repository import ChapterRepository
+from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
-from application.world.dtos.bible_dto import BibleDTO, CharacterDTO
 
 if TYPE_CHECKING:
     from application.world.services.bible_location_triple_sync import BibleLocationTripleSyncService
@@ -98,12 +99,7 @@ class BibleService:
         return BibleDTO.from_domain(bible)
 
     def add_character(
-        self,
-        novel_id: str,
-        character_id: str,
-        name: str,
-        description: str,
-        relationships: list = None
+        self, novel_id: str, character_id: str, name: str, description: str, relationships: list = None
     ) -> BibleDTO:
         """添加人物
 
@@ -186,12 +182,7 @@ class BibleService:
         return "\n".join(lines) if lines else ""
 
     def add_world_setting(
-        self,
-        novel_id: str,
-        setting_id: str,
-        name: str,
-        description: str,
-        setting_type: str
+        self, novel_id: str, setting_id: str, name: str, description: str, setting_type: str
     ) -> BibleDTO:
         """添加世界设定
 
@@ -212,12 +203,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
-        setting = WorldSetting(
-            id=setting_id,
-            name=name,
-            description=description,
-            setting_type=setting_type
-        )
+        setting = WorldSetting(id=setting_id, name=name, description=description, setting_type=setting_type)
         bible.add_world_setting(setting)
         self.bible_repository.save(bible)
 
@@ -265,22 +251,13 @@ class BibleService:
         bible.add_location(location)
         from domain.bible.bible_location_tree import validate_location_forest
 
-        validate_location_forest(
-            [{"id": loc.id, "parent_id": loc.parent_id} for loc in bible.locations]
-        )
+        validate_location_forest([{"id": loc.id, "parent_id": loc.parent_id} for loc in bible.locations])
         self.bible_repository.save(bible)
         self._sync_location_triples(novel_id, bible)
 
         return BibleDTO.from_domain(bible)
 
-    def add_timeline_note(
-        self,
-        novel_id: str,
-        note_id: str,
-        event: str,
-        time_point: str,
-        description: str
-    ) -> BibleDTO:
+    def add_timeline_note(self, novel_id: str, note_id: str, event: str, time_point: str, description: str) -> BibleDTO:
         """添加时间线笔记
 
         Args:
@@ -300,24 +277,13 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
-        note = TimelineNote(
-            id=note_id,
-            event=event,
-            time_point=time_point,
-            description=description
-        )
+        note = TimelineNote(id=note_id, event=event, time_point=time_point, description=description)
         bible.add_timeline_note(note)
         self.bible_repository.save(bible)
 
         return BibleDTO.from_domain(bible)
 
-    def add_style_note(
-        self,
-        novel_id: str,
-        note_id: str,
-        category: str,
-        content: str
-    ) -> BibleDTO:
+    def add_style_note(self, novel_id: str, note_id: str, category: str, content: str) -> BibleDTO:
         """添加风格笔记
 
         Args:
@@ -336,11 +302,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
-        note = StyleNote(
-            id=note_id,
-            category=category,
-            content=content
-        )
+        note = StyleNote(id=note_id, category=category, content=content)
         bible.add_style_note(note)
         self.bible_repository.save(bible)
 
@@ -367,7 +329,7 @@ class BibleService:
         world_settings: list,
         locations: list,
         timeline_notes: list,
-        style_notes: list
+        style_notes: list,
     ) -> BibleDTO:
         """批量更新 Bible 的所有数据
 
@@ -438,7 +400,7 @@ class BibleService:
                 id=setting_data.id,
                 name=setting_data.name,
                 description=setting_data.description,
-                setting_type=setting_data.setting_type
+                setting_type=setting_data.setting_type,
             )
             bible._world_settings.append(setting)
 
@@ -461,17 +423,13 @@ class BibleService:
                 id=note_data.id,
                 event=note_data.event,
                 time_point=note_data.time_point,
-                description=note_data.description
+                description=note_data.description,
             )
             bible._timeline_notes.append(note)
 
         # 添加新的风格笔记
         for note_data in style_notes:
-            note = StyleNote(
-                id=note_data.id,
-                category=note_data.category,
-                content=note_data.content
-            )
+            note = StyleNote(id=note_data.id, category=note_data.category, content=note_data.content)
             bible._style_notes.append(note)
 
         self.bible_repository.save(bible)

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from domain.bible.entities.bible import Bible
 from domain.novel.value_objects.novel_id import NovelId
 

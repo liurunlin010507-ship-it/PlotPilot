@@ -1,10 +1,11 @@
 """向量检索门面，隔离异步调用"""
+
 import asyncio
 import concurrent.futures
-from typing import List, Optional
+from typing import List
 
-from domain.ai.services.vector_store import VectorStore
 from domain.ai.services.embedding_service import EmbeddingService
+from domain.ai.services.vector_store import VectorStore
 
 
 class VectorRetrievalFacade:

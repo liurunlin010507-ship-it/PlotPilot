@@ -1,10 +1,12 @@
 """HostedWriteService 单元测试"""
-import pytest
+
 from unittest.mock import AsyncMock, Mock
 
-from application.services.hosted_write_service import HostedWriteService
-from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
+import pytest
 from application.services.chapter_service import ChapterService
+from application.services.hosted_write_service import HostedWriteService
+
+from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
 
 
 @pytest.fixture
@@ -36,9 +38,7 @@ def mock_chapter_service():
 async def test_hosted_streams_events_and_saves(mock_workflow, mock_chapter_service):
     svc = HostedWriteService(mock_workflow, mock_chapter_service)
     events = []
-    async for e in svc.stream_hosted_write(
-        "novel-1", 1, 1, auto_save=True, auto_outline=True
-    ):
+    async for e in svc.stream_hosted_write("novel-1", 1, 1, auto_save=True, auto_outline=True):
         events.append(e)
     types = [x["type"] for x in events]
     assert "session" in types
@@ -52,9 +52,7 @@ async def test_suggest_outline_uses_llm(mock_workflow, mock_chapter_service):
     mock_workflow.suggest_outline = AsyncMock(return_value="auto")
     svc = HostedWriteService(mock_workflow, mock_chapter_service)
     events = []
-    async for e in svc.stream_hosted_write(
-        "novel-1", 2, 2, auto_save=False, auto_outline=True
-    ):
+    async for e in svc.stream_hosted_write("novel-1", 2, 2, auto_save=False, auto_outline=True):
         events.append(e)
     outline_ev = next(x for x in events if x["type"] == "outline")
     assert outline_ev["text"] == "auto"

@@ -2,29 +2,32 @@
 
 整合所有子项目组件，实现完整的章节生成流程。
 """
+
 import logging
-from typing import Tuple, Dict, Any, AsyncIterator, Optional, List
-from application.engine.services.context_builder import ContextBuilder
+from collections.abc import AsyncIterator
+from typing import Any, Dict, List, Optional, Tuple
+
+from application.ai.llm_output_sanitize import strip_reasoning_artifacts
 from application.analyst.services.state_extractor import StateExtractor
 from application.analyst.services.state_updater import StateUpdater
+from application.audit.dtos.ghost_annotation import GhostAnnotation
 from application.audit.services.conflict_detection_service import ConflictDetectionService
-from application.engine.services.style_constraint_builder import build_style_summary
 from application.engine.dtos.generation_result import GenerationResult
 from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
-from application.audit.dtos.ghost_annotation import GhostAnnotation
-from domain.novel.services.consistency_checker import ConsistencyChecker
-from domain.novel.services.storyline_manager import StorylineManager
-from domain.novel.repositories.plot_arc_repository import PlotArcRepository
+from application.engine.services.context_builder import ContextBuilder
+from application.engine.services.style_constraint_builder import build_style_summary
+from application.workflows.beat_continuation import format_prior_draft_for_prompt
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
 from domain.bible.repositories.bible_repository import BibleRepository
 from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
-from domain.novel.value_objects.consistency_report import ConsistencyReport
+from domain.novel.repositories.plot_arc_repository import PlotArcRepository
+from domain.novel.services.consistency_checker import ConsistencyChecker
+from domain.novel.services.storyline_manager import StorylineManager
 from domain.novel.value_objects.chapter_state import ChapterState
 from domain.novel.value_objects.consistency_context import ConsistencyContext
+from domain.novel.value_objects.consistency_report import ConsistencyReport
 from domain.novel.value_objects.novel_id import NovelId
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
-from application.ai.llm_output_sanitize import strip_reasoning_artifacts
-from application.workflows.beat_continuation import format_prior_draft_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +93,9 @@ class AutoNovelGenerationWorkflow:
         bible_repository: Optional[BibleRepository] = None,
         foreshadowing_repository: Optional[ForeshadowingRepository] = None,
         conflict_detection_service: Optional[ConflictDetectionService] = None,
-        voice_fingerprint_service: Optional['VoiceFingerprintService'] = None,
-        cliche_scanner: Optional['ClicheScanner'] = None,
-        memory_engine: Optional['MemoryEngine'] = None,
+        voice_fingerprint_service: Optional["VoiceFingerprintService"] = None,
+        cliche_scanner: Optional["ClicheScanner"] = None,
+        memory_engine: Optional["MemoryEngine"] = None,
     ):
         """初始化工作流
 
@@ -121,34 +124,35 @@ class AutoNovelGenerationWorkflow:
         self.memory_engine = memory_engine
         if memory_engine and bible_repository:
             # 将 memory_engine 注入 context_builder 的 budget_allocator
-            if hasattr(self.context_builder, 'budget_allocator'):
+            if hasattr(self.context_builder, "budget_allocator"):
                 self.context_builder.budget_allocator.memory_engine = memory_engine
                 logger.info("✓ MemoryEngine 已注入 ContextBudgetAllocator")
 
         # V6 运行时上下文缓存（供 _build_prompt 使用）
         self._current_novel_id: str = ""
         self._current_chapter_number: int = 0
-        
+
         # 强制初始化 StateExtractor（如果未提供）
         if state_extractor is None:
             logger.info("StateExtractor not provided, creating default instance")
             self.state_extractor = StateExtractor(llm_service=llm_service)
         else:
             self.state_extractor = state_extractor
-        
+
         # 强制初始化 StateUpdater（如果未提供且有所需仓储）
         if state_updater is None and bible_repository and foreshadowing_repository:
             logger.info("StateUpdater not provided, creating default instance")
             from infrastructure.persistence.database.connection import get_database
+
             db = get_database()
             self.state_updater = StateUpdater(
                 bible_repository=bible_repository,
                 foreshadowing_repository=foreshadowing_repository,
-                db_connection=db.get_connection()
+                db_connection=db.get_connection(),
             )
         else:
             self.state_updater = state_updater
-        
+
         self.bible_repository = bible_repository
         self.foreshadowing_repository = foreshadowing_repository
         self.conflict_detection_service = conflict_detection_service
@@ -285,9 +289,7 @@ class AutoNovelGenerationWorkflow:
                         f"+{memory_delta.get('new_clues', 0)} clues"
                     )
                 if memory_delta.get("violations", 0):
-                    logger.warning(
-                        f"  ⚠️ MemoryEngine 检测到 {memory_delta['violations']} 个事实违反"
-                    )
+                    logger.warning(f"  ⚠️ MemoryEngine 检测到 {memory_delta['violations']} 个事实违反")
             except Exception as e:
                 logger.warning("MemoryEngine 章后回写失败: %s", e)
 
@@ -305,7 +307,7 @@ class AutoNovelGenerationWorkflow:
         chapter_number: int,
         outline: str,
         scene_director: Optional[SceneDirectorAnalysis] = None,
-        enable_beats: bool = True
+        enable_beats: bool = True,
     ) -> GenerationResult:
         """生成章节（完整工作流）
 
@@ -328,33 +330,31 @@ class AutoNovelGenerationWorkflow:
         if not outline or not outline.strip():
             raise ValueError("outline cannot be empty")
 
-        logger.info(f"========================================")
+        logger.info("========================================")
         logger.info(f"开始生成章节: 小说={novel_id}, 章节={chapter_number}")
         logger.info(f"大纲: {outline[:100]}...")
-        logger.info(f"========================================")
+        logger.info("========================================")
 
         # ★ V6: 缓存当前 novel_id/chapter_number 供 _build_prompt 中 MemoryEngine 使用
         self._current_novel_id = novel_id
         self._current_chapter_number = chapter_number
 
         logger.info("阶段 1-2: 规划 + 结构化上下文（prepare_chapter_generation）")
-        bundle = self.prepare_chapter_generation(
-            novel_id, chapter_number, outline, scene_director=scene_director
-        )
+        bundle = self.prepare_chapter_generation(novel_id, chapter_number, outline, scene_director=scene_director)
         context = bundle["context"]
         context_tokens = bundle["context_tokens"]
         logger.info(f"  ✓ 上下文已构建: {len(context)} 字符, 约 {context_tokens} tokens")
 
         logger.info("阶段 3: 生成 - 调用 LLM")
         config = GenerationConfig()
-        
+
         # 如果使用节拍模式，先放大节拍
         beats = []
         if enable_beats:
             logger.info("  → 启用节拍模式，拆分大纲为微观节拍")
             beats = self.context_builder.magnify_outline_to_beats(chapter_number, outline)
             logger.info(f"  ✓ 已拆分为 {len(beats)} 个微观节拍")
-        
+
         # 根据是否使用节拍选择不同的生成策略
         if enable_beats and beats:
             # 按节拍生成
@@ -362,8 +362,8 @@ class AutoNovelGenerationWorkflow:
             for i, beat in enumerate(beats):
                 prior_draft = "\n\n".join(content_parts)
                 beat_prompt_text = self.context_builder.build_beat_prompt(beat, i, len(beats))
-                logger.info(f"生成节拍 {i+1}/{len(beats)}: {beat.focus} - {beat.description[:50]}...")
-                
+                logger.info(f"生成节拍 {i + 1}/{len(beats)}: {beat.focus} - {beat.description[:50]}...")
+
                 prompt = self._build_prompt(
                     context,
                     outline,
@@ -377,11 +377,11 @@ class AutoNovelGenerationWorkflow:
                     voice_anchors=bundle.get("voice_anchors") or "",
                     chapter_draft_so_far=prior_draft,
                 )
-                
+
                 llm_result = await self.llm_service.generate(prompt, config)
                 beat_content = llm_result.content
                 content_parts.append(beat_content)
-            
+
             content = strip_reasoning_artifacts("".join(content_parts))
             logger.info(f"  ✓ 节拍生成完成: {len(beats)} 个节拍, {len(content)} 字符")
         else:
@@ -398,15 +398,12 @@ class AutoNovelGenerationWorkflow:
             llm_result = await self.llm_service.generate(prompt, config)
             content = strip_reasoning_artifacts(llm_result.content or "")
             logger.info(f"  ✓ LLM 响应已接收: {len(content)} 字符")
-        
+
         # 保存微观节拍用于后续处理
         if beats:
             bundle["micro_beats"] = [
-                {
-                    "description": beat.description,
-                    "target_words": beat.target_words,
-                    "focus": beat.focus
-                } for beat in beats
+                {"description": beat.description, "target_words": beat.target_words, "focus": beat.focus}
+                for beat in beats
             ]
 
         logger.info("阶段 4: 后处理（post_process_generated_chapter）")
@@ -420,12 +417,12 @@ class AutoNovelGenerationWorkflow:
             logger.info(f"  ✓ 俗套扫描: 检测到 {len(style_warnings)} 个俗套句式")
 
         # Phase 5: Review - 返回结果
-        logger.info(f"阶段 5: 完成 - 章节生成完成")
+        logger.info("阶段 5: 完成 - 章节生成完成")
         token_count = context_tokens
         logger.info(f"  ✓ 总计: {len(content)} 字符, {token_count} tokens")
-        logger.info(f"========================================")
+        logger.info("========================================")
         logger.info(f"章节生成完成: 小说={novel_id}, 章节={chapter_number}")
-        logger.info(f"========================================")
+        logger.info("========================================")
 
         return GenerationResult(
             content=content,
@@ -433,7 +430,7 @@ class AutoNovelGenerationWorkflow:
             context_used=context,
             token_count=token_count,
             ghost_annotations=ghost_annotations,
-            style_warnings=style_warnings
+            style_warnings=style_warnings,
         )
 
     async def generate_chapter_stream(
@@ -442,7 +439,7 @@ class AutoNovelGenerationWorkflow:
         chapter_number: int,
         outline: str,
         scene_director: Optional[SceneDirectorAnalysis] = None,
-        enable_beats: bool = True
+        enable_beats: bool = True,
     ) -> AsyncIterator[Dict[str, Any]]:
         """流式生成章节：阶段事件 + 正文 token 流 + 最终 done（含一致性报告）。
 
@@ -458,16 +455,14 @@ class AutoNovelGenerationWorkflow:
             if not outline or not outline.strip():
                 raise ValueError("outline cannot be empty")
 
-            logger.info(f"========================================")
+            logger.info("========================================")
             logger.info(f"开始流式生成章节: 小说={novel_id}, 章节={chapter_number}")
-            logger.info(f"========================================")
+            logger.info("========================================")
 
             yield {"type": "phase", "phase": "planning"}
             yield {"type": "phase", "phase": "context"}
             logger.info("阶段 1-2: prepare_chapter_generation（规划 + 结构化上下文）")
-            bundle = self.prepare_chapter_generation(
-                novel_id, chapter_number, outline, scene_director=scene_director
-            )
+            bundle = self.prepare_chapter_generation(novel_id, chapter_number, outline, scene_director=scene_director)
             context = bundle["context"]
             context_tokens = bundle["context_tokens"]
             logger.info(f"  ✓ 上下文已构建: {len(context)} 字符, 约 {context_tokens} tokens")
@@ -476,26 +471,23 @@ class AutoNovelGenerationWorkflow:
             logger.info("阶段 3: 生成 - 调用 LLM 流式生成")
             config = GenerationConfig()
             chunk_count = 0
-            
+
             # 如果使用节拍模式，先放大节拍
             beats = []
             if enable_beats:
                 logger.info("  → 启用节拍模式，拆分大纲为微观节拍")
                 beats = self.context_builder.magnify_outline_to_beats(chapter_number, outline)
                 logger.info(f"  ✓ 已拆分为 {len(beats)} 个微观节拍")
-                
+
                 # 发送节拍信息用于前端展示
                 yield {
                     "type": "beats_generated",
                     "beats": [
-                        {
-                            "description": beat.description,
-                            "target_words": beat.target_words,
-                            "focus": beat.focus
-                        } for beat in beats
-                    ]
+                        {"description": beat.description, "target_words": beat.target_words, "focus": beat.focus}
+                        for beat in beats
+                    ],
                 }
-            
+
             # 根据是否使用节拍选择不同的生成策略
             if enable_beats and beats:
                 # 按节拍生成
@@ -503,8 +495,8 @@ class AutoNovelGenerationWorkflow:
                 for i, beat in enumerate(beats):
                     prior_draft = "\n\n".join(content_parts)
                     beat_prompt_text = self.context_builder.build_beat_prompt(beat, i, len(beats))
-                    logger.info(f"生成节拍 {i+1}/{len(beats)}: {beat.focus} - {beat.description[:50]}...")
-                    
+                    logger.info(f"生成节拍 {i + 1}/{len(beats)}: {beat.focus} - {beat.description[:50]}...")
+
                     prompt = self._build_prompt(
                         context,
                         outline,
@@ -518,21 +510,16 @@ class AutoNovelGenerationWorkflow:
                         voice_anchors=bundle.get("voice_anchors") or "",
                         chapter_draft_so_far=prior_draft,
                     )
-                    
+
                     beat_content = ""
                     async for piece in self.llm_service.stream_generate(prompt, config):
                         chunk_count += 1
                         beat_content += piece
-                        yield {
-                            "type": "chunk", 
-                            "text": piece,
-                            "beat_index": i,
-                            "beat_focus": beat.focus
-                        }
-                    
+                        yield {"type": "chunk", "text": piece, "beat_index": i, "beat_focus": beat.focus}
+
                     content_parts.append(beat_content)
                     yield {"type": "beat_done", "beat_index": i, "beat_content_length": len(beat_content)}
-                
+
                 content = strip_reasoning_artifacts("".join(content_parts))
             else:
                 # 传统单段生成
@@ -544,8 +531,8 @@ class AutoNovelGenerationWorkflow:
                     style_summary=bundle["style_summary"],
                     voice_anchors=bundle.get("voice_anchors") or "",
                 )
-                
-                logger.info(f"  → 发送流式请求到 LLM")
+
+                logger.info("  → 发送流式请求到 LLM")
                 parts: list[str] = []
                 total_chars = 0
                 async for piece in self.llm_service.stream_generate(prompt, config):
@@ -555,13 +542,13 @@ class AutoNovelGenerationWorkflow:
                     # 增强事件：包含累计字数和预估 token（中文约 1.5 字/token，英文约 4 字/token）
                     estimated_tokens = int(total_chars / 1.5)  # 简化估算
                     yield {
-                        "type": "chunk", 
+                        "type": "chunk",
                         "text": piece,
                         "stats": {
                             "chars": total_chars,
                             "chunks": chunk_count,
                             "estimated_tokens": estimated_tokens,
-                        }
+                        },
                     }
 
                 content = strip_reasoning_artifacts("".join(parts))
@@ -586,11 +573,11 @@ class AutoNovelGenerationWorkflow:
             token_count = context_tokens
             output_tokens = int(len(content) / 1.5)  # 预估输出 token
             total_tokens = token_count + output_tokens
-            logger.info(f"========================================")
+            logger.info("========================================")
             logger.info(f"流式章节生成完成: 小说={novel_id}, 章节={chapter_number}")
             logger.info(f"  输出: {len(content)} 字符, 约 {output_tokens} tokens")
             logger.info(f"  总计: 约 {total_tokens} tokens (上下文 {token_count} + 输出 {output_tokens})")
-            logger.info(f"========================================")
+            logger.info("========================================")
 
             yield {
                 "type": "done",
@@ -631,14 +618,8 @@ class AutoNovelGenerationWorkflow:
             )
             cap = min(len(context), 28000)
             outline_prompt = Prompt(
-                system=(
-                    "你是小说主编。只输出本章的要点大纲（中文），用 1-6 条编号列表，"
-                    "每条一行；不要写正文或对话。"
-                ),
-                user=(
-                    f"以下为背景信息（节选）：\n\n{context[:cap]}\n\n"
-                    f"请写第{chapter_number}章的要点大纲。"
-                ),
+                system=("你是小说主编。只输出本章的要点大纲（中文），用 1-6 条编号列表，每条一行；不要写正文或对话。"),
+                user=(f"以下为背景信息（节选）：\n\n{context[:cap]}\n\n请写第{chapter_number}章的要点大纲。"),
             )
             cfg = GenerationConfig(max_tokens=1024, temperature=0.7)
             out = await self.llm_service.generate(outline_prompt, cfg)
@@ -650,10 +631,7 @@ class AutoNovelGenerationWorkflow:
         return seed
 
     async def generate_chapter_with_review(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        outline: str
+        self, novel_id: str, chapter_number: int, outline: str
     ) -> Tuple[str, ConsistencyReport]:
         """生成章节并返回一致性审查
 
@@ -680,15 +658,15 @@ class AutoNovelGenerationWorkflow:
         """
         try:
             # 检查 storyline_manager 是否有 repository 属性
-            if not hasattr(self.storyline_manager, 'repository'):
+            if not hasattr(self.storyline_manager, "repository"):
                 return "Storyline context unavailable"
 
             # 获取所有活跃的故事线
             storylines = self.storyline_manager.repository.get_by_novel_id(NovelId(novel_id))
             active_storylines = [
-                s for s in storylines
-                if s.status.value == "active"
-                and s.estimated_chapter_start <= chapter_number <= s.estimated_chapter_end
+                s
+                for s in storylines
+                if s.status.value == "active" and s.estimated_chapter_start <= chapter_number <= s.estimated_chapter_end
             ]
 
             if not active_storylines:
@@ -722,7 +700,9 @@ class AutoNovelGenerationWorkflow:
 
                 tension_info = f"Expected tension: {tension.value}"
                 if next_point:
-                    tension_info += f"\nNext plot point at chapter {next_point.chapter_number}: {next_point.description}"
+                    tension_info += (
+                        f"\nNext plot point at chapter {next_point.chapter_number}: {next_point.description}"
+                    )
 
                 return tension_info
             return "No plot arc defined"
@@ -806,16 +786,12 @@ class AutoNovelGenerationWorkflow:
         planning_section = ""
         if planning_parts:
             planning_section = (
-                "\n".join(planning_parts)
-                + "\n\n以上约束须与本章大纲及后文 Bible/摘要一致；不得与之矛盾。\n"
+                "\n".join(planning_parts) + "\n\n以上约束须与本章大纲及后文 Bible/摘要一致；不得与之矛盾。\n"
             )
 
         voice_block = ""
         if va:
-            voice_block = (
-                "\n【角色声线与肢体语言（Bible 锚点，必须遵守）】\n"
-                f"{va}\n\n"
-            )
+            voice_block = f"\n【角色声线与肢体语言（Bible 锚点，必须遵守）】\n{va}\n\n"
 
         beat_mode = bool((beat_prompt or "").strip())
         prior_in_chapter = format_prior_draft_for_prompt(chapter_draft_so_far)
@@ -845,12 +821,8 @@ class AutoNovelGenerationWorkflow:
                 fl = self.memory_engine.build_fact_lock_section(
                     self._current_novel_id or "", self._current_chapter_number or 0
                 )
-                beats = self.memory_engine.get_completed_beats_section(
-                    self._current_novel_id or ""
-                )
-                clues = self.memory_engine.get_revealed_clues_section(
-                    self._current_novel_id or ""
-                )
+                beats = self.memory_engine.get_completed_beats_section(self._current_novel_id or "")
+                clues = self.memory_engine.get_revealed_clues_section(self._current_novel_id or "")
                 parts = [p for p in [fl, beats, clues] if p.strip()]
                 fact_lock = "\n\n".join(parts) if parts else ""
             except Exception as e:
@@ -901,7 +873,7 @@ class AutoNovelGenerationWorkflow:
             user_message += f"""
 
 【节拍 {bi + 1}/{tb}】
-{(beat_prompt or '').strip()}
+{(beat_prompt or "").strip()}
 
 {beat_tail}"""
 
@@ -934,14 +906,10 @@ class AutoNovelGenerationWorkflow:
             relationship_changes=[],
             foreshadowing_planted=[],
             foreshadowing_resolved=[],
-            events=[]
+            events=[],
         )
 
-    def _check_consistency(
-        self,
-        chapter_state: ChapterState,
-        novel_id: str
-    ) -> ConsistencyReport:
+    def _check_consistency(self, chapter_state: ChapterState, novel_id: str) -> ConsistencyReport:
         """检查章节一致性
 
         Args:
@@ -953,10 +921,10 @@ class AutoNovelGenerationWorkflow:
         """
         from domain.bible.entities.bible import Bible
         from domain.bible.entities.character_registry import CharacterRegistry
+        from domain.bible.value_objects.relationship_graph import RelationshipGraph
         from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
         from domain.novel.entities.plot_arc import PlotArc
         from domain.novel.value_objects.event_timeline import EventTimeline
-        from domain.bible.value_objects.relationship_graph import RelationshipGraph
 
         novel_id_obj = NovelId(novel_id)
 
@@ -970,17 +938,20 @@ class AutoNovelGenerationWorkflow:
 
             if self.foreshadowing_repository:
                 foreshadowing_registry = self.foreshadowing_repository.get_by_novel_id(novel_id_obj)
-                logger.debug(f"Loaded real ForeshadowingRegistry for consistency check: {foreshadowing_registry is not None}")
+                logger.debug(
+                    f"Loaded real ForeshadowingRegistry for consistency check: {foreshadowing_registry is not None}"
+                )
             else:
                 foreshadowing_registry = None
 
             context = ConsistencyContext(
                 bible=bible or Bible(id="temp", novel_id=novel_id_obj),
                 character_registry=CharacterRegistry(id="temp", novel_id=novel_id),
-                foreshadowing_registry=foreshadowing_registry or ForeshadowingRegistry(id="temp", novel_id=novel_id_obj),
+                foreshadowing_registry=foreshadowing_registry
+                or ForeshadowingRegistry(id="temp", novel_id=novel_id_obj),
                 plot_arc=PlotArc(id="temp", novel_id=novel_id_obj),
                 event_timeline=EventTimeline(),
-                relationship_graph=RelationshipGraph()
+                relationship_graph=RelationshipGraph(),
             )
 
             return self.consistency_checker.check_all(chapter_state, context)
@@ -989,11 +960,7 @@ class AutoNovelGenerationWorkflow:
             return ConsistencyReport(issues=[], warnings=[], suggestions=[])
 
     def _detect_conflicts(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        outline: str,
-        scene_director: Optional[SceneDirectorAnalysis] = None
+        self, novel_id: str, chapter_number: int, outline: str, scene_director: Optional[SceneDirectorAnalysis] = None
     ) -> List[GhostAnnotation]:
         """检测冲突并生成幽灵批注
 
@@ -1023,7 +990,7 @@ class AutoNovelGenerationWorkflow:
                 outline=outline,
                 entity_states=entity_states,
                 name_to_entity_id=name_to_entity_id,
-                scene_director=scene_director
+                scene_director=scene_director,
             )
 
             return annotations
@@ -1067,10 +1034,7 @@ class AutoNovelGenerationWorkflow:
         return name_to_id
 
     def _get_entity_states(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        name_to_entity_id: Dict[str, str]
+        self, novel_id: str, chapter_number: int, name_to_entity_id: Dict[str, str]
     ) -> Dict[str, Dict]:
         """获取实体状态
 
@@ -1099,23 +1063,23 @@ class AutoNovelGenerationWorkflow:
                 state = {}
 
                 # 提取角色属性
-                if hasattr(character, 'attributes') and character.attributes:
+                if hasattr(character, "attributes") and character.attributes:
                     state.update(character.attributes)
 
                 # 提取角色描述中的关键信息（简化版本）
-                if hasattr(character, 'description') and character.description:
+                if hasattr(character, "description") and character.description:
                     desc = character.description.lower()
                     # 检测魔法类型
-                    if '火系' in desc or '火魔法' in desc:
-                        state['magic_type'] = '火系'
-                    elif '水系' in desc or '水魔法' in desc:
-                        state['magic_type'] = '水系'
-                    elif '冰系' in desc or '冰魔法' in desc:
-                        state['magic_type'] = '冰系'
-                    elif '雷系' in desc or '雷魔法' in desc:
-                        state['magic_type'] = '雷系'
-                    elif '风系' in desc or '风魔法' in desc:
-                        state['magic_type'] = '风系'
+                    if "火系" in desc or "火魔法" in desc:
+                        state["magic_type"] = "火系"
+                    elif "水系" in desc or "水魔法" in desc:
+                        state["magic_type"] = "水系"
+                    elif "冰系" in desc or "冰魔法" in desc:
+                        state["magic_type"] = "冰系"
+                    elif "雷系" in desc or "雷魔法" in desc:
+                        state["magic_type"] = "雷系"
+                    elif "风系" in desc or "风魔法" in desc:
+                        state["magic_type"] = "风系"
 
                 if state:
                     entity_states[character.id] = state
@@ -1139,9 +1103,7 @@ class AutoNovelGenerationWorkflow:
 
         try:
             # 获取指纹数据
-            fingerprint = self.voice_fingerprint_service.fingerprint_repo.get_by_novel(
-                novel_id, pov_character_id=None
-            )
+            fingerprint = self.voice_fingerprint_service.fingerprint_repo.get_by_novel(novel_id, pov_character_id=None)
             if not fingerprint:
                 return ""
 
@@ -1153,7 +1115,7 @@ class AutoNovelGenerationWorkflow:
             logger.warning(f"Failed to get style summary: {e}")
             return ""
 
-    def _scan_cliches(self, content: str) -> List['ClicheHit']:
+    def _scan_cliches(self, content: str) -> List["ClicheHit"]:
         """扫描俗套句式
 
         Args:

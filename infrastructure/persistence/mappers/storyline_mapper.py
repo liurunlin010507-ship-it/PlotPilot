@@ -1,10 +1,12 @@
 """Storyline 数据映射器"""
-from typing import Dict, Any, List
+
+from typing import Any, Dict, List
+
 from domain.novel.entities.storyline import Storyline
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 
 
 class StorylineMapper:
@@ -36,10 +38,10 @@ class StorylineMapper:
                     "target_chapter_start": milestone.target_chapter_start,
                     "target_chapter_end": milestone.target_chapter_end,
                     "prerequisites": milestone.prerequisites,
-                    "triggers": milestone.triggers
+                    "triggers": milestone.triggers,
                 }
                 for milestone in storyline.milestones
-            ]
+            ],
         }
 
     @staticmethod
@@ -57,9 +59,14 @@ class StorylineMapper:
         """
         # 验证必需字段
         required_fields = [
-            "id", "novel_id", "storyline_type", "status",
-            "estimated_chapter_start", "estimated_chapter_end",
-            "current_milestone_index", "milestones"
+            "id",
+            "novel_id",
+            "storyline_type",
+            "status",
+            "estimated_chapter_start",
+            "estimated_chapter_end",
+            "current_milestone_index",
+            "milestones",
         ]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -76,7 +83,7 @@ class StorylineMapper:
                     target_chapter_start=milestone_data["target_chapter_start"],
                     target_chapter_end=milestone_data["target_chapter_end"],
                     prerequisites=milestone_data["prerequisites"],
-                    triggers=milestone_data["triggers"]
+                    triggers=milestone_data["triggers"],
                 )
                 milestones.append(milestone)
 
@@ -89,7 +96,7 @@ class StorylineMapper:
                 estimated_chapter_start=data["estimated_chapter_start"],
                 estimated_chapter_end=data["estimated_chapter_end"],
                 milestones=milestones,
-                current_milestone_index=data["current_milestone_index"]
+                current_milestone_index=data["current_milestone_index"],
             )
 
             return storyline

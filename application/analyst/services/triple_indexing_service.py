@@ -18,8 +18,9 @@ Collection 命名约定：
 - 触发词召回的向量补充
 - 图谱子网的语义扩展
 """
+
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from domain.ai.services.embedding_service import EmbeddingService
 from domain.ai.services.vector_store import VectorStore
@@ -33,11 +34,7 @@ class TripleIndexingService:
     负责将三元组向量化并写入向量存储，支持语义检索。
     """
 
-    def __init__(
-        self,
-        vector_store: VectorStore,
-        embedding_service: EmbeddingService
-    ):
+    def __init__(self, vector_store: VectorStore, embedding_service: EmbeddingService):
         """初始化三元组索引服务
 
         Args:
@@ -121,17 +118,10 @@ class TripleIndexingService:
         existing_collections = await self._vector_store.list_collections()
 
         if collection_name not in existing_collections:
-            await self._vector_store.create_collection(
-                collection=collection_name,
-                dimension=self._embedding_dimension
-            )
+            await self._vector_store.create_collection(collection=collection_name, dimension=self._embedding_dimension)
             logger.info(f"Created collection: {collection_name}")
 
-    async def index_triple(
-        self,
-        novel_id: str,
-        triple: Dict[str, Any]
-    ) -> None:
+    async def index_triple(self, novel_id: str, triple: Dict[str, Any]) -> None:
         """索引单个三元组
 
         Args:
@@ -174,20 +164,11 @@ class TripleIndexingService:
 
         # 写入向量存储
         collection_name = self._get_collection_name(novel_id)
-        await self._vector_store.insert(
-            collection=collection_name,
-            id=triple_id,
-            vector=vector,
-            payload=payload
-        )
+        await self._vector_store.insert(collection=collection_name, id=triple_id, vector=vector, payload=payload)
 
         logger.debug(f"Indexed triple: {triple_id}")
 
-    async def index_triples_batch(
-        self,
-        novel_id: str,
-        triples: List[Dict[str, Any]]
-    ) -> int:
+    async def index_triples_batch(self, novel_id: str, triples: List[Dict[str, Any]]) -> int:
         """批量索引三元组
 
         Args:
@@ -239,12 +220,7 @@ class TripleIndexingService:
                 "text": self._triple_to_text(triple),
             }
 
-            await self._vector_store.insert(
-                collection=collection_name,
-                id=triple_id,
-                vector=vector,
-                payload=payload
-            )
+            await self._vector_store.insert(collection=collection_name, id=triple_id, vector=vector, payload=payload)
             indexed += 1
 
         logger.info(f"Indexed {indexed} triples for novel {novel_id}")
@@ -285,7 +261,7 @@ class TripleIndexingService:
         results = await self._vector_store.search(
             collection=collection_name,
             query_vector=query_vector,
-            limit=limit * 2  # 多取一些，用于过滤
+            limit=limit * 2,  # 多取一些，用于过滤
         )
 
         # 过滤结果
@@ -317,10 +293,7 @@ class TripleIndexingService:
             triple_id: 三元组 ID
         """
         collection_name = self._get_collection_name(novel_id)
-        await self._vector_store.delete(
-            collection=collection_name,
-            id=triple_id
-        )
+        await self._vector_store.delete(collection=collection_name, id=triple_id)
         logger.debug(f"Deleted triple: {triple_id}")
 
     async def delete_collection(self, novel_id: str) -> None:

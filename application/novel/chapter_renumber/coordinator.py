@@ -3,12 +3,14 @@
 新增一种侧车数据时：实现 ``ChapterRenumberExtension`` 并在依赖注入处注册即可，
 避免在 ``SqliteChapterRepository`` 内无限堆叠硬编码表名。
 """
+
 from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, FrozenSet, List, Optional, Protocol, Sequence
+from typing import Any, Callable, FrozenSet, List, Optional, Protocol
 
 from domain.novel.chapter_renumber.json_walk import (
     DEFAULT_CHAPTER_INTEGER_JSON_KEYS,
@@ -40,9 +42,7 @@ class ChapterRenumberContext:
     foreshadowing_repository: Optional[Any] = None
     vector_store: Optional[Any] = None
     vector_collection_names_resolver: VectorCollectionResolver = default_vector_collection_names
-    snapshot_json_keys: FrozenSet[str] = field(
-        default_factory=lambda: DEFAULT_CHAPTER_INTEGER_JSON_KEYS
-    )
+    snapshot_json_keys: FrozenSet[str] = field(default_factory=lambda: DEFAULT_CHAPTER_INTEGER_JSON_KEYS)
 
 
 class ChapterRenumberExtension(Protocol):
@@ -172,9 +172,7 @@ def build_default_chapter_renumber_coordinator(
         db=db,
         foreshadowing_repository=foreshadowing_repository,
         vector_store=vector_store,
-        vector_collection_names_resolver=(
-            vector_collection_names_resolver or default_vector_collection_names
-        ),
+        vector_collection_names_resolver=(vector_collection_names_resolver or default_vector_collection_names),
         snapshot_json_keys=snapshot_json_keys or DEFAULT_CHAPTER_INTEGER_JSON_KEYS,
     )
     extensions: List[ChapterRenumberExtension] = [

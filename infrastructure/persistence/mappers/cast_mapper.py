@@ -1,5 +1,7 @@
 """Cast mapper for persistence"""
-from typing import Dict, Any, List, Optional
+
+from typing import Any, Dict
+
 from domain.cast.aggregates.cast_graph import CastGraph
 from domain.cast.entities.character import Character
 from domain.cast.entities.relationship import Relationship
@@ -24,12 +26,8 @@ class CastMapper:
         """
         return {
             "version": cast_graph.version,
-            "characters": [
-                CastMapper._character_to_dict(char) for char in cast_graph.characters
-            ],
-            "relationships": [
-                CastMapper._relationship_to_dict(rel) for rel in cast_graph.relationships
-            ]
+            "characters": [CastMapper._character_to_dict(char) for char in cast_graph.characters],
+            "relationships": [CastMapper._relationship_to_dict(rel) for rel in cast_graph.relationships],
         }
 
     @staticmethod
@@ -46,22 +44,12 @@ class CastMapper:
         cast_id = f"cast_{novel_id}"
         version = data.get("version", 2)
 
-        characters = [
-            CastMapper._character_from_dict(char_data)
-            for char_data in data.get("characters", [])
-        ]
+        characters = [CastMapper._character_from_dict(char_data) for char_data in data.get("characters", [])]
 
-        relationships = [
-            CastMapper._relationship_from_dict(rel_data)
-            for rel_data in data.get("relationships", [])
-        ]
+        relationships = [CastMapper._relationship_from_dict(rel_data) for rel_data in data.get("relationships", [])]
 
         return CastGraph(
-            id=cast_id,
-            novel_id=NovelId(novel_id),
-            version=version,
-            characters=characters,
-            relationships=relationships
+            id=cast_id, novel_id=NovelId(novel_id), version=version, characters=characters, relationships=relationships
         )
 
     @staticmethod
@@ -80,14 +68,11 @@ class CastMapper:
             "aliases": character.aliases,
             "role": character.role,
             "traits": character.traits,
-            "note": character.note
+            "note": character.note,
         }
 
         if character.story_events:
-            result["story_events"] = [
-                CastMapper._story_event_to_dict(event)
-                for event in character.story_events
-            ]
+            result["story_events"] = [CastMapper._story_event_to_dict(event) for event in character.story_events]
 
         return result
 
@@ -101,10 +86,7 @@ class CastMapper:
         Returns:
             Character entity
         """
-        story_events = [
-            CastMapper._story_event_from_dict(event_data)
-            for event_data in data.get("story_events", [])
-        ]
+        story_events = [CastMapper._story_event_from_dict(event_data) for event_data in data.get("story_events", [])]
 
         return Character(
             id=CharacterId(data["id"]),
@@ -113,7 +95,7 @@ class CastMapper:
             role=data.get("role", ""),
             traits=data.get("traits", ""),
             note=data.get("note", ""),
-            story_events=story_events
+            story_events=story_events,
         )
 
     @staticmethod
@@ -132,14 +114,11 @@ class CastMapper:
             "target_id": relationship.target_id.value,
             "label": relationship.label,
             "note": relationship.note,
-            "directed": relationship.directed
+            "directed": relationship.directed,
         }
 
         if relationship.story_events:
-            result["story_events"] = [
-                CastMapper._story_event_to_dict(event)
-                for event in relationship.story_events
-            ]
+            result["story_events"] = [CastMapper._story_event_to_dict(event) for event in relationship.story_events]
 
         return result
 
@@ -153,10 +132,7 @@ class CastMapper:
         Returns:
             Relationship entity
         """
-        story_events = [
-            CastMapper._story_event_from_dict(event_data)
-            for event_data in data.get("story_events", [])
-        ]
+        story_events = [CastMapper._story_event_from_dict(event_data) for event_data in data.get("story_events", [])]
 
         return Relationship(
             id=RelationshipId(data["id"]),
@@ -165,7 +141,7 @@ class CastMapper:
             label=data.get("label", ""),
             note=data.get("note", ""),
             directed=data.get("directed", True),
-            story_events=story_events
+            story_events=story_events,
         )
 
     @staticmethod
@@ -178,11 +154,7 @@ class CastMapper:
         Returns:
             Dictionary representation
         """
-        result = {
-            "id": event.id,
-            "summary": event.summary,
-            "importance": event.importance
-        }
+        result = {"id": event.id, "summary": event.summary, "importance": event.importance}
 
         if event.chapter_id is not None:
             result["chapter_id"] = event.chapter_id
@@ -203,5 +175,5 @@ class CastMapper:
             id=data["id"],
             summary=data["summary"],
             chapter_id=data.get("chapter_id"),
-            importance=data.get("importance", "normal")
+            importance=data.get("importance", "normal"),
         )

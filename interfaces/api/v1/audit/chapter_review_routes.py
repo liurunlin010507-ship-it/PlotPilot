@@ -2,19 +2,20 @@
 章节审稿 API 路由
 """
 
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
 
 from application.audit.services.chapter_review_service import ChapterReviewService
 from interfaces.api.dependencies import get_chapter_review_service
-
 
 router = APIRouter(prefix="/chapter-reviews", tags=["chapter-reviews"])
 
 
 class ConsistencyIssueResponse(BaseModel):
     """一致性问题响应"""
+
     issue_type: str
     severity: str
     description: str
@@ -24,6 +25,7 @@ class ConsistencyIssueResponse(BaseModel):
 
 class ChapterReviewResponse(BaseModel):
     """章节审稿响应"""
+
     chapter_number: int
     issues: List[ConsistencyIssueResponse]
     overall_score: float
@@ -33,9 +35,7 @@ class ChapterReviewResponse(BaseModel):
 
 @router.post("/{novel_id}/chapters/{chapter_number}", response_model=ChapterReviewResponse)
 async def review_chapter(
-    novel_id: str,
-    chapter_number: int,
-    service: ChapterReviewService = Depends(get_chapter_review_service)
+    novel_id: str, chapter_number: int, service: ChapterReviewService = Depends(get_chapter_review_service)
 ):
     """
     审稿章节
@@ -58,13 +58,13 @@ async def review_chapter(
                     severity=issue.severity,
                     description=issue.description,
                     location=issue.location,
-                    suggestion=issue.suggestion
+                    suggestion=issue.suggestion,
                 )
                 for issue in result.issues
             ],
             overall_score=result.overall_score,
             improvement_suggestions=result.improvement_suggestions,
-            reviewed_at=result.reviewed_at.isoformat()
+            reviewed_at=result.reviewed_at.isoformat(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

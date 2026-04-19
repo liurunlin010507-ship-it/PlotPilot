@@ -1,6 +1,8 @@
 """Knowledge repository interface"""
+
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from domain.knowledge.story_knowledge import StoryKnowledge
 
 

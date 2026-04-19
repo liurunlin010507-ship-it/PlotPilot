@@ -1,12 +1,13 @@
-import pytest
+
 # Import directly from module files to avoid circular import
 import sys
-sys.path.insert(0, '/d/CODE/aitext')
+
+sys.path.insert(0, "/d/CODE/aitext")
 from domain.bible.entities.character import Character
+from domain.bible.services.appearance_scheduler import AppearanceScheduler
+from domain.bible.value_objects.activity_metrics import ActivityMetrics
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.character_importance import CharacterImportance
-from domain.bible.value_objects.activity_metrics import ActivityMetrics
-from domain.bible.services.appearance_scheduler import AppearanceScheduler
 
 
 class TestAppearanceScheduler:
@@ -22,7 +23,7 @@ class TestAppearanceScheduler:
         available = [
             (char1, CharacterImportance.PROTAGONIST, ActivityMetrics()),
             (char2, CharacterImportance.MAJOR_SUPPORTING, ActivityMetrics()),
-            (char3, CharacterImportance.MINOR, ActivityMetrics())
+            (char3, CharacterImportance.MINOR, ActivityMetrics()),
         ]
 
         outline = "Alice meets Bob at the cafe"
@@ -47,7 +48,7 @@ class TestAppearanceScheduler:
         available = [
             (char1, CharacterImportance.PROTAGONIST, ActivityMetrics()),
             (char2, CharacterImportance.MAJOR_SUPPORTING, ActivityMetrics()),
-            (char3, CharacterImportance.MINOR, ActivityMetrics())
+            (char3, CharacterImportance.MINOR, ActivityMetrics()),
         ]
 
         outline = "A mysterious event occurs"
@@ -75,7 +76,7 @@ class TestAppearanceScheduler:
 
         available = [
             (char1, CharacterImportance.IMPORTANT_SUPPORTING, metrics1),
-            (char2, CharacterImportance.IMPORTANT_SUPPORTING, metrics2)
+            (char2, CharacterImportance.IMPORTANT_SUPPORTING, metrics2),
         ]
 
         outline = "Something happens"
@@ -92,9 +93,11 @@ class TestAppearanceScheduler:
         """测试：遵守最大角色数限制"""
         # Arrange
         chars = [
-            (Character(CharacterId(f"char{i}"), f"Char{i}", f"Desc{i}"),
-             CharacterImportance.IMPORTANT_SUPPORTING,
-             ActivityMetrics())
+            (
+                Character(CharacterId(f"char{i}"), f"Char{i}", f"Desc{i}"),
+                CharacterImportance.IMPORTANT_SUPPORTING,
+                ActivityMetrics(),
+            )
             for i in range(10)
         ]
 
@@ -126,7 +129,7 @@ class TestAppearanceScheduler:
 
         available = [
             (char1, CharacterImportance.PROTAGONIST, ActivityMetrics()),
-            (char2, CharacterImportance.MAJOR_SUPPORTING, ActivityMetrics())
+            (char2, CharacterImportance.MAJOR_SUPPORTING, ActivityMetrics()),
         ]
 
         outline = "Alice and Bob have a conversation"

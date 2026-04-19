@@ -1,8 +1,10 @@
 """Macro Refactor Scanner Service"""
+
 import logging
-from typing import List, Optional, Dict, Set
-from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
+from typing import Dict, List, Optional
+
 from application.audit.dtos.macro_refactor_dto import LogicBreakpoint
+from domain.novel.repositories.narrative_event_repository import NarrativeEventRepository
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +29,7 @@ class MacroRefactorScanner:
         self.event_repository = event_repository
 
     def scan_breakpoints(
-        self,
-        novel_id: str,
-        trait: str,
-        conflict_tags: Optional[List[str]] = None
+        self, novel_id: str, trait: str, conflict_tags: Optional[List[str]] = None
     ) -> List[LogicBreakpoint]:
         """扫描人设冲突断点
 
@@ -70,7 +69,7 @@ class MacroRefactorScanner:
                     event_id=event["event_id"],
                     chapter=event["chapter_number"],
                     reason=reason,
-                    tags=list(conflicting_tags)
+                    tags=list(conflicting_tags),
                 )
                 breakpoints.append(breakpoint)
 

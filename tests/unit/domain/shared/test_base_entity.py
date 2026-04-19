@@ -1,11 +1,12 @@
 # tests/unit/domain/shared/test_base_entity.py
-import pytest
 from datetime import datetime
+
 from domain.shared.base_entity import BaseEntity
 
 
 class _TestEntity(BaseEntity):
     """测试用实体"""
+
     def __init__(self, id: str, name: str):
         super().__init__(id)
         self.name = name

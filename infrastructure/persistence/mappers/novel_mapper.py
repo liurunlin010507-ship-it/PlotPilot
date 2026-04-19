@@ -1,11 +1,10 @@
 """Novel 数据映射器"""
-from typing import Dict, Any
-from domain.novel.entities.novel import Novel, NovelStage
+
+from typing import Any, Dict
+
 from domain.novel.entities.chapter import Chapter
+from domain.novel.entities.novel import Novel, NovelStage
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.value_objects.word_count import WordCount
-from domain.novel.value_objects.chapter_content import ChapterContent
 
 
 class NovelMapper:
@@ -30,7 +29,7 @@ class NovelMapper:
             "title": novel.title,
             "author": novel.author,
             "target_chapters": novel.target_chapters,
-            "premise": getattr(novel, 'premise', ''),  # 兼容旧数据
+            "premise": getattr(novel, "premise", ""),  # 兼容旧数据
             "stage": novel.stage.value,
             "chapters": [
                 {
@@ -39,10 +38,10 @@ class NovelMapper:
                     "number": chapter.number,
                     "title": chapter.title,
                     "content": chapter.content,
-                    "word_count": chapter.word_count.value
+                    "word_count": chapter.word_count.value,
                 }
                 for chapter in novel.chapters
-            ]
+            ],
         }
 
     @staticmethod
@@ -72,7 +71,7 @@ class NovelMapper:
                 author=data["author"],
                 target_chapters=data["target_chapters"],
                 premise=data.get("premise", ""),  # 兼容旧数据
-                stage=NovelStage(data["stage"])
+                stage=NovelStage(data["stage"]),
             )
 
             # 添加章节
@@ -88,7 +87,7 @@ class NovelMapper:
                     novel_id=NovelId(chapter_data["novel_id"]),
                     number=chapter_data["number"],
                     title=chapter_data["title"],
-                    content=chapter_data["content"]
+                    content=chapter_data["content"],
                 )
                 novel.add_chapter(chapter)
 

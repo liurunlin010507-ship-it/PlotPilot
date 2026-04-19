@@ -1,8 +1,10 @@
 """Narrative state API endpoints."""
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from application.analyst.services.narrative_entity_state_service import NarrativeEntityStateService
 from interfaces.api.dependencies import get_narrative_entity_state_service
 
@@ -16,7 +18,7 @@ async def get_entity_state(
     novel_id: str,
     entity_id: str,
     chapter: int = Query(..., ge=1, description="Chapter number (must be >= 1)"),
-    service: NarrativeEntityStateService = Depends(get_narrative_entity_state_service)
+    service: NarrativeEntityStateService = Depends(get_narrative_entity_state_service),
 ) -> Dict[str, Any]:
     """
     Get entity state at a specific chapter.

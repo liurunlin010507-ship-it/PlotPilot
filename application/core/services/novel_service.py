@@ -1,19 +1,20 @@
 """Novel 应用服务"""
+
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from domain.novel.entities.novel import Novel, NovelStage
-from domain.novel.entities.chapter import Chapter
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.word_count import WordCount
-from domain.novel.repositories.novel_repository import NovelRepository
-from domain.novel.repositories.chapter_repository import ChapterRepository
-from domain.shared.exceptions import EntityNotFoundError
+from typing import Any, Dict, List, Optional
+
 from application.core.dtos.novel_dto import NovelDTO
 from application.core.v1_length_tiers import (
     build_v1_structure_black_box_hint,
     resolve_v1_length_params,
 )
-from domain.structure.story_node import StoryNode, NodeType, PlanningStatus, PlanningSource
+from domain.novel.entities.chapter import Chapter
+from domain.novel.entities.novel import Novel, NovelStage
+from domain.novel.repositories.chapter_repository import ChapterRepository
+from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.novel_id import NovelId
+from domain.shared.exceptions import EntityNotFoundError
+from domain.structure.story_node import NodeType, PlanningSource, PlanningStatus, StoryNode
 from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
 
 
@@ -123,9 +124,7 @@ class NovelService:
         Returns:
             NovelDTO
         """
-        chapters, wpc, tier_norm = resolve_v1_length_params(
-            length_tier, target_chapters, target_words_per_chapter
-        )
+        chapters, wpc, tier_norm = resolve_v1_length_params(length_tier, target_chapters, target_words_per_chapter)
         structure_hint = build_v1_structure_black_box_hint(tier_norm, chapters, wpc)
         user_block = self._compose_premise_with_presets(premise, genre, world_preset)
         full_premise = f"{structure_hint}\n\n{user_block}"
@@ -165,8 +164,9 @@ class NovelService:
                 pass
 
         try:
-            from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
             from infrastructure.persistence.database.connection import get_database
+            from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
+
             bible_repo = SqliteBibleRepository(get_database())
             bible = bible_repo.get_by_novel_id(NovelId(novel_id))
             return bible is not None
@@ -200,14 +200,7 @@ class NovelService:
         """
         self.novel_repository.delete(NovelId(novel_id))
 
-    def add_chapter(
-        self,
-        novel_id: str,
-        chapter_id: str,
-        number: int,
-        title: str,
-        content: str
-    ) -> NovelDTO:
+    def add_chapter(self, novel_id: str, chapter_id: str, number: int, title: str, content: str) -> NovelDTO:
         """添加章节
 
         Args:
@@ -238,13 +231,7 @@ class NovelService:
         if number != expected_number:
             raise ValueError(f"Chapter number must be {expected_number}, got {number}")
 
-        chapter = Chapter(
-            id=chapter_id,
-            novel_id=NovelId(novel_id),
-            number=number,
-            title=title,
-            content=content
-        )
+        chapter = Chapter(id=chapter_id, novel_id=NovelId(novel_id), number=number, title=title, content=content)
 
         # 直接保存章节，不通过Novel实体
         self.chapter_repository.save(chapter)
@@ -277,7 +264,7 @@ class NovelService:
                         word_count=len(content),
                         status="draft",
                         created_at=datetime.now(),
-                        updated_at=datetime.now()
+                        updated_at=datetime.now(),
                     )
 
                     self.story_node_repository.save_sync(chapter_node)
@@ -295,6 +282,7 @@ class NovelService:
             except Exception as e:
                 # 如果同步失败，不影响章节创建
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Failed to sync chapter to story structure: {e}")
 

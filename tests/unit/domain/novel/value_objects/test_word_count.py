@@ -1,4 +1,5 @@
 import pytest
+
 from domain.novel.value_objects.word_count import WordCount
 
 

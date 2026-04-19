@@ -6,37 +6,36 @@
 
 测试规模：3 幕 × 10 章 = 30 章（约 6 万字）
 """
+
 import asyncio
 import logging
 import sys
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.foreshadowing import Foreshadowing, ForeshadowingStatus
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
-from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
-from infrastructure.ai.config.settings import Settings
 import os
+
 from dotenv import load_dotenv
+
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
+from infrastructure.ai.config.settings import Settings
+from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
 
 # 加载 .env 文件
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 class ActPlan:
     """幕级规划"""
+
     def __init__(self, act_number: int, title: str, chapters: List[str]):
         self.act_number = act_number
         self.title = title
@@ -46,27 +45,27 @@ class ActPlan:
 
 class ForeshadowLedger:
     """伏笔账本（简化版）"""
+
     def __init__(self):
         self.pending: List[Dict[str, Any]] = []  # 待回收的伏笔
         self.resolved: List[Dict[str, Any]] = []  # 已回收的伏笔
 
     def plant(self, chapter: int, hint: str, suggested_resolve: int):
         """埋设伏笔"""
-        self.pending.append({
-            "id": f"foreshadow_{chapter}_{len(self.pending)}",
-            "planted_chapter": chapter,
-            "hint": hint,
-            "suggested_resolve": suggested_resolve,
-            "planted_at": datetime.now().isoformat()
-        })
+        self.pending.append(
+            {
+                "id": f"foreshadow_{chapter}_{len(self.pending)}",
+                "planted_chapter": chapter,
+                "hint": hint,
+                "suggested_resolve": suggested_resolve,
+                "planted_at": datetime.now().isoformat(),
+            }
+        )
         logger.info(f"  📌 伏笔已埋设 (章节 {chapter}): {hint[:50]}...")
 
     def get_ready_to_resolve(self, current_chapter: int) -> List[Dict[str, Any]]:
         """获取应该在当前章回收的伏笔"""
-        return [
-            f for f in self.pending
-            if f["suggested_resolve"] <= current_chapter
-        ]
+        return [f for f in self.pending if f["suggested_resolve"] <= current_chapter]
 
     def resolve(self, foreshadow_id: str, chapter: int):
         """回收伏笔"""
@@ -84,7 +83,7 @@ class ForeshadowLedger:
         return {
             "pending": len(self.pending),
             "resolved": len(self.resolved),
-            "total": len(self.pending) + len(self.resolved)
+            "total": len(self.pending) + len(self.resolved),
         }
 
 
@@ -123,7 +122,7 @@ class ContinuousPlanningPrototype:
 要求：
 1. 第一幕应该建立世界观、介绍主要角色
 2. 至少埋设 3 个伏笔（用【伏笔】标记）
-3. 结尾要有悬念，为第二幕铺垫"""
+3. 结尾要有悬念，为第二幕铺垫""",
         )
 
         config = GenerationConfig(max_tokens=2000, temperature=0.7)
@@ -184,7 +183,7 @@ class ContinuousPlanningPrototype:
 【本章大纲】
 {outline}
 
-开始撰写："""
+开始撰写：""",
         )
 
         config = GenerationConfig(max_tokens=3000, temperature=0.8)
@@ -202,13 +201,15 @@ class ContinuousPlanningPrototype:
             self.resolve(f["id"], global_chapter)
 
         # 保存章节
-        self.generated_chapters.append({
-            "chapter": global_chapter,
-            "act": act_number,
-            "content": content,
-            "word_count": len(content),
-            "outline": outline
-        })
+        self.generated_chapters.append(
+            {
+                "chapter": global_chapter,
+                "act": act_number,
+                "content": content,
+                "word_count": len(content),
+                "outline": outline,
+            }
+        )
 
         logger.info(f"✓ 章节 {global_chapter} 生成完成：{len(content)} 字")
 
@@ -242,8 +243,8 @@ class ContinuousPlanningPrototype:
 {foreshadow_context}
 
 请生成第 {act_number} 幕的 10 个章节大纲。每个大纲 2-3 句话，格式：
-第{(act_number-1)*10+1}章：[标题] - [大纲内容]
-第{(act_number-1)*10+2}章：[标题] - [大纲内容]
+第{(act_number - 1) * 10 + 1}章：[标题] - [大纲内容]
+第{(act_number - 1) * 10 + 2}章：[标题] - [大纲内容]
 ...
 
 要求：
@@ -251,7 +252,7 @@ class ContinuousPlanningPrototype:
 2. 必须回收至少 2 个待回收的伏笔
 3. 可以埋设新的伏笔（用【伏笔】标记）
 4. 推进主线冲突
-5. 结尾要有转折或高潮"""
+5. 结尾要有转折或高潮""",
         )
 
         config = GenerationConfig(max_tokens=2000, temperature=0.7)
@@ -265,29 +266,29 @@ class ContinuousPlanningPrototype:
 
         logger.info(f"✓ 第 {act_number} 幕规划完成：{len(chapters)} 个章节")
         for i, ch in enumerate(chapters, 1):
-            logger.info(f"  第{(act_number-1)*10+i}章: {ch[:80]}...")
+            logger.info(f"  第{(act_number - 1) * 10 + i}章: {ch[:80]}...")
 
         return act
 
     def _parse_chapter_outlines(self, text: str) -> List[str]:
         """解析章节大纲"""
-        lines = text.strip().split('\n')
+        lines = text.strip().split("\n")
         chapters = []
         for line in lines:
             line = line.strip()
-            if line and ('章：' in line or '章:' in line):
+            if line and ("章：" in line or "章:" in line):
                 # 提取大纲内容（去掉章节号）
-                if '：' in line:
-                    content = line.split('：', 1)[1].strip()
-                elif ':' in line:
-                    content = line.split(':', 1)[1].strip()
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                elif ":" in line:
+                    content = line.split(":", 1)[1].strip()
                 else:
                     content = line
                 chapters.append(content)
 
         # 确保有 10 章
         while len(chapters) < 10:
-            chapters.append(f"第{len(chapters)+1}章：承接前情，推进剧情")
+            chapters.append(f"第{len(chapters) + 1}章：承接前情，推进剧情")
 
         return chapters[:10]
 
@@ -299,7 +300,7 @@ class ContinuousPlanningPrototype:
         for keyword in keywords:
             if keyword in content:
                 # 找到包含关键词的句子
-                sentences = content.split('。')
+                sentences = content.split("。")
                 for sent in sentences:
                     if keyword in sent and len(sent) > 10:
                         # 埋设伏笔，建议在 5-10 章后回收
@@ -316,10 +317,7 @@ class ContinuousPlanningPrototype:
         start_chapter = (act_number - 1) * 10 + 1
         end_chapter = act_number * 10
 
-        chapters_in_act = [
-            ch for ch in self.generated_chapters
-            if start_chapter <= ch["chapter"] <= end_chapter
-        ]
+        chapters_in_act = [ch for ch in self.generated_chapters if start_chapter <= ch["chapter"] <= end_chapter]
 
         summary = f"第 {act_number} 幕共 {len(chapters_in_act)} 章：\n"
         for ch in chapters_in_act:
@@ -349,9 +347,9 @@ class ContinuousPlanningPrototype:
                 "total_planted": ledger_stats["total"],
                 "resolved": ledger_stats["resolved"],
                 "pending": ledger_stats["pending"],
-                "resolve_rate": f"{resolve_rate:.1f}%"
+                "resolve_rate": f"{resolve_rate:.1f}%",
             },
-            "chapters": self.generated_chapters
+            "chapters": self.generated_chapters,
         }
 
 
@@ -447,7 +445,7 @@ async def run_prototype():
     logger.info(f"\n总章节数: {report['total_chapters']}")
     logger.info(f"总字数: {report['total_words']:,}")
     logger.info(f"规划幕数: {report['acts_planned']}")
-    logger.info(f"\n伏笔统计:")
+    logger.info("\n伏笔统计:")
     logger.info(f"  总埋设: {report['foreshadowing']['total_planted']}")
     logger.info(f"  已回收: {report['foreshadowing']['resolved']}")
     logger.info(f"  待回收: {report['foreshadowing']['pending']}")
@@ -461,17 +459,18 @@ async def run_prototype():
     report_file = output_dir / f"prototype_report_{timestamp}.json"
 
     import json
-    with open(report_file, 'w', encoding='utf-8') as f:
+
+    with open(report_file, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
     logger.info(f"\n报告已保存: {report_file}")
 
     # 保存完整小说
     novel_file = output_dir / f"prototype_novel_{timestamp}.txt"
-    with open(novel_file, 'w', encoding='utf-8') as f:
+    with open(novel_file, "w", encoding="utf-8") as f:
         f.write(f"【故事前提】\n{premise}\n\n")
         f.write("=" * 80 + "\n\n")
-        for ch in report['chapters']:
+        for ch in report["chapters"]:
             f.write(f"第 {ch['chapter']} 章\n")
             f.write("=" * 80 + "\n")
             f.write(f"{ch['content']}\n\n")
@@ -483,8 +482,8 @@ async def run_prototype():
     logger.info("核心验证结论")
     logger.info("=" * 80)
 
-    if report['foreshadowing']['resolve_rate'].replace('%', '') != '0.0':
-        resolve_rate_num = float(report['foreshadowing']['resolve_rate'].replace('%', ''))
+    if report["foreshadowing"]["resolve_rate"].replace("%", "") != "0.0":
+        resolve_rate_num = float(report["foreshadowing"]["resolve_rate"].replace("%", ""))
         if resolve_rate_num >= 60:
             logger.info("✅ 伏笔账本验证通过：回收率 >= 60%")
         else:
@@ -492,7 +491,7 @@ async def run_prototype():
     else:
         logger.warning("⚠️  未检测到伏笔埋设，需要改进提取逻辑")
 
-    if report['acts_planned'] == 3 and report['total_chapters'] == 30:
+    if report["acts_planned"] == 3 and report["total_chapters"] == 30:
         logger.info("✅ 持续规划验证通过：成功生成 3 幕 30 章")
     else:
         logger.warning(f"⚠️  持续规划未完成：{report['acts_planned']} 幕 {report['total_chapters']} 章")

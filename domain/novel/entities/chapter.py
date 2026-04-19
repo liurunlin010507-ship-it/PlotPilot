@@ -1,14 +1,16 @@
 # domain/novel/entities/chapter.py
-from enum import Enum
 from datetime import datetime
-from domain.shared.base_entity import BaseEntity
-from domain.novel.value_objects.novel_id import NovelId
+from enum import Enum
+
 from domain.novel.value_objects.chapter_content import ChapterContent
+from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.word_count import WordCount
+from domain.shared.base_entity import BaseEntity
 
 
 class ChapterStatus(str, Enum):
     """章节状态"""
+
     DRAFT = "draft"
     REVIEWING = "reviewing"
     COMPLETED = "completed"

@@ -36,6 +36,7 @@ class BeatTemplate:
         beats: 节拍定义列表，每个元素为 (description, target_words, focus)
         priority: 优先级（高优先级的模板先匹配），默认 50
     """
+
     keywords: List[str]
     beats: List[tuple]  # [(description, target_words, focus), ...]
     priority: int = 50
@@ -52,6 +53,7 @@ class ThemeDirectives:
         tropes_to_use: 推荐使用的叙事套路
         tropes_to_avoid: 应避免的叙事套路
     """
+
     world_rules: str = ""
     atmosphere: str = ""
     taboos: str = ""
@@ -83,6 +85,7 @@ class ThemeAuditCriteria:
         quality_checks: 质量检查项列表
         tension_guidance: 张力评分的题材修正说明
     """
+
     required_elements: List[str] = field(default_factory=list)
     quality_checks: List[str] = field(default_factory=list)
     tension_guidance: str = ""
@@ -489,9 +492,7 @@ class ThemeAgent(ABC):
         parts = []
         for skill in self.get_skills():
             try:
-                text = skill.on_context_build(
-                    novel_id, chapter_number, outline, existing_context
-                )
+                text = skill.on_context_build(novel_id, chapter_number, outline, existing_context)
                 if text:
                     parts.append(f"【{skill.skill_name}】\n{text}")
             except Exception:
@@ -513,9 +514,7 @@ class ThemeAgent(ABC):
         parts = []
         for skill in self.get_skills():
             try:
-                text = skill.on_beat_enhance(
-                    beat_description, beat_focus, chapter_number, outline
-                )
+                text = skill.on_beat_enhance(beat_description, beat_focus, chapter_number, outline)
                 if text:
                     parts.append(text)
             except Exception:
@@ -536,9 +535,7 @@ class ThemeAgent(ABC):
         checks: List[str] = []
         for skill in self.get_skills():
             try:
-                items = skill.on_audit_enhance(
-                    chapter_number, chapter_content, outline
-                )
+                items = skill.on_audit_enhance(chapter_number, chapter_content, outline)
                 checks.extend(items)
             except Exception:
                 pass

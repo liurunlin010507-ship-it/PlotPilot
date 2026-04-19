@@ -5,6 +5,7 @@ from typing import List
 @dataclass(frozen=True)
 class StorylineMilestone:
     """故事线里程碑值对象"""
+
     order: int
     title: str
     description: str

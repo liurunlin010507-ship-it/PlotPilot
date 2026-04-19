@@ -1,12 +1,14 @@
 """SQLite Chapter Repository 实现"""
+
 import logging
 import sqlite3
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
 from domain.novel.entities.chapter import Chapter
+from domain.novel.repositories.chapter_repository import ChapterRepository
 from domain.novel.value_objects.chapter_id import ChapterId
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.repositories.chapter_repository import ChapterRepository
 from infrastructure.persistence.database.connection import DatabaseConnection
 
 logger = logging.getLogger(__name__)
@@ -40,24 +42,27 @@ class SqliteChapterRepository(ChapterRepository):
                 updated_at = excluded.updated_at
         """
         now = datetime.utcnow().isoformat()
-        chapter_id = chapter.id.value if hasattr(chapter.id, 'value') else chapter.id
-        novel_id = chapter.novel_id.value if hasattr(chapter.novel_id, 'value') else chapter.novel_id
-        status = chapter.status.value if hasattr(chapter.status, 'value') else chapter.status
-        self.db.execute(sql, (
-            chapter_id,
-            novel_id,
-            chapter.number,
-            chapter.title,
-            chapter.content,
-            chapter.outline,  # 使用实体的 outline 字段
-            status,
-            chapter.tension_score,
-            chapter.plot_tension,
-            chapter.emotional_tension,
-            chapter.pacing_tension,
-            now,
-            now
-        ))
+        chapter_id = chapter.id.value if hasattr(chapter.id, "value") else chapter.id
+        novel_id = chapter.novel_id.value if hasattr(chapter.novel_id, "value") else chapter.novel_id
+        status = chapter.status.value if hasattr(chapter.status, "value") else chapter.status
+        self.db.execute(
+            sql,
+            (
+                chapter_id,
+                novel_id,
+                chapter.number,
+                chapter.title,
+                chapter.content,
+                chapter.outline,  # 使用实体的 outline 字段
+                status,
+                chapter.tension_score,
+                chapter.plot_tension,
+                chapter.emotional_tension,
+                chapter.pacing_tension,
+                now,
+                now,
+            ),
+        )
         self.db.get_connection().commit()
         logger.info(f"Saved chapter: {chapter_id}")
 
@@ -95,7 +100,7 @@ class SqliteChapterRepository(ChapterRepository):
             logger.warning(f"Chapter not found for deletion: {chapter_id.value}")
             return
 
-        novel_id = chapter.novel_id.value if hasattr(chapter.novel_id, 'value') else chapter.novel_id
+        novel_id = chapter.novel_id.value if hasattr(chapter.novel_id, "value") else chapter.novel_id
         deleted_number = chapter.number
         cid = chapter_id.value
         now = datetime.utcnow().isoformat()
@@ -103,9 +108,7 @@ class SqliteChapterRepository(ChapterRepository):
         with self.db.transaction() as conn:
             conn.execute("PRAGMA foreign_keys = OFF")
             try:
-                self._delete_chapter_transaction_body(
-                    conn, novel_id, deleted_number, cid, now
-                )
+                self._delete_chapter_transaction_body(conn, novel_id, deleted_number, cid, now)
             finally:
                 conn.execute("PRAGMA foreign_keys = ON")
 
@@ -567,23 +570,24 @@ class SqliteChapterRepository(ChapterRepository):
 
     def _row_to_chapter(self, row: dict) -> Chapter:
         """将数据库行转换为 Chapter 实体"""
-        from domain.novel.value_objects.novel_id import NovelId
         from domain.novel.entities.chapter import ChapterStatus
-        raw_status = row.get('status', 'draft')
+        from domain.novel.value_objects.novel_id import NovelId
+
+        raw_status = row.get("status", "draft")
         try:
             status = ChapterStatus(raw_status)
         except ValueError:
             status = ChapterStatus.DRAFT
         return Chapter(
-            id=row['id'],
-            novel_id=NovelId(row['novel_id']),
-            number=row['number'],
-            title=row['title'],
-            content=row['content'],
-            outline=row.get('outline', ''),
+            id=row["id"],
+            novel_id=NovelId(row["novel_id"]),
+            number=row["number"],
+            title=row["title"],
+            content=row["content"],
+            outline=row.get("outline", ""),
             status=status,
-            tension_score=row.get('tension_score', 50.0),
-            plot_tension=row.get('plot_tension', 50.0),
-            emotional_tension=row.get('emotional_tension', 50.0),
-            pacing_tension=row.get('pacing_tension', 50.0),
+            tension_score=row.get("tension_score", 50.0),
+            plot_tension=row.get("plot_tension", 50.0),
+            emotional_tension=row.get("emotional_tension", 50.0),
+            pacing_tension=row.get("pacing_tension", 50.0),
         )

@@ -1,4 +1,5 @@
 """Story Event entity"""
+
 from dataclasses import dataclass
 from typing import Optional
 

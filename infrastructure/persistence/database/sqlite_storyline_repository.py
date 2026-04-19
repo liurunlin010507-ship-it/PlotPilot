@@ -1,4 +1,5 @@
 """SQLite 故事线仓储。"""
+
 from __future__ import annotations
 
 import json
@@ -49,13 +50,13 @@ class SqliteStorylineRepository(StorylineRepository):
             cursor = conn.execute("PRAGMA table_info(storylines)")
             columns = {row[1] for row in cursor.fetchall()}
 
-            if 'name' not in columns:
+            if "name" not in columns:
                 conn.execute("ALTER TABLE storylines ADD COLUMN name TEXT DEFAULT ''")
-            if 'description' not in columns:
+            if "description" not in columns:
                 conn.execute("ALTER TABLE storylines ADD COLUMN description TEXT DEFAULT ''")
-            if 'last_active_chapter' not in columns:
+            if "last_active_chapter" not in columns:
                 conn.execute("ALTER TABLE storylines ADD COLUMN last_active_chapter INTEGER DEFAULT 0")
-            if 'progress_summary' not in columns:
+            if "progress_summary" not in columns:
                 conn.execute("ALTER TABLE storylines ADD COLUMN progress_summary TEXT DEFAULT ''")
 
             conn.execute(
@@ -130,9 +131,7 @@ class SqliteStorylineRepository(StorylineRepository):
             raise
 
     def get_by_id(self, storyline_id: str) -> Optional[Storyline]:
-        row = self.db.fetch_one(
-            "SELECT * FROM storylines WHERE id = ?", (storyline_id,)
-        )
+        row = self.db.fetch_one("SELECT * FROM storylines WHERE id = ?", (storyline_id,))
         if not row:
             return None
         return self._row_to_storyline(row)

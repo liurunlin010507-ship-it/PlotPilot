@@ -151,11 +151,10 @@ class ThemeAgentRegistry:
         ]
 
         import importlib
+
         for module_name, class_name, display_name in _BUILTIN_AGENTS:
             try:
-                mod = importlib.import_module(
-                    f"application.engine.theme.agents.{module_name}"
-                )
+                mod = importlib.import_module(f"application.engine.theme.agents.{module_name}")
                 cls = getattr(mod, class_name)
                 self.register(cls())
                 count += 1

@@ -1,4 +1,5 @@
 """张力分析器服务"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional
@@ -67,9 +68,7 @@ class TensionAnalyzer:
             if current is not None:
                 excerpt = _excerpt_chapter_text(current.content)
                 if excerpt:
-                    blocks.append(
-                        f"当前章正文摘录（可能截断）:\n{excerpt}"
-                    )
+                    blocks.append(f"当前章正文摘录（可能截断）:\n{excerpt}")
                 blocks.append(
                     "库内章节张力字段（0–100，仅作参考）: "
                     f"tension_score={current.tension_score:.0f}, "
@@ -78,9 +77,7 @@ class TensionAnalyzer:
                     f"pacing_tension={current.pacing_tension:.0f}"
                 )
             else:
-                blocks.append(
-                    f"库中未找到第 {request.chapter_number} 章实体，暂无正文/张力字段。"
-                )
+                blocks.append(f"库中未找到第 {request.chapter_number} 章实体，暂无正文/张力字段。")
 
         if self._plot_arc_repository is not None:
             arc = self._plot_arc_repository.get_by_novel_id(novel_id_vo)
@@ -141,9 +138,7 @@ class TensionAnalyzer:
         for event in events:
             tags = event.get("tags", []) or []
             tags_str = ", ".join(str(t) for t in tags)
-            event_summaries.append(
-                f"第{event['chapter_number']}章: {event['event_summary']} (标签: {tags_str})"
-            )
+            event_summaries.append(f"第{event['chapter_number']}章: {event['event_summary']} (标签: {tags_str})")
 
         events_text = "\n".join(event_summaries) if event_summaries else "暂无事件数据"
 
@@ -155,22 +150,19 @@ class TensionAnalyzer:
         if request.stuck_reason:
             stuck_reason_text = f"\n作者自述的卡文原因: {request.stuck_reason}\n"
 
-        density_note = (
-            "事件密度 = 已加载叙事事件总数 / 其中出现过的不同章节数；"
-            "分母不是全书总章数。"
-        )
+        density_note = "事件密度 = 已加载叙事事件总数 / 其中出现过的不同章节数；分母不是全书总章数。"
 
         stats_text = f"""
 统计数据:
-- 目标章节事件数: {stats['target_event_count']}
-- 上一章事件数: {stats['prev_event_count']}
-- 下一章事件数: {stats['next_event_count']}
-- 冲突标签数: {stats['conflict_count']}
-- 情绪多样性（目标章不重复情绪标签数）: {stats['emotion_diversity']}
-- 有叙事数据的章节数: {stats['chapters_with_narrative_count']}
-- 事件密度: {stats['event_density']:.2f}（{density_note}）
-- 冲突类型: {', '.join(stats['conflict_tags']) if stats['conflict_tags'] else '无'}
-- 情绪类型: {', '.join(stats['emotion_tags']) if stats['emotion_tags'] else '无'}
+- 目标章节事件数: {stats["target_event_count"]}
+- 上一章事件数: {stats["prev_event_count"]}
+- 下一章事件数: {stats["next_event_count"]}
+- 冲突标签数: {stats["conflict_count"]}
+- 情绪多样性（目标章不重复情绪标签数）: {stats["emotion_diversity"]}
+- 有叙事数据的章节数: {stats["chapters_with_narrative_count"]}
+- 事件密度: {stats["event_density"]:.2f}（{density_note}）
+- 冲突类型: {", ".join(stats["conflict_tags"]) if stats["conflict_tags"] else "无"}
+- 情绪类型: {", ".join(stats["emotion_tags"]) if stats["emotion_tags"] else "无"}
 """
 
         prompt = f"""你是小说创作顾问，专门帮助作者突破卡文。

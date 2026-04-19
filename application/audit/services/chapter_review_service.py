@@ -9,21 +9,21 @@
 - 改进建议生成
 """
 
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from datetime import datetime
 import json
 import logging
 import os
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from application.ai.llm_json_extract import parse_llm_json_to_dict
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
+from domain.cast.repositories.cast_repository import CastRepository
 from domain.novel.entities.chapter import Chapter
 from domain.novel.repositories.chapter_repository import ChapterRepository
-from domain.cast.repositories.cast_repository import CastRepository
-from domain.novel.repositories.timeline_repository import TimelineRepository
-from domain.novel.repositories.storyline_repository import StorylineRepository
 from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
-from application.ai.llm_json_extract import parse_llm_json_to_dict
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
+from domain.novel.repositories.storyline_repository import StorylineRepository
+from domain.novel.repositories.timeline_repository import TimelineRepository
 
 if TYPE_CHECKING:
     from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
@@ -40,7 +40,7 @@ class ConsistencyIssue:
         severity: str,  # critical, warning, suggestion
         description: str,
         location: str,  # 问题位置描述
-        suggestion: Optional[str] = None
+        suggestion: Optional[str] = None,
     ):
         self.issue_type = issue_type
         self.severity = severity
@@ -54,7 +54,7 @@ class ConsistencyIssue:
             "severity": self.severity,
             "description": self.description,
             "location": self.location,
-            "suggestion": self.suggestion
+            "suggestion": self.suggestion,
         }
 
 
@@ -67,7 +67,7 @@ class ChapterReviewResult:
         issues: List[ConsistencyIssue],
         overall_score: float,  # 0-100
         improvement_suggestions: List[str],
-        reviewed_at: datetime
+        reviewed_at: datetime,
     ):
         self.chapter_number = chapter_number
         self.issues = issues
@@ -81,7 +81,7 @@ class ChapterReviewResult:
             "issues": [issue.to_dict() for issue in self.issues],
             "overall_score": self.overall_score,
             "improvement_suggestions": self.improvement_suggestions,
-            "reviewed_at": self.reviewed_at.isoformat()
+            "reviewed_at": self.reviewed_at.isoformat(),
         }
 
 
@@ -100,7 +100,7 @@ class ChapterReviewService:
         foreshadowing_repo: ForeshadowingRepository,
         vector_store: "ChromaDBVectorStore",
         llm_service: LLMService,
-        model: str = ""
+        model: str = "",
     ):
         self.chapter_repo = chapter_repo
         self.cast_repo = cast_repo
@@ -149,14 +149,10 @@ class ChapterReviewService:
             issues=issues,
             overall_score=overall_score,
             improvement_suggestions=improvement_suggestions,
-            reviewed_at=datetime.now()
+            reviewed_at=datetime.now(),
         )
 
-    async def _check_character_consistency(
-        self,
-        novel_id: str,
-        chapter: Chapter
-    ) -> List[ConsistencyIssue]:
+    async def _check_character_consistency(self, novel_id: str, chapter: Chapter) -> List[ConsistencyIssue]:
         """检查人物一致性"""
         issues = []
 
@@ -175,16 +171,12 @@ class ChapterReviewService:
                 continue
 
             prompt_text = self._build_character_consistency_prompt(
-                character_name=char_name,
-                character_profile=character.to_dict(),
-                chapter_content=chapter.content
+                character_name=char_name, character_profile=character.to_dict(), chapter_content=chapter.content
             )
 
             prompt = Prompt(system="你是小说审稿助手，专门检查人物一致性。", user=prompt_text)
             config = GenerationConfig(
-                model=self.model,
-                max_tokens=self._DEFAULT_MAX_TOKENS,
-                temperature=self._DEFAULT_TEMPERATURE
+                model=self.model, max_tokens=self._DEFAULT_MAX_TOKENS, temperature=self._DEFAULT_TEMPERATURE
             )
 
             result = await self.llm_service.generate(prompt, config)
@@ -193,23 +185,21 @@ class ChapterReviewService:
             if data:
                 inconsistencies = data.get("inconsistencies", [])
                 for inconsistency in inconsistencies:
-                    issues.append(ConsistencyIssue(
-                        issue_type="character",
-                        severity=inconsistency.get("severity", "warning"),
-                        description=inconsistency.get("description", ""),
-                        location=f"Chapter {chapter.chapter_number}",
-                        suggestion=inconsistency.get("suggestion")
-                    ))
+                    issues.append(
+                        ConsistencyIssue(
+                            issue_type="character",
+                            severity=inconsistency.get("severity", "warning"),
+                            description=inconsistency.get("description", ""),
+                            location=f"Chapter {chapter.chapter_number}",
+                            suggestion=inconsistency.get("suggestion"),
+                        )
+                    )
             else:
                 logger.warning(f"Character consistency check JSON parse failed: {errs}")
 
         return issues
 
-    async def _check_timeline_consistency(
-        self,
-        novel_id: str,
-        chapter: Chapter
-    ) -> List[ConsistencyIssue]:
+    async def _check_timeline_consistency(self, novel_id: str, chapter: Chapter) -> List[ConsistencyIssue]:
         """检查时间线一致性"""
         issues = []
 
@@ -229,14 +219,12 @@ class ChapterReviewService:
             prompt_text = self._build_timeline_consistency_prompt(
                 current_events=current_events,
                 previous_events=previous_events[-5:],  # 只检查最近5个事件
-                chapter_content=chapter.content
+                chapter_content=chapter.content,
             )
 
             prompt = Prompt(system="你是小说审稿助手，专门检查时间线一致性。", user=prompt_text)
             config = GenerationConfig(
-                model=self.model,
-                max_tokens=self._DEFAULT_MAX_TOKENS,
-                temperature=self._DEFAULT_TEMPERATURE
+                model=self.model, max_tokens=self._DEFAULT_MAX_TOKENS, temperature=self._DEFAULT_TEMPERATURE
             )
 
             result = await self.llm_service.generate(prompt, config)
@@ -245,23 +233,21 @@ class ChapterReviewService:
             if data:
                 conflicts = data.get("conflicts", [])
                 for conflict in conflicts:
-                    issues.append(ConsistencyIssue(
-                        issue_type="timeline",
-                        severity=conflict.get("severity", "warning"),
-                        description=conflict.get("description", ""),
-                        location=f"Chapter {chapter.chapter_number}",
-                        suggestion=conflict.get("suggestion")
-                    ))
+                    issues.append(
+                        ConsistencyIssue(
+                            issue_type="timeline",
+                            severity=conflict.get("severity", "warning"),
+                            description=conflict.get("description", ""),
+                            location=f"Chapter {chapter.chapter_number}",
+                            suggestion=conflict.get("suggestion"),
+                        )
+                    )
             else:
                 logger.warning(f"Timeline consistency check JSON parse failed: {errs}")
 
         return issues
 
-    async def _check_storyline_consistency(
-        self,
-        novel_id: str,
-        chapter: Chapter
-    ) -> List[ConsistencyIssue]:
+    async def _check_storyline_consistency(self, novel_id: str, chapter: Chapter) -> List[ConsistencyIssue]:
         """检查故事线连贯性"""
         issues = []
 
@@ -273,15 +259,12 @@ class ChapterReviewService:
 
         # 使用 LLM 检查故事线连贯性
         prompt_text = self._build_storyline_consistency_prompt(
-            active_storylines=active_storylines,
-            chapter_content=chapter.content
+            active_storylines=active_storylines, chapter_content=chapter.content
         )
 
         prompt = Prompt(system="你是小说审稿助手，专门检查故事线连贯性。", user=prompt_text)
         config = GenerationConfig(
-            model=self.model,
-            max_tokens=self._DEFAULT_MAX_TOKENS,
-            temperature=self._DEFAULT_TEMPERATURE
+            model=self.model, max_tokens=self._DEFAULT_MAX_TOKENS, temperature=self._DEFAULT_TEMPERATURE
         )
 
         result = await self.llm_service.generate(prompt, config)
@@ -290,23 +273,21 @@ class ChapterReviewService:
         if data:
             gaps = data.get("gaps", [])
             for gap in gaps:
-                issues.append(ConsistencyIssue(
-                    issue_type="storyline",
-                    severity=gap.get("severity", "suggestion"),
-                    description=gap.get("description", ""),
-                    location=f"Chapter {chapter.chapter_number}",
-                    suggestion=gap.get("suggestion")
-                ))
+                issues.append(
+                    ConsistencyIssue(
+                        issue_type="storyline",
+                        severity=gap.get("severity", "suggestion"),
+                        description=gap.get("description", ""),
+                        location=f"Chapter {chapter.chapter_number}",
+                        suggestion=gap.get("suggestion"),
+                    )
+                )
         else:
             logger.warning(f"Storyline consistency check JSON parse failed: {errs}")
 
         return issues
 
-    async def _check_foreshadowing_usage(
-        self,
-        novel_id: str,
-        chapter: Chapter
-    ) -> List[ConsistencyIssue]:
+    async def _check_foreshadowing_usage(self, novel_id: str, chapter: Chapter) -> List[ConsistencyIssue]:
         """检查伏笔使用"""
         issues = []
 
@@ -319,21 +300,18 @@ class ChapterReviewService:
         # 使用向量检索找到相关伏笔
         relevant_foreshadowings = self.vector_store.search(
             query_text=chapter.content[:500],  # 使用章节开头作为查询
-            top_k=5
+            top_k=5,
         )
 
         # 使用 LLM 检查伏笔是否被合理使用
         if relevant_foreshadowings:
             prompt_text = self._build_foreshadowing_usage_prompt(
-                foreshadowings=relevant_foreshadowings,
-                chapter_content=chapter.content
+                foreshadowings=relevant_foreshadowings, chapter_content=chapter.content
             )
 
             prompt = Prompt(system="你是小说审稿助手，专门检查伏笔使用。", user=prompt_text)
             config = GenerationConfig(
-                model=self.model,
-                max_tokens=self._DEFAULT_MAX_TOKENS,
-                temperature=self._DEFAULT_TEMPERATURE
+                model=self.model, max_tokens=self._DEFAULT_MAX_TOKENS, temperature=self._DEFAULT_TEMPERATURE
             )
 
             result = await self.llm_service.generate(prompt, config)
@@ -342,23 +320,21 @@ class ChapterReviewService:
             if data:
                 missed_opportunities = data.get("missed_opportunities", [])
                 for opportunity in missed_opportunities:
-                    issues.append(ConsistencyIssue(
-                        issue_type="foreshadowing",
-                        severity="suggestion",
-                        description=opportunity.get("description", ""),
-                        location=f"Chapter {chapter.chapter_number}",
-                        suggestion=opportunity.get("suggestion")
-                    ))
+                    issues.append(
+                        ConsistencyIssue(
+                            issue_type="foreshadowing",
+                            severity="suggestion",
+                            description=opportunity.get("description", ""),
+                            location=f"Chapter {chapter.chapter_number}",
+                            suggestion=opportunity.get("suggestion"),
+                        )
+                    )
             else:
                 logger.warning(f"Foreshadowing usage check JSON parse failed: {errs}")
 
         return issues
 
-    async def _generate_improvement_suggestions(
-        self,
-        chapter: Chapter,
-        issues: List[ConsistencyIssue]
-    ) -> List[str]:
+    async def _generate_improvement_suggestions(self, chapter: Chapter, issues: List[ConsistencyIssue]) -> List[str]:
         """生成改进建议"""
         suggestions = []
 
@@ -378,9 +354,7 @@ class ChapterReviewService:
 
             prompt = Prompt(system="你是小说审稿助手，专门提供改进建议。", user=prompt_text)
             config = GenerationConfig(
-                model=self.model,
-                max_tokens=self._DEFAULT_MAX_TOKENS,
-                temperature=self._DEFAULT_TEMPERATURE
+                model=self.model, max_tokens=self._DEFAULT_MAX_TOKENS, temperature=self._DEFAULT_TEMPERATURE
             )
 
             result = await self.llm_service.generate(prompt, config)
@@ -415,10 +389,7 @@ class ChapterReviewService:
         return []
 
     def _build_character_consistency_prompt(
-        self,
-        character_name: str,
-        character_profile: Dict[str, Any],
-        chapter_content: str
+        self, character_name: str, character_profile: Dict[str, Any], chapter_content: str
     ) -> str:
         """构建人物一致性检查提示词"""
         return f"""请检查以下章节内容中人物"{character_name}"的表现是否与人物设定一致。
@@ -443,10 +414,7 @@ class ChapterReviewService:
 如果没有发现不一致，返回空数组。"""
 
     def _build_timeline_consistency_prompt(
-        self,
-        current_events: List[Any],
-        previous_events: List[Any],
-        chapter_content: str
+        self, current_events: List[Any], previous_events: List[Any], chapter_content: str
     ) -> str:
         """构建时间线一致性检查提示词"""
         current_events_str = "\n".join([f"- {e.description} ({e.time_type})" for e in current_events])
@@ -476,16 +444,11 @@ class ChapterReviewService:
 
 如果没有发现冲突，返回空数组。"""
 
-    def _build_storyline_consistency_prompt(
-        self,
-        active_storylines: List[Any],
-        chapter_content: str
-    ) -> str:
+    def _build_storyline_consistency_prompt(self, active_storylines: List[Any], chapter_content: str) -> str:
         """构建故事线连贯性检查提示词"""
-        storylines_str = "\n".join([
-            f"- {s.name} ({s.storyline_type}): {s.progress_summary or '无进展摘要'}"
-            for s in active_storylines
-        ])
+        storylines_str = "\n".join(
+            [f"- {s.name} ({s.storyline_type}): {s.progress_summary or '无进展摘要'}" for s in active_storylines]
+        )
 
         return f"""请检查以下章节内容是否推进了活跃的故事线，或者是否存在故事线断裂。
 
@@ -508,16 +471,11 @@ class ChapterReviewService:
 
 如果故事线连贯，返回空数组。"""
 
-    def _build_foreshadowing_usage_prompt(
-        self,
-        foreshadowings: List[Any],
-        chapter_content: str
-    ) -> str:
+    def _build_foreshadowing_usage_prompt(self, foreshadowings: List[Any], chapter_content: str) -> str:
         """构建伏笔使用检查提示词"""
-        foreshadowings_str = "\n".join([
-            f"- {f.get('metadata', {}).get('description', 'No description')}"
-            for f in foreshadowings
-        ])
+        foreshadowings_str = "\n".join(
+            [f"- {f.get('metadata', {}).get('description', 'No description')}" for f in foreshadowings]
+        )
 
         return f"""请检查以下章节内容是否错过了使用相关伏笔的机会。
 
@@ -539,16 +497,9 @@ class ChapterReviewService:
 
 如果没有错过机会，返回空数组。"""
 
-    def _build_improvement_suggestions_prompt(
-        self,
-        chapter: Chapter,
-        issues: List[ConsistencyIssue]
-    ) -> str:
+    def _build_improvement_suggestions_prompt(self, chapter: Chapter, issues: List[ConsistencyIssue]) -> str:
         """构建改进建议提示词"""
-        issues_str = "\n".join([
-            f"- [{i.severity}] {i.issue_type}: {i.description}"
-            for i in issues
-        ])
+        issues_str = "\n".join([f"- [{i.severity}] {i.issue_type}: {i.description}" for i in issues])
 
         return f"""基于以下检测到的问题，请提供3-5条具体的改进建议。
 

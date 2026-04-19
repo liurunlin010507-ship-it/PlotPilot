@@ -1,8 +1,10 @@
 """节拍表 API 路由"""
+
 import logging
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Optional
 
 from application.blueprint.services.beat_sheet_service import BeatSheetService
 from interfaces.api.dependencies import get_beat_sheet_service
@@ -14,6 +16,7 @@ router = APIRouter(prefix="/api/v1/beat-sheets", tags=["beat-sheets"])
 
 class SceneResponse(BaseModel):
     """场景响应模型"""
+
     title: str
     goal: str
     pov_character: str
@@ -25,6 +28,7 @@ class SceneResponse(BaseModel):
 
 class BeatSheetResponse(BaseModel):
     """节拍表响应模型"""
+
     id: str
     chapter_id: str
     scenes: List[SceneResponse]
@@ -34,14 +38,14 @@ class BeatSheetResponse(BaseModel):
 
 class GenerateBeatSheetRequest(BaseModel):
     """生成节拍表请求"""
+
     chapter_id: str = Field(..., description="章节 ID")
     outline: str = Field(..., description="章节大纲")
 
 
 @router.post("/generate", response_model=BeatSheetResponse)
 async def generate_beat_sheet(
-    request: GenerateBeatSheetRequest,
-    service: BeatSheetService = Depends(get_beat_sheet_service)
+    request: GenerateBeatSheetRequest, service: BeatSheetService = Depends(get_beat_sheet_service)
 ):
     """为章节生成节拍表
 
@@ -54,10 +58,7 @@ async def generate_beat_sheet(
     - 预估字数
     """
     try:
-        beat_sheet = await service.generate_beat_sheet(
-            chapter_id=request.chapter_id,
-            outline=request.outline
-        )
+        beat_sheet = await service.generate_beat_sheet(chapter_id=request.chapter_id, outline=request.outline)
 
         return BeatSheetResponse(
             id=beat_sheet.id,
@@ -70,12 +71,12 @@ async def generate_beat_sheet(
                     location=scene.location,
                     tone=scene.tone,
                     estimated_words=scene.estimated_words,
-                    order_index=scene.order_index
+                    order_index=scene.order_index,
                 )
                 for scene in beat_sheet.scenes
             ],
             total_scenes=beat_sheet.get_scene_count(),
-            total_estimated_words=beat_sheet.get_total_estimated_words()
+            total_estimated_words=beat_sheet.get_total_estimated_words(),
         )
     except Exception as e:
         logger.error(f"Failed to generate beat sheet: {e}")
@@ -83,10 +84,7 @@ async def generate_beat_sheet(
 
 
 @router.get("/{chapter_id}", response_model=BeatSheetResponse)
-async def get_beat_sheet(
-    chapter_id: str,
-    service: BeatSheetService = Depends(get_beat_sheet_service)
-):
+async def get_beat_sheet(chapter_id: str, service: BeatSheetService = Depends(get_beat_sheet_service)):
     """获取章节的节拍表"""
     try:
         beat_sheet = await service.get_beat_sheet(chapter_id)
@@ -104,12 +102,12 @@ async def get_beat_sheet(
                     location=scene.location,
                     tone=scene.tone,
                     estimated_words=scene.estimated_words,
-                    order_index=scene.order_index
+                    order_index=scene.order_index,
                 )
                 for scene in beat_sheet.scenes
             ],
             total_scenes=beat_sheet.get_scene_count(),
-            total_estimated_words=beat_sheet.get_total_estimated_words()
+            total_estimated_words=beat_sheet.get_total_estimated_words(),
         )
     except HTTPException:
         raise
@@ -119,10 +117,7 @@ async def get_beat_sheet(
 
 
 @router.delete("/{chapter_id}")
-async def delete_beat_sheet(
-    chapter_id: str,
-    service: BeatSheetService = Depends(get_beat_sheet_service)
-):
+async def delete_beat_sheet(chapter_id: str, service: BeatSheetService = Depends(get_beat_sheet_service)):
     """删除章节的节拍表"""
     try:
         await service.delete_beat_sheet(chapter_id)

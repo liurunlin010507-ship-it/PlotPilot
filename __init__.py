@@ -3,4 +3,4 @@
 __version__ = "0.1.0"
 
 # Export logging configuration functions
-from .interfaces.api.middleware.logging_config import setup_logging, get_logger
+from .interfaces.api.middleware.logging_config import get_logger, setup_logging

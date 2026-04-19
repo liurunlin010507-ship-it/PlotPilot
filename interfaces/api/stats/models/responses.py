@@ -1,10 +1,11 @@
 """Unified response models for API responses."""
-from typing import TypeVar, Generic, Optional, List, Any
-from pydantic import BaseModel, Field, field_validator
+
 import math
+from typing import Any, Generic, List, Optional, TypeVar
 
+from pydantic import BaseModel, Field
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class SuccessResponse(BaseModel, Generic[T]):
@@ -15,6 +16,7 @@ class SuccessResponse(BaseModel, Generic[T]):
         data: The response data (can be any type)
         message: Optional success message
     """
+
     success: bool = Field(default=True, frozen=True)
     data: T
     message: Optional[str] = None
@@ -29,6 +31,7 @@ class ErrorResponse(BaseModel):
         code: Error code for programmatic handling
         details: Optional additional error details
     """
+
     success: bool = Field(default=False, frozen=True)
     message: str
     code: str
@@ -47,6 +50,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
         total_pages: Total number of pages (auto-calculated)
         message: Optional message
     """
+
     success: bool = Field(default=True, frozen=True)
     data: List[T]
     total: int = Field(ge=0)
@@ -60,6 +64,6 @@ class PaginatedResponse(BaseModel, Generic[T]):
         super().__init__(**data)
         # Calculate total_pages after initialization
         if self.total == 0:
-            object.__setattr__(self, 'total_pages', 0)
+            object.__setattr__(self, "total_pages", 0)
         else:
-            object.__setattr__(self, 'total_pages', math.ceil(self.total / self.page_size))
+            object.__setattr__(self, "total_pages", math.ceil(self.total / self.page_size))
