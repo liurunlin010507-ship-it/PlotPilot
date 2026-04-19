@@ -44,7 +44,7 @@ frontend/dist/
 # ── 覆盖率 / 测试产物 ──
 .coverage
 .coverage.*
-htmlcov/
+htmlcov*/
 coverage.xml
 coverage-*.xml
 test-results-*.xml

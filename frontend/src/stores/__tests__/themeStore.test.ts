@@ -37,7 +37,7 @@ describe('themeStore', () => {
   })
 
   it('restores dark theme from localStorage', () => {
-    ;(globalThis.localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValueOnce('dark')
+    vi.mocked(globalThis.localStorage.getItem).mockReturnValueOnce('dark')
     const store = useThemeStore()
     expect(store.mode).toBe('dark')
     expect(store.isDark).toBe(true)
