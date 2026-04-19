@@ -21,12 +21,15 @@ exclude = [".conda", "node_modules", ".venv"]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
 [tool.ruff.format]
 quote-style = "double"
 
 # ── MyPy: 静态类型检查 ──
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

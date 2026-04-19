@@ -46,6 +46,8 @@ frontend/dist/
 .coverage.*
 htmlcov/
 coverage.xml
+coverage-*.xml
+test-results-*.xml
 *.cover
 
 # ── 数据库 SQLite 副本 ──
@@ -146,6 +148,9 @@ mcps/
 
 # —— CLAUDE ——
 CLAUDE.md
+
+# ── vscode ──
+.vscode/
 
 # ── Windows「副本」等临时拷贝（含「xxx - 副本.json」） ──
 *副本*

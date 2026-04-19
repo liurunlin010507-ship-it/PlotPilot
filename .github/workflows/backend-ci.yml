@@ -1,5 +1,9 @@
 name: Backend CI
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   pull_request:
     paths:
@@ -7,6 +11,7 @@ on:
       - "requirements*.txt"
       - "pyproject.toml"
       - "pytest.ini"
+      - ".github/workflows/backend-ci.yml"
   push:
     branches: [master, develop]
     paths:
@@ -14,6 +19,7 @@ on:
       - "requirements*.txt"
       - "pyproject.toml"
       - "pytest.ini"
+      - ".github/workflows/backend-ci.yml"
 
 jobs:
   lint:
@@ -27,7 +33,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Ruff format check
         run: ruff format --check .
@@ -51,7 +57,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Run unit tests with coverage
         run: |
@@ -63,12 +69,13 @@ jobs:
             --cov=infrastructure \
             --cov=interfaces \
             --cov-report=term-missing \
-            --cov-report=xml:coverage-unit.xml \
-            --cov-report=html:htmlcov-unit \
             --junitxml=test-results-unit.xml
         env:
           ANTHROPIC_API_KEY: "test-placeholder"
           ARK_API_KEY: "test-placeholder"
+
+      - name: Rename coverage data
+        run: mv .coverage .coverage.unit
 
       - name: Upload unit test results
         if: always()
@@ -77,8 +84,7 @@ jobs:
           name: unit-test-results
           path: |
             test-results-unit.xml
-            coverage-unit.xml
-            htmlcov-unit/
+            .coverage.unit
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -92,7 +98,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Run integration tests with coverage
         run: |
@@ -104,12 +110,13 @@ jobs:
             --cov=infrastructure \
             --cov=interfaces \
             --cov-report=term-missing \
-            --cov-report=xml:coverage-integration.xml \
-            --cov-report=html:htmlcov-integration \
             --junitxml=test-results-integration.xml
         env:
           ANTHROPIC_API_KEY: "test-placeholder"
           ARK_API_KEY: "test-placeholder"
+
+      - name: Rename coverage data
+        run: mv .coverage .coverage.integration
 
       - name: Upload integration test results
         if: always()
@@ -118,8 +125,7 @@ jobs:
           name: integration-test-results
           path: |
             test-results-integration.xml
-            coverage-integration.xml
-            htmlcov-integration/
+            .coverage.integration
 
   coverage-report:
     runs-on: ubuntu-latest
@@ -139,19 +145,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results
-          path: artifacts/unit/
+          path: .
 
       - name: Download integration artifacts
         uses: actions/download-artifact@v4
         with:
           name: integration-test-results
-          path: artifacts/integration/
+          path: .
 
       - name: Combine and report coverage
         run: |
-          coverage combine artifacts/unit/coverage-unit.xml artifacts/integration/coverage-integration.xml || true
-          coverage report --fail-under=60 || echo "::warning::Coverage below 60% threshold"
-          coverage xml -o coverage-combined.xml || true
+          coverage combine .coverage.unit .coverage.integration
+          coverage report --fail-under=60
+          coverage xml -o coverage-combined.xml
 
       - name: Coverage comment on PR
         if: github.event_name == 'pull_request'

@@ -1,37 +1,33 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useThemeStore } from '../themeStore'
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: vi.fn((key: string) => { delete store[key] }),
-    clear: vi.fn(() => { store = {} }),
-  }
-})()
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-})
-
 describe('themeStore', () => {
+  let localStorageStore: Record<string, string>
+
   beforeEach(() => {
+    localStorageStore = {}
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn((key: string) => localStorageStore[key] ?? null),
+      setItem: vi.fn((key: string, value: string) => { localStorageStore[key] = value }),
+      removeItem: vi.fn((key: string) => { delete localStorageStore[key] }),
+      clear: vi.fn(() => { localStorageStore = {} }),
+    })
+    vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })))
     setActivePinia(createPinia())
-    localStorageMock.clear()
-    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('defaults to light theme when no stored preference', () => {
@@ -41,7 +37,7 @@ describe('themeStore', () => {
   })
 
   it('restores dark theme from localStorage', () => {
-    localStorageMock.getItem.mockReturnValueOnce('dark')
+    ;(globalThis.localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValueOnce('dark')
     const store = useThemeStore()
     expect(store.mode).toBe('dark')
     expect(store.isDark).toBe(true)
@@ -53,7 +49,7 @@ describe('themeStore', () => {
     expect(store.mode).toBe('anchor')
     expect(store.isDark).toBe(true)
     expect(store.isAnchor).toBe(true)
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('aitext-theme-mode', 'anchor')
+    expect(localStorage.setItem).toHaveBeenCalledWith('aitext-theme-mode', 'anchor')
   })
 
   it('effectiveTheme returns dark when isDark is true', () => {

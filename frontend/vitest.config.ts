@@ -11,6 +11,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    typecheck: {
+      tsconfig: './tsconfig.vitest.json',
+    },
     environment: 'happy-dom',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
