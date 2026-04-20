@@ -72,13 +72,16 @@ class GeminiProvider(BaseProvider):
         url = self._build_url(model_id, "streamGenerateContent")
         timeout = httpx.Timeout(self.settings.timeout_seconds)
 
-        async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client, client.stream(
-            "POST",
-            url,
-            params=query,
-            headers=self._build_headers(stream=True),
-            json=payload,
-        ) as response:
+        async with (
+            httpx.AsyncClient(timeout=timeout, trust_env=False) as client,
+            client.stream(
+                "POST",
+                url,
+                params=query,
+                headers=self._build_headers(stream=True),
+                json=payload,
+            ) as response,
+        ):
             response.raise_for_status()
             buffer = ""
             async for chunk in response.aiter_text():

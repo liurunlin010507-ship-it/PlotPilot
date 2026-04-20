@@ -135,7 +135,6 @@ class KnowledgeService:
             indexing_service = get_triple_indexing_service()
 
             if indexing_service is not None:
-
                 # 使用同步接口
                 results = indexing_service.sync_search(
                     novel_id=novel_id,

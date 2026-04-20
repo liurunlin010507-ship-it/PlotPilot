@@ -204,16 +204,19 @@ class AnthropicProvider(BaseProvider):
         logger.debug(f"[Stream] Calling {url}")
 
         try:
-            async with httpx.AsyncClient(
-                timeout=self.settings.timeout_seconds,
-                trust_env=False,
-            ) as client, client.stream(
-                "POST",
-                url,
-                headers=headers,
-                params=self.settings.extra_query or None,
-                json=payload,
-            ) as response:
+            async with (
+                httpx.AsyncClient(
+                    timeout=self.settings.timeout_seconds,
+                    trust_env=False,
+                ) as client,
+                client.stream(
+                    "POST",
+                    url,
+                    headers=headers,
+                    params=self.settings.extra_query or None,
+                    json=payload,
+                ) as response,
+            ):
                 if response.status_code != 200:
                     error_body = await response.aread()
                     raise RuntimeError(f"API error {response.status_code}: {error_body.decode()}")

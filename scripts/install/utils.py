@@ -14,7 +14,6 @@ import time
 
 # ── 当 tkinter 可用时使用隐藏窗口标志，否则为 0 ──
 try:
-
     _TK_OK = True
     NO_WIN = subprocess.CREATE_NO_WINDOW
 except Exception:

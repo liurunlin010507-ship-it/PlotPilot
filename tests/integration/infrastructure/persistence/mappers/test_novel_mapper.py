@@ -1,6 +1,5 @@
 """NovelMapper 测试"""
 
-
 import pytest
 
 from domain.novel.entities.chapter import Chapter

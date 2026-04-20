@@ -49,9 +49,14 @@ class TestGetVectorStore:
 
     def test_get_vector_store_returns_qdrant_when_store_type_set(self):
         """显式设置 VECTOR_STORE_TYPE=qdrant 时返回 QdrantVectorStore 实例。"""
-        with patch.dict(
-            os.environ, {"VECTOR_STORE_TYPE": "qdrant", "QDRANT_HOST": "localhost", "QDRANT_PORT": "6333"}, clear=True
-        ), patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant:
+        with (
+            patch.dict(
+                os.environ,
+                {"VECTOR_STORE_TYPE": "qdrant", "QDRANT_HOST": "localhost", "QDRANT_PORT": "6333"},
+                clear=True,
+            ),
+            patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant,
+        ):
             mock_instance = MagicMock()
             mock_qdrant.return_value = mock_instance
 
@@ -62,11 +67,14 @@ class TestGetVectorStore:
 
     def test_get_vector_store_with_custom_host_port(self):
         """使用自定义 host 和 port"""
-        with patch.dict(
-            os.environ,
-            {"VECTOR_STORE_TYPE": "qdrant", "QDRANT_HOST": "qdrant.example.com", "QDRANT_PORT": "6334"},
-            clear=True,
-        ), patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant:
+        with (
+            patch.dict(
+                os.environ,
+                {"VECTOR_STORE_TYPE": "qdrant", "QDRANT_HOST": "qdrant.example.com", "QDRANT_PORT": "6334"},
+                clear=True,
+            ),
+            patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant,
+        ):
             mock_instance = MagicMock()
             mock_qdrant.return_value = mock_instance
 
@@ -76,16 +84,19 @@ class TestGetVectorStore:
 
     def test_get_vector_store_with_api_key(self):
         """使用 API key"""
-        with patch.dict(
-            os.environ,
-            {
-                "VECTOR_STORE_TYPE": "qdrant",
-                "QDRANT_HOST": "localhost",
-                "QDRANT_PORT": "6333",
-                "QDRANT_API_KEY": "test-api-key",
-            },
-            clear=True,
-        ), patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant:
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "VECTOR_STORE_TYPE": "qdrant",
+                    "QDRANT_HOST": "localhost",
+                    "QDRANT_PORT": "6333",
+                    "QDRANT_API_KEY": "test-api-key",
+                },
+                clear=True,
+            ),
+            patch("infrastructure.ai.qdrant_vector_store.QdrantVectorStore") as mock_qdrant,
+        ):
             mock_instance = MagicMock()
             mock_qdrant.return_value = mock_instance
 
