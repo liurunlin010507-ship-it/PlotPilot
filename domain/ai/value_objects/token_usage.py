@@ -5,6 +5,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class TokenUsage:
     """Token 使用量值对象"""
+
     input_tokens: int
     output_tokens: int
 
@@ -17,9 +18,8 @@ class TokenUsage:
         """总 token 数"""
         return self.input_tokens + self.output_tokens
 
-    def __add__(self, other: 'TokenUsage') -> 'TokenUsage':
+    def __add__(self, other: "TokenUsage") -> "TokenUsage":
         """相加两个 TokenUsage"""
         return TokenUsage(
-            input_tokens=self.input_tokens + other.input_tokens,
-            output_tokens=self.output_tokens + other.output_tokens
+            input_tokens=self.input_tokens + other.input_tokens, output_tokens=self.output_tokens + other.output_tokens
         )

@@ -13,6 +13,7 @@ class Scene:
 
     表示章节内的单个场景，包含场景的基本信息和生成参数
     """
+
     title: str  # 场景标题
     goal: str  # 场景目标（这个场景要达成什么）
     pov_character: str  # POV 角色名称

@@ -1,6 +1,8 @@
 """冲突检测服务 - 检测大纲与设定库的冲突"""
+
 import logging
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from application.audit.dtos.ghost_annotation import GhostAnnotation
 from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
 
@@ -26,7 +28,7 @@ class ConflictDetectionService:
         outline: str,
         entity_states: Dict[str, Dict],
         name_to_entity_id: Dict[str, str],
-        scene_director: Optional[SceneDirectorAnalysis] = None
+        scene_director: Optional[SceneDirectorAnalysis] = None,
     ) -> List[GhostAnnotation]:
         """检测冲突并返回批注列表
 
@@ -61,9 +63,7 @@ class ConflictDetectionService:
                     continue
 
                 # 检测设定冲突
-                conflicts = self._check_setting_conflicts(
-                    entity_name, entity_id, actions, current_state
-                )
+                conflicts = self._check_setting_conflicts(entity_name, entity_id, actions, current_state)
                 annotations.extend(conflicts)
 
             logger.info(f"Conflict detection completed: {len(annotations)} annotations")
@@ -74,10 +74,7 @@ class ConflictDetectionService:
             return annotations
 
     def _extract_entity_actions(
-        self,
-        outline: str,
-        name_to_entity_id: Dict[str, str],
-        scene_director: Optional[SceneDirectorAnalysis] = None
+        self, outline: str, name_to_entity_id: Dict[str, str], scene_director: Optional[SceneDirectorAnalysis] = None
     ) -> Dict[str, List[str]]:
         """从大纲中提取实体和行为
 
@@ -95,7 +92,7 @@ class ConflictDetectionService:
         # 未来可以用 LLM 进行更精确的提取
         outline_lower = outline.lower()
 
-        for entity_name in name_to_entity_id.keys():
+        for entity_name in name_to_entity_id:
             if entity_name.lower() not in outline_lower:
                 continue
 
@@ -135,11 +132,7 @@ class ConflictDetectionService:
         return entity_actions
 
     def _check_setting_conflicts(
-        self,
-        entity_name: str,
-        entity_id: str,
-        actions: List[str],
-        current_state: Dict
+        self, entity_name: str, entity_id: str, actions: List[str], current_state: Dict
     ) -> List[GhostAnnotation]:
         """检查设定冲突
 
@@ -172,15 +165,17 @@ class ConflictDetectionService:
 
                     if isinstance(magic_type, str):
                         if action_magic_cn not in magic_type and magic_type not in action_magic_cn:
-                            annotations.append(GhostAnnotation(
-                                type="setting_conflict",
-                                severity="warning",
-                                message=f"设定库中 {entity_name} 为 [{magic_type}]，此处使用了 [{action_magic_cn}]",
-                                entity_id=entity_id,
-                                entity_name=entity_name,
-                                expected=magic_type,
-                                actual=action_magic_cn,
-                            ))
+                            annotations.append(
+                                GhostAnnotation(
+                                    type="setting_conflict",
+                                    severity="warning",
+                                    message=f"设定库中 {entity_name} 为 [{magic_type}]，此处使用了 [{action_magic_cn}]",
+                                    entity_id=entity_id,
+                                    entity_name=entity_name,
+                                    expected=magic_type,
+                                    actual=action_magic_cn,
+                                )
+                            )
 
         # 检测武器冲突
         weapon = current_state.get("weapon") or current_state.get("武器")
@@ -197,14 +192,16 @@ class ConflictDetectionService:
 
                     if isinstance(weapon, str):
                         if action_weapon_cn not in weapon and weapon not in action_weapon_cn:
-                            annotations.append(GhostAnnotation(
-                                type="setting_conflict",
-                                severity="warning",
-                                message=f"设定库中 {entity_name} 的武器为 [{weapon}]，此处使用了 [{action_weapon_cn}]",
-                                entity_id=entity_id,
-                                entity_name=entity_name,
-                                expected=weapon,
-                                actual=action_weapon_cn,
-                            ))
+                            annotations.append(
+                                GhostAnnotation(
+                                    type="setting_conflict",
+                                    severity="warning",
+                                    message=f"设定库中 {entity_name} 的武器为 [{weapon}]，此处使用了 [{action_weapon_cn}]",
+                                    entity_id=entity_id,
+                                    entity_name=entity_name,
+                                    expected=weapon,
+                                    actual=action_weapon_cn,
+                                )
+                            )
 
         return annotations

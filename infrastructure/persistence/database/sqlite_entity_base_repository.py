@@ -1,8 +1,10 @@
 """SQLite Entity Base Repository 实现"""
+
 import json
 import logging
 from typing import Optional
 from uuid import uuid4
+
 from domain.novel.repositories.entity_base_repository import EntityBaseRepository
 from infrastructure.persistence.database.connection import DatabaseConnection
 
@@ -35,13 +37,7 @@ class SqliteEntityBaseRepository(EntityBaseRepository):
         entity["core_attributes"] = json.loads(entity["core_attributes"])
         return entity
 
-    def create(
-        self,
-        novel_id: str,
-        entity_type: str,
-        name: str,
-        core_attributes: dict
-    ) -> str:
+    def create(self, novel_id: str, entity_type: str, name: str, core_attributes: dict) -> str:
         """创建新实体基座
 
         Args:

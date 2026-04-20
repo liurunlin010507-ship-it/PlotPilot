@@ -3,8 +3,6 @@
 评测知识图谱生成服务的质量。
 """
 
-import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -59,12 +57,13 @@ class KnowledgeEvaluator(BaseEvaluator):
     async def run_single_test(self, test_case: Dict[str, Any]) -> EvaluationResult:
         """运行单个测试"""
         import time
+
         start_time = time.time()
 
         try:
             # 使用 AutoKnowledgeGenerator
             from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
-            
+
             llm = self._get_service("llm")
             generator = AutoKnowledgeGenerator(llm)
 
@@ -114,12 +113,14 @@ class KnowledgeEvaluator(BaseEvaluator):
         # 1. 前提锁定
         premise = result.get("premise_lock", "")
         premise_score = 8.0 if premise and len(premise) >= 20 else 4.0
-        metrics.append(create_metric(
-            name="前提锁定",
-            score=premise_score,
-            weight=1.2,
-            details=f"长度: {len(premise)}字" if premise else "缺失",
-        ))
+        metrics.append(
+            create_metric(
+                name="前提锁定",
+                score=premise_score,
+                weight=1.2,
+                details=f"长度: {len(premise)}字" if premise else "缺失",
+            )
+        )
 
         # 2. 事实数量
         facts = result.get("facts", [])
@@ -133,12 +134,14 @@ class KnowledgeEvaluator(BaseEvaluator):
         else:
             facts_score = 4.0
 
-        metrics.append(create_metric(
-            name="事实数量",
-            score=facts_score,
-            weight=1.0,
-            details=f"提取{facts_count}条事实",
-        ))
+        metrics.append(
+            create_metric(
+                name="事实数量",
+                score=facts_score,
+                weight=1.0,
+                details=f"提取{facts_count}条事实",
+            )
+        )
 
         # 3. 实体覆盖
         expected_entities = set(test_case.get("expected_entities", []))
@@ -155,23 +158,27 @@ class KnowledgeEvaluator(BaseEvaluator):
         coverage = len(expected_entities & found_entities) / len(expected_entities) if expected_entities else 0
         entity_score = 5.0 + coverage * 5.0
 
-        metrics.append(create_metric(
-            name="实体覆盖",
-            score=entity_score,
-            weight=1.3,
-            details=f"覆盖率: {coverage:.0%}",
-        ))
+        metrics.append(
+            create_metric(
+                name="实体覆盖",
+                score=entity_score,
+                weight=1.3,
+                details=f"覆盖率: {coverage:.0%}",
+            )
+        )
 
         # 4. 结构规范
         valid_facts = sum(1 for f in facts if all(k in f for k in ["subject", "predicate", "object"]))
         structure_score = (valid_facts / facts_count * 10) if facts_count > 0 else 0
 
-        metrics.append(create_metric(
-            name="结构规范",
-            score=structure_score,
-            weight=1.0,
-            details=f"有效结构: {valid_facts}/{facts_count}",
-        ))
+        metrics.append(
+            create_metric(
+                name="结构规范",
+                score=structure_score,
+                weight=1.0,
+                details=f"有效结构: {valid_facts}/{facts_count}",
+            )
+        )
 
         return metrics
 
@@ -190,4 +197,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

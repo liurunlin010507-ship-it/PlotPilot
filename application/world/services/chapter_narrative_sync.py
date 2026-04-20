@@ -5,6 +5,7 @@
 2. 结构树中该章节点 outline（规划节拍，按换行/分号拆条）
 3. 仍无则保持空列表，仅写 summary。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -13,9 +14,13 @@ import logging
 import re
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from application.ai.structured_json_pipeline import (
+    parse_and_repair_json,
+    sanitize_llm_output,
+)
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
 from domain.novel.value_objects.foreshadowing import (
     Foreshadowing,
@@ -24,10 +29,6 @@ from domain.novel.value_objects.foreshadowing import (
 )
 from domain.novel.value_objects.novel_id import NovelId
 from domain.structure.story_node import NodeType
-from application.ai.structured_json_pipeline import (
-    parse_and_repair_json,
-    sanitize_llm_output,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ async def llm_chapter_extract_bundle(
     pending_foreshadows: Optional[List[str]] = None,
 ) -> dict:
     """一次 LLM 调用：叙事摘要 + 关键事件/埋线 + 人物关系三元组 + 伏笔线索 + 伏笔消费检测 + 故事线进展 + 张力值 + 对话提取（避免多次调用）。
-    
+
     Args:
         llm: LLM 服务
         chapter_content: 章节正文
@@ -189,28 +190,28 @@ async def llm_chapter_extract_bundle(
 
 def _fuzzy_match_foreshadow(consumed_desc: str, pending_list: List[Any]) -> Optional[Any]:
     """模糊匹配消费的伏笔描述与待回收列表。
-    
+
     Args:
         consumed_desc: LLM 返回的消费伏笔描述
         pending_list: 待回收伏笔列表（Foreshadowing 或 SubtextLedgerEntry）
-    
+
     Returns:
         匹配到的伏笔对象，未匹配返回 None
     """
     if not consumed_desc or not pending_list:
         return None
-    
+
     consumed_lower = consumed_desc.lower().strip()
-    
+
     # 优先精确匹配
     for f in pending_list:
-        desc = getattr(f, 'description', None) or getattr(f, 'question', None)
+        desc = getattr(f, "description", None) or getattr(f, "question", None)
         if desc and desc.lower().strip() == consumed_lower:
             return f
-    
+
     # 其次模糊匹配（包含关系）
     for f in pending_list:
-        desc = getattr(f, 'description', None) or getattr(f, 'question', None)
+        desc = getattr(f, "description", None) or getattr(f, "question", None)
         if desc:
             desc_lower = desc.lower().strip()
             # 检查是否有足够的重叠
@@ -223,7 +224,7 @@ def _fuzzy_match_foreshadow(consumed_desc: str, pending_list: List[Any]) -> Opti
                 overlap = len(consumed_words & desc_words) / min(len(consumed_words), len(desc_words))
                 if overlap >= 0.5:
                     return f
-    
+
     return None
 
 
@@ -235,7 +236,7 @@ def persist_bundle_triples_and_foreshadows(
     foreshadowing_repo: Any,
 ) -> None:
     """将 bundle 中的三元组与伏笔写入表，并处理伏笔消费状态更新。
-    
+
     功能：
     1. 三元组落库
     2. 新伏笔注册（PLANTED 状态）
@@ -280,10 +281,8 @@ def persist_bundle_triples_and_foreshadows(
             if not registry:
                 # 创建新的 ForeshadowingRegistry
                 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
-                registry = ForeshadowingRegistry(
-                    id=str(uuid.uuid4()),
-                    novel_id=NovelId(novel_id)
-                )
+
+                registry = ForeshadowingRegistry(id=str(uuid.uuid4()), novel_id=NovelId(novel_id))
                 logger.info("创建新伏笔账本 novel=%s", novel_id)
             for h in hints:
                 if not isinstance(h, dict):
@@ -325,68 +324,77 @@ def persist_bundle_triples_and_foreshadows(
                     )
                     logger.debug(
                         "伏笔入库 novel=%s ch=%s resolve=%s importance=%s: %s",
-                        novel_id, chapter_number, suggested_resolve, importance_val, desc[:50]
+                        novel_id,
+                        chapter_number,
+                        suggested_resolve,
+                        importance_val,
+                        desc[:50],
                     )
                 except Exception as e:
                     logger.debug("伏笔入库跳过: %s", e)
-            
+
             # 处理伏笔消费：将 LLM 识别的已消费伏笔标记为 RESOLVED/consumed
             if consumed:
                 # 获取所有待回收伏笔
                 pending_foreshadows = registry.get_unresolved()
                 pending_subtext = registry.get_pending_subtext_entries()
-                
+
                 consumed_count = 0
                 for consumed_desc in consumed:
                     if not consumed_desc:
                         continue
-                    
+
                     # 1. 尝试匹配 Foreshadowing 对象
                     matched_foreshadow = _fuzzy_match_foreshadow(consumed_desc, pending_foreshadows)
                     if matched_foreshadow:
                         try:
                             registry.mark_resolved(
-                                foreshadowing_id=matched_foreshadow.id,
-                                resolved_in_chapter=chapter_number
+                                foreshadowing_id=matched_foreshadow.id, resolved_in_chapter=chapter_number
                             )
                             consumed_count += 1
                             logger.info(
                                 "伏笔已消费 novel=%s ch=%s: %s -> RESOLVED",
-                                novel_id, chapter_number, consumed_desc[:50]
+                                novel_id,
+                                chapter_number,
+                                consumed_desc[:50],
                             )
                             # 从待回收列表中移除已处理的
                             pending_foreshadows = [f for f in pending_foreshadows if f.id != matched_foreshadow.id]
                         except Exception as e:
                             logger.warning("伏笔消费状态更新失败: %s", e)
                         continue
-                    
+
                     # 2. 尝试匹配 SubtextLedgerEntry 对象
                     matched_entry = _fuzzy_match_foreshadow(consumed_desc, pending_subtext)
                     if matched_entry:
                         try:
                             from dataclasses import replace
+
                             updated_entry = replace(
-                                matched_entry,
-                                status="consumed",
-                                consumed_at_chapter=chapter_number
+                                matched_entry, status="consumed", consumed_at_chapter=chapter_number
                             )
                             registry.update_subtext_entry(matched_entry.id, updated_entry)
                             consumed_count += 1
                             logger.info(
                                 "潜台词条目已消费 novel=%s ch=%s: %s -> consumed",
-                                novel_id, chapter_number, consumed_desc[:50]
+                                novel_id,
+                                chapter_number,
+                                consumed_desc[:50],
                             )
                             # 从待回收列表中移除已处理的
                             pending_subtext = [e for e in pending_subtext if e.id != matched_entry.id]
                         except Exception as e:
                             logger.warning("潜台词条目消费状态更新失败: %s", e)
-                
+
                 if consumed_count > 0:
                     logger.info(
                         "伏笔消费检测完成 novel=%s ch=%s consumed=%d/%d",
-                        novel_id, chapter_number, consumed_count, len(consumed)
+                        novel_id,
+                        chapter_number,
+                        consumed_count,
+                        len(consumed),
                     )
-            
+
             foreshadowing_repo.save(registry)
         except Exception as e:
             logger.warning("伏笔落库失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
@@ -401,6 +409,8 @@ def _importance_str_to_level(importance_str: str) -> ImportanceLevel:
         "critical": ImportanceLevel.CRITICAL,
     }
     return mapping.get(importance_str, ImportanceLevel.MEDIUM)
+
+
 def _auto_generate_plot_point(
     novel_id: str,
     chapter_number: int,
@@ -475,11 +485,9 @@ def _auto_generate_plot_point(
         plot_arc = plot_arc_repository.get_by_novel_id(NovelId(novel_id))
         if not plot_arc:
             from domain.novel.entities.plot_arc import PlotArc
+
             plot_arc = PlotArc(
-                id=str(uuid.uuid4()),
-                novel_id=NovelId(novel_id),
-                slug="default",
-                display_name="主情节弧"
+                id=str(uuid.uuid4()), novel_id=NovelId(novel_id), slug="default", display_name="主情节弧"
             )
 
         # 检查该章是否已有剧情点
@@ -489,16 +497,18 @@ def _auto_generate_plot_point(
 
         # 添加剧情点
         plot_point = PlotPoint(
-            chapter_number=chapter_number,
-            point_type=point_type,
-            description=description,
-            tension=tension_level
+            chapter_number=chapter_number, point_type=point_type, description=description, tension=tension_level
         )
         plot_arc.add_plot_point(plot_point)
         plot_arc_repository.save(plot_arc)
 
-        logger.info("自动生成剧情点 novel=%s ch=%s type=%s tension=%.0f",
-                   novel_id, chapter_number, point_type.value, tension_score)
+        logger.info(
+            "自动生成剧情点 novel=%s ch=%s type=%s tension=%.0f",
+            novel_id,
+            chapter_number,
+            point_type.value,
+            tension_score,
+        )
 
     except Exception as e:
         logger.warning("自动生成剧情点失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
@@ -544,9 +554,7 @@ def _auto_advance_milestone(
             current_milestone = matched.milestones[current_idx]
 
             # 判断是否达成里程碑（章节号在目标范围内）
-            if (current_milestone.target_chapter_start <= chapter_number <=
-                current_milestone.target_chapter_end):
-
+            if current_milestone.target_chapter_start <= chapter_number <= current_milestone.target_chapter_end:
                 # 检查关键词匹配（简单实现）
                 milestone_keywords = current_milestone.description.lower()
                 progress_keywords = description.lower()
@@ -560,8 +568,14 @@ def _auto_advance_milestone(
                 if keyword_match or chapter_number >= current_milestone.target_chapter_end:
                     matched.current_milestone_index = current_idx + 1
                     storyline_repository.save(matched)
-                    logger.info("自动推进里程碑 novel=%s storyline=%s milestone=%d->%d ch=%s",
-                               novel_id, matched.name, current_idx, current_idx + 1, chapter_number)
+                    logger.info(
+                        "自动推进里程碑 novel=%s storyline=%s milestone=%d->%d ch=%s",
+                        novel_id,
+                        matched.name,
+                        current_idx,
+                        current_idx + 1,
+                        chapter_number,
+                    )
 
     except Exception as e:
         logger.warning("自动推进里程碑失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
@@ -580,10 +594,7 @@ def _initialize_first_chapter_snapshot(
         cursor = conn.cursor()
 
         # 检查是否已有快照
-        cursor.execute(
-            "SELECT COUNT(*) FROM novel_snapshots WHERE novel_id = ?",
-            (novel_id,)
-        )
+        cursor.execute("SELECT COUNT(*) FROM novel_snapshots WHERE novel_id = ?", (novel_id,))
         count = cursor.fetchone()[0]
 
         if count > 0:
@@ -594,26 +605,29 @@ def _initialize_first_chapter_snapshot(
         snapshot_id = f"snapshot-{uuid.uuid4()}"
         now = datetime.utcnow().isoformat()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO novel_snapshots (
                 id, novel_id, trigger_type, name, description,
                 chapter_pointers, bible_state, foreshadow_state, graph_state,
                 branch_name, parent_snapshot_id, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            snapshot_id,
-            novel_id,
-            "AUTO",
-            "第1章完成",
-            "小说开篇，自动创建初始快照",
-            json.dumps([f"{novel_id}-ch{chapter_number}"]),
-            json.dumps({"exists": True, "timestamp": now}),
-            json.dumps({}),
-            json.dumps({}),
-            "main",
-            None,
-            now
-        ))
+        """,
+            (
+                snapshot_id,
+                novel_id,
+                "AUTO",
+                "第1章完成",
+                "小说开篇，自动创建初始快照",
+                json.dumps([f"{novel_id}-ch{chapter_number}"]),
+                json.dumps({"exists": True, "timestamp": now}),
+                json.dumps({}),
+                json.dumps({}),
+                "main",
+                None,
+                now,
+            ),
+        )
 
         conn.commit()
         logger.info("首章自动创建快照 novel=%s snapshot=%s", novel_id, snapshot_id)
@@ -634,10 +648,10 @@ def _initialize_first_chapter_storyline(
     summary 来自 sync_chapter_narrative_after_save 中的 llm_chapter_extract_bundle。
     """
     try:
-        from domain.novel.value_objects.novel_id import NovelId
-        from domain.novel.value_objects.storyline_type import StorylineType
-        from domain.novel.value_objects.storyline_status import StorylineStatus
         from domain.novel.entities.storyline import Storyline
+        from domain.novel.value_objects.novel_id import NovelId
+        from domain.novel.value_objects.storyline_status import StorylineStatus
+        from domain.novel.value_objects.storyline_type import StorylineType
 
         # 检查是否已有故事线
         existing = storyline_repository.get_by_novel_id(NovelId(novel_id))
@@ -662,7 +676,7 @@ def _initialize_first_chapter_storyline(
             estimated_chapter_end=chapter_number + 20,  # 预估20章
             name=storyline_name,
             description=storyline_desc,
-            progress_summary=summary  # 将首章摘要作为初始进展
+            progress_summary=summary,  # 将首章摘要作为初始进展
         )
         storyline_repository.save(main_storyline)
         logger.info("首章自动初始化主线 novel=%s desc=%s", novel_id, storyline_desc[:50])
@@ -679,10 +693,10 @@ def _auto_adjust_storyline_range(
 ) -> None:
     """自动调整故事线范围：检测新故事线开始或现有故事线结束。"""
     try:
-        from domain.novel.value_objects.novel_id import NovelId
-        from domain.novel.value_objects.storyline_type import StorylineType
-        from domain.novel.value_objects.storyline_status import StorylineStatus
         from domain.novel.entities.storyline import Storyline
+        from domain.novel.value_objects.novel_id import NovelId
+        from domain.novel.value_objects.storyline_status import StorylineStatus
+        from domain.novel.value_objects.storyline_type import StorylineType
 
         storylines = storyline_repository.get_by_novel_id(NovelId(novel_id))
 
@@ -715,15 +729,20 @@ def _auto_adjust_storyline_range(
                         matched.estimated_chapter_end = chapter_number
                         matched.status = StorylineStatus.COMPLETED
                         storyline_repository.save(matched)
-                        logger.info("自动结束故事线 novel=%s storyline=%s end_ch=%d",
-                                   novel_id, matched.name, chapter_number)
+                        logger.info(
+                            "自动结束故事线 novel=%s storyline=%s end_ch=%d", novel_id, matched.name, chapter_number
+                        )
 
                 elif chapter_number > matched.estimated_chapter_end:
                     # 故事线超出预期范围，自动延长
                     matched.estimated_chapter_end = chapter_number + 5  # 预留5章
                     storyline_repository.save(matched)
-                    logger.info("自动延长故事线 novel=%s storyline=%s new_end=%d",
-                               novel_id, matched.name, matched.estimated_chapter_end)
+                    logger.info(
+                        "自动延长故事线 novel=%s storyline=%s new_end=%d",
+                        novel_id,
+                        matched.name,
+                        matched.estimated_chapter_end,
+                    )
 
             elif is_start:
                 # 创建新故事线
@@ -748,11 +767,16 @@ def _auto_adjust_storyline_range(
                     estimated_chapter_start=chapter_number,
                     estimated_chapter_end=chapter_number + 10,  # 预估10章
                     name=line_type,
-                    description=description
+                    description=description,
                 )
                 storyline_repository.save(new_storyline)
-                logger.info("自动创建故事线 novel=%s type=%s name=%s start_ch=%d",
-                           novel_id, new_type.value, line_type, chapter_number)
+                logger.info(
+                    "自动创建故事线 novel=%s type=%s name=%s start_ch=%d",
+                    novel_id,
+                    new_type.value,
+                    line_type,
+                    chapter_number,
+                )
 
     except Exception as e:
         logger.warning("自动调整故事线范围失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
@@ -774,11 +798,13 @@ def persist_bundle_extras(
     if chapter_repository and (tension_score is not None or tension_dims):
         try:
             from domain.novel.value_objects.novel_id import NovelId
+
             chapters = chapter_repository.list_by_novel(NovelId(novel_id))
             target_ch = next((ch for ch in chapters if ch.number == chapter_number), None)
             if target_ch:
                 if tension_dims:
                     from domain.novel.value_objects.tension_dimensions import TensionDimensions
+
                     dims = TensionDimensions(
                         plot_tension=tension_dims["plot_tension"],
                         emotional_tension=tension_dims["emotional_tension"],
@@ -788,7 +814,8 @@ def persist_bundle_extras(
                     target_ch.update_tension_dimensions(dims)
                     logger.debug(
                         "张力维度已落库 novel=%s ch=%s composite=%.1f plot=%.0f emotional=%.0f pacing=%.0f",
-                        novel_id, chapter_number,
+                        novel_id,
+                        chapter_number,
                         dims.composite_score,
                         dims.plot_tension,
                         dims.emotional_tension,
@@ -803,16 +830,14 @@ def persist_bundle_extras(
 
     # 2. 自动生成剧情点（基于张力变化）
     if chapter_repository and plot_arc_repository and tension_score is not None:
-        _auto_generate_plot_point(
-            novel_id, chapter_number, tension_score,
-            chapter_repository, plot_arc_repository
-        )
+        _auto_generate_plot_point(novel_id, chapter_number, tension_score, chapter_repository, plot_arc_repository)
 
     # 3. 故事线进展更新
     storyline_progress = bundle.get("storyline_progress") or []
     if storyline_repository and storyline_progress:
         try:
             from domain.novel.value_objects.novel_id import NovelId
+
             storylines = storyline_repository.get_by_novel_id(NovelId(novel_id))
             for progress_item in storyline_progress:
                 if not isinstance(progress_item, dict):
@@ -885,7 +910,7 @@ def persist_bundle_extras(
                     chapter_number=chapter_number,
                     event_summary=event_summary,
                     mutations=mutations,
-                    tags=tags
+                    tags=tags,
                 )
 
             logger.info("对话提取完成 novel=%s ch=%s count=%d", novel_id, chapter_number, len(dialogues))
@@ -897,6 +922,7 @@ def persist_bundle_extras(
     if timeline_events:
         try:
             from infrastructure.persistence.database.connection import get_database
+
             db = get_database()
             conn = db.get_connection()
             cursor = conn.cursor()
@@ -913,10 +939,13 @@ def persist_bundle_extras(
 
                 # 写入 bible_timeline_notes 表
                 note_id = f"tl-{uuid.uuid4()}"
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO bible_timeline_notes (id, novel_id, time_point, event, description)
                     VALUES (?, ?, ?, ?, ?)
-                """, (note_id, novel_id, time_point or f"第{chapter_number}章", event, description))
+                """,
+                    (note_id, novel_id, time_point or f"第{chapter_number}章", event, description),
+                )
 
             conn.commit()
             logger.info("时间轴事件提取完成 novel=%s ch=%s count=%d", novel_id, chapter_number, len(timeline_events))
@@ -987,15 +1016,19 @@ async def sync_chapter_narrative_after_save(
                 if pending_foreshadow_descs:
                     logger.debug(
                         "伏笔消费检测：获取到 %d 个待回收伏笔 novel=%s ch=%s",
-                        len(pending_foreshadow_descs), novel_id, chapter_number
+                        len(pending_foreshadow_descs),
+                        novel_id,
+                        chapter_number,
                     )
         except Exception as e:
             logger.warning("获取待回收伏笔失败: %s", e)
 
     try:
         bundle = await llm_chapter_extract_bundle(
-            llm_service, content, chapter_number,
-            pending_foreshadows=pending_foreshadow_descs if pending_foreshadow_descs else None
+            llm_service,
+            content,
+            chapter_number,
+            pending_foreshadows=pending_foreshadow_descs if pending_foreshadow_descs else None,
         )
         summary = bundle.get("summary") or ""
         key_events = bundle.get("key_events") or ""
@@ -1029,7 +1062,8 @@ async def sync_chapter_narrative_after_save(
         )
         logger.info(
             "独立张力评分完成 novel=%s ch=%s composite=%.1f plot=%.0f emotional=%.0f pacing=%.0f",
-            novel_id, chapter_number,
+            novel_id,
+            chapter_number,
             tension_dimensions.composite_score,
             tension_dimensions.plot_tension,
             tension_dimensions.emotional_tension,
@@ -1059,7 +1093,7 @@ async def sync_chapter_narrative_after_save(
             open_threads = existing.open_threads or ""
 
     beat_sections = _resolve_beat_sections(novel_id, chapter_number, existing_beats)
-    
+
     # 生成微观节拍
     micro_beats = []
     try:
@@ -1073,9 +1107,9 @@ async def sync_chapter_narrative_after_save(
             try:
                 # 尝试从结构树获取大纲
                 from application.paths import get_db_path
-                from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
                 from domain.structure.story_node import NodeType
-                
+                from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+
                 repo = StoryNodeRepository(str(get_db_path()))
                 nodes = repo.get_by_novel_sync(novel_id)
                 for n in nodes:
@@ -1084,26 +1118,26 @@ async def sync_chapter_narrative_after_save(
                         break
             except Exception as e:
                 logger.debug("从结构树获取大纲失败: %s", e)
-            
+
             # 如果有大纲，使用静态方法生成节拍
             if outline_text:
                 try:
                     from application.engine.services.context_builder import ContextBuilder
+
                     # 使用静态启发式生成节拍（无需实例化）
-                    beats = ContextBuilder(None, None, None, None, None, None).magnify_outline_to_beats(chapter_number, outline_text)
+                    beats = ContextBuilder(None, None, None, None, None, None).magnify_outline_to_beats(
+                        chapter_number, outline_text
+                    )
                     micro_beats = [
-                        {
-                            "description": beat.description,
-                            "target_words": beat.target_words,
-                            "focus": beat.focus
-                        } for beat in beats
+                        {"description": beat.description, "target_words": beat.target_words, "focus": beat.focus}
+                        for beat in beats
                     ]
                     logger.debug("从大纲生成微观节拍: %d 个", len(micro_beats))
                 except Exception as e:
                     logger.debug("生成微观节拍失败: %s", e)
     except Exception as e:
         logger.debug("微观节拍处理失败: %s", e)
-    
+
     knowledge_service.upsert_chapter_summary(
         novel_id=novel_id,
         chapter_id=chapter_number,
@@ -1130,9 +1164,7 @@ async def sync_chapter_narrative_after_save(
             if foreshadowing_repo is not None:
                 flags["foreshadow_stored"] = True
         except Exception as e:
-            logger.warning(
-                "bundle 三元组/伏笔落库失败 novel=%s ch=%s: %s", novel_id, chapter_number, e
-            )
+            logger.warning("bundle 三元组/伏笔落库失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
 
     if storyline_repository is not None or chapter_repository is not None or narrative_event_repository is not None:
         try:
@@ -1146,9 +1178,7 @@ async def sync_chapter_narrative_after_save(
                 narrative_event_repository,
             )
         except Exception as e:
-            logger.warning(
-                "bundle 故事线/张力/对话落库失败 novel=%s ch=%s: %s", novel_id, chapter_number, e
-            )
+            logger.warning("bundle 故事线/张力/对话落库失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
 
     logger.info(
         "分章叙事已落库 novel=%s ch=%s beats=%d(src=planning/knowledge) summary_len=%d",
@@ -1159,14 +1189,18 @@ async def sync_chapter_narrative_after_save(
     )
 
     if indexing_svc is not None:
-        text_for_vector = summary.strip() if summary.strip() else "；".join(beat_sections) if beat_sections else content[:800]
+        text_for_vector = (
+            summary.strip() if summary.strip() else "；".join(beat_sections) if beat_sections else content[:800]
+        )
         try:
             await indexing_svc.ensure_collection(novel_id)
             await indexing_svc.index_chapter_summary(novel_id, chapter_number, text_for_vector)
             flags["vector_stored"] = True
             logger.debug("章节向量索引完成 novel=%s ch=%s", novel_id, chapter_number)
         except Exception as e:
-            logger.warning("章节向量索引失败 novel=%s ch=%s: [%s] %s", novel_id, chapter_number, type(e).__name__, e, exc_info=True)
+            logger.warning(
+                "章节向量索引失败 novel=%s ch=%s: [%s] %s", novel_id, chapter_number, type(e).__name__, e, exc_info=True
+            )
 
     return flags
 

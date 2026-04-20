@@ -8,9 +8,11 @@
 2. 启动守护进程死循环
 3. 轮询数据库，处理所有 autopilot_status=RUNNING 的小说
 """
-import sys
+
 import logging
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -19,22 +21,19 @@ load_dotenv()
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from infrastructure.ai.llm_client import LLMClient
 from application.engine.services.autopilot_daemon import AutopilotDaemon
-from application.engine.services.context_builder import ContextBuilder
 from application.engine.services.background_task_service import BackgroundTaskService
+from application.engine.services.context_builder import ContextBuilder
+from infrastructure.ai.llm_client import LLMClient
 from infrastructure.persistence.database.connection import DatabaseConnection
-from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
 from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('data/logs/autopilot_daemon.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("data/logs/autopilot_daemon.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 

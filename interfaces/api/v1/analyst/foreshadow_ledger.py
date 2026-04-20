@@ -1,16 +1,17 @@
 """伏笔手账本 API：主角/读者当下的疑问，本阶段兑现即可（不必写长文）。"""
-from fastapi import APIRouter, Depends, HTTPException, Path
-from typing import List, Optional
-from pydantic import BaseModel, Field
-from datetime import datetime
-from dataclasses import replace
 
-from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
+from dataclasses import replace
+from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import BaseModel, Field
+
 from domain.novel.entities.subtext_ledger_entry import SubtextLedgerEntry
+from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
 from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import InvalidOperationError
 from interfaces.api.dependencies import get_foreshadowing_repository
-
 
 router = APIRouter(tags=["foreshadow-ledger"])
 
@@ -174,9 +175,7 @@ def update_subtext_entry(
             question=new_q,
             status=request.status if request.status is not None else entry.status,
             consumed_at_chapter=(
-                request.consumed_at_chapter
-                if request.consumed_at_chapter is not None
-                else entry.consumed_at_chapter
+                request.consumed_at_chapter if request.consumed_at_chapter is not None else entry.consumed_at_chapter
             ),
         )
 

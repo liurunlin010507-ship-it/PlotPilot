@@ -1,11 +1,13 @@
 """SQLite Novel Repository 实现"""
-import logging
+
 import json
-from typing import Optional, List
+import logging
 from datetime import datetime
-from domain.novel.entities.novel import Novel, AutopilotStatus, NovelStage
-from domain.novel.value_objects.novel_id import NovelId
+from typing import List, Optional
+
+from domain.novel.entities.novel import AutopilotStatus, Novel, NovelStage
 from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.novel_id import NovelId
 from infrastructure.persistence.database.connection import DatabaseConnection
 
 logger = logging.getLogger(__name__)
@@ -63,22 +65,22 @@ class SqliteNovelRepository(NovelRepository):
                 updated_at = excluded.updated_at
         """
         now = datetime.utcnow().isoformat()
-        novel_id = novel.novel_id.value if hasattr(novel, 'novel_id') else novel.id
+        novel_id = novel.novel_id.value if hasattr(novel, "novel_id") else novel.id
         slug = novel_id
-        premise = getattr(novel, 'premise', '')
-        author = getattr(novel, 'author', '未知作者')
-        _ap = getattr(novel, 'autopilot_status', 'stopped')
+        premise = getattr(novel, "premise", "")
+        author = getattr(novel, "author", "未知作者")
+        _ap = getattr(novel, "autopilot_status", "stopped")
         autopilot_status = _ap.value if isinstance(_ap, AutopilotStatus) else _ap
-        auto_approve_mode = 1 if getattr(novel, 'auto_approve_mode', False) else 0
-        _cs = getattr(novel, 'current_stage', 'planning')
+        auto_approve_mode = 1 if getattr(novel, "auto_approve_mode", False) else 0
+        _cs = getattr(novel, "current_stage", "planning")
         current_stage = _cs.value if isinstance(_cs, NovelStage) else _cs
-        current_act = getattr(novel, 'current_act', 0)
-        current_chapter_in_act = getattr(novel, 'current_chapter_in_act', 0)
-        max_auto_chapters = getattr(novel, 'max_auto_chapters', 9999)
-        current_auto_chapters = getattr(novel, 'current_auto_chapters', 0)
-        last_chapter_tension = getattr(novel, 'last_chapter_tension', 0)
-        consecutive_error_count = getattr(novel, 'consecutive_error_count', 0)
-        current_beat_index = getattr(novel, 'current_beat_index', 0)
+        current_act = getattr(novel, "current_act", 0)
+        current_chapter_in_act = getattr(novel, "current_chapter_in_act", 0)
+        max_auto_chapters = getattr(novel, "max_auto_chapters", 9999)
+        current_auto_chapters = getattr(novel, "current_auto_chapters", 0)
+        last_chapter_tension = getattr(novel, "last_chapter_tension", 0)
+        consecutive_error_count = getattr(novel, "consecutive_error_count", 0)
+        current_beat_index = getattr(novel, "current_beat_index", 0)
         lacn = getattr(novel, "last_audit_chapter_number", None)
         lasim = getattr(novel, "last_audit_similarity", None)
         ladr = 1 if getattr(novel, "last_audit_drift_alert", False) else 0
@@ -94,37 +96,40 @@ class SqliteNovelRepository(NovelRepository):
         lai_json = json.dumps(lai) if lai else None
         twpc = getattr(novel, "target_words_per_chapter", 2500)
 
-        self.db.execute(sql, (
-            novel_id,
-            novel.title,
-            slug,
-            author,
-            novel.target_chapters,
-            premise,
-            autopilot_status,
-            auto_approve_mode,
-            current_stage,
-            current_act,
-            current_chapter_in_act,
-            max_auto_chapters,
-            current_auto_chapters,
-            last_chapter_tension,
-            consecutive_error_count,
-            current_beat_index,
-            lacn,
-            lasim,
-            ladr,
-            lano,
-            laat,
-            lavs,
-            lafs,
-            late,
-            laqs_json,
-            lai_json,
-            twpc,
-            now,
-            now
-        ))
+        self.db.execute(
+            sql,
+            (
+                novel_id,
+                novel.title,
+                slug,
+                author,
+                novel.target_chapters,
+                premise,
+                autopilot_status,
+                auto_approve_mode,
+                current_stage,
+                current_act,
+                current_chapter_in_act,
+                max_auto_chapters,
+                current_auto_chapters,
+                last_chapter_tension,
+                consecutive_error_count,
+                current_beat_index,
+                lacn,
+                lasim,
+                ladr,
+                lano,
+                laat,
+                lavs,
+                lafs,
+                late,
+                laqs_json,
+                lai_json,
+                twpc,
+                now,
+                now,
+            ),
+        )
         self.db.get_connection().commit()
 
     async def async_save(self, novel: Novel) -> None:
@@ -149,29 +154,29 @@ class SqliteNovelRepository(NovelRepository):
         if not row:
             return None
 
-        return self._row_to_novel(NovelId(row['id']), row)
+        return self._row_to_novel(NovelId(row["id"]), row)
 
     def list_all(self) -> List[Novel]:
         """列出所有小说"""
         sql = "SELECT * FROM novels ORDER BY created_at DESC"
         rows = self.db.fetch_all(sql)
-        return [self._row_to_novel(NovelId(row['id']), row) for row in rows]
+        return [self._row_to_novel(NovelId(row["id"]), row) for row in rows]
 
     def find_by_autopilot_status(self, status: str) -> List[Novel]:
         """根据自动驾驶状态查找小说列表"""
         sql = "SELECT * FROM novels WHERE autopilot_status = ? ORDER BY updated_at DESC"
         rows = self.db.fetch_all(sql, (status,))
-        return [self._row_to_novel(NovelId(row['id']), row) for row in rows]
+        return [self._row_to_novel(NovelId(row["id"]), row) for row in rows]
 
     def _row_to_novel(self, novel_id: NovelId, row: dict) -> Novel:
         """将数据库行转换为 Novel 实体"""
-        raw_status = row.get('autopilot_status', 'stopped')
+        raw_status = row.get("autopilot_status", "stopped")
         try:
             autopilot_status = AutopilotStatus(raw_status)
         except ValueError:
             autopilot_status = AutopilotStatus.STOPPED
 
-        raw_stage = row.get('current_stage', 'planning')
+        raw_stage = row.get("current_stage", "planning")
         try:
             current_stage = NovelStage(raw_stage)
         except ValueError:
@@ -179,29 +184,29 @@ class SqliteNovelRepository(NovelRepository):
 
         _lad = row.get("last_audit_drift_alert")
         _lano = row.get("last_audit_narrative_ok")
-        
+
         # 解析 JSON 字段
         laqs_json = row.get("last_audit_quality_scores")
         laqs = json.loads(laqs_json) if laqs_json else {}
         lai_json = row.get("last_audit_issues")
         lai = json.loads(lai_json) if lai_json else []
-        
+
         return Novel(
             id=novel_id,
-            title=row['title'],
-            author=row.get('author', '未知作者'),
-            target_chapters=row.get('target_chapters', 0),
-            premise=row.get('premise', ''),
+            title=row["title"],
+            author=row.get("author", "未知作者"),
+            target_chapters=row.get("target_chapters", 0),
+            premise=row.get("premise", ""),
             autopilot_status=autopilot_status,
-            auto_approve_mode=bool(row.get('auto_approve_mode', 0)),
+            auto_approve_mode=bool(row.get("auto_approve_mode", 0)),
             current_stage=current_stage,
-            current_act=row.get('current_act', 0),
-            current_chapter_in_act=row.get('current_chapter_in_act', 0),
-            max_auto_chapters=row.get('max_auto_chapters', 9999),
-            current_auto_chapters=row.get('current_auto_chapters', 0),
-            last_chapter_tension=row.get('last_chapter_tension', 0),
-            consecutive_error_count=row.get('consecutive_error_count', 0),
-            current_beat_index=row.get('current_beat_index', 0),
+            current_act=row.get("current_act", 0),
+            current_chapter_in_act=row.get("current_chapter_in_act", 0),
+            max_auto_chapters=row.get("max_auto_chapters", 9999),
+            current_auto_chapters=row.get("current_auto_chapters", 0),
+            last_chapter_tension=row.get("last_chapter_tension", 0),
+            consecutive_error_count=row.get("consecutive_error_count", 0),
+            current_beat_index=row.get("current_beat_index", 0),
             last_audit_chapter_number=row.get("last_audit_chapter_number"),
             last_audit_similarity=row.get("last_audit_similarity"),
             last_audit_drift_alert=bool(_lad) if _lad is not None else False,

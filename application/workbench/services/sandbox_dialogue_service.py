@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from application.workbench.dtos.sandbox_dto import DialogueEntry, DialogueWhitelistResponse
 from domain.ai.value_objects.prompt import Prompt
@@ -21,10 +22,7 @@ class SandboxDialogueService:
         self.narrative_event_repository = narrative_event_repository
 
     def get_dialogue_whitelist(
-        self,
-        novel_id: str,
-        chapter_number: Optional[int] = None,
-        speaker: Optional[str] = None
+        self, novel_id: str, chapter_number: Optional[int] = None, speaker: Optional[str] = None
     ) -> DialogueWhitelistResponse:
         """
         Get dialogue whitelist for sandbox simulation.
@@ -37,9 +35,7 @@ class SandboxDialogueService:
         Returns:
             DialogueWhitelistResponse containing filtered dialogues
         """
-        events = self.narrative_event_repository.list_up_to_chapter(
-            novel_id, max_chapter_inclusive=9999
-        )
+        events = self.narrative_event_repository.list_up_to_chapter(novel_id, max_chapter_inclusive=9999)
 
         dialogues: list[DialogueEntry] = []
 
@@ -159,7 +155,7 @@ class SandboxDialogueService:
             "对话:",
         ):
             if text.startswith(prefix):
-                text = text[len(prefix):].strip()
+                text = text[len(prefix) :].strip()
                 break
 
         if len(text) >= 2:
@@ -203,7 +199,7 @@ class SandboxDialogueService:
     def _strip_speaker_prefix(self, summary: str, speaker: str) -> str:
         for prefix in (f"{speaker}:", f"{speaker}："):
             if summary.startswith(prefix):
-                return summary[len(prefix):].strip()
+                return summary[len(prefix) :].strip()
         return summary
 
     def _extract_scene_context(self, tags: list[str]) -> str:

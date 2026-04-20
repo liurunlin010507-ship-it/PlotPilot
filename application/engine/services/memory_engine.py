@@ -25,22 +25,21 @@
         ├── get_revealed_clues()       → str (注入 T0-γ)
         └── update_from_chapter()      → 异步 LLM 调用 + 持久化
 """
+
 from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from application.ai.llm_json_extract import parse_llm_json_to_dict
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
 from domain.bible.repositories.bible_repository import BibleRepository
 from domain.novel.value_objects.novel_id import NovelId
-
-from application.ai.llm_json_extract import parse_llm_json_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +53,7 @@ _MAX_CLUES = 100
 
 class CompletedBeatItem(BaseModel):
     """已完成的一条剧情节拍"""
+
     beat_id: str = Field(description="节拍唯一标识，如 'ch3-meeting-first-time'")
     summary: str = Field(description="一句话概括这个已发生的事件")
     chapter: int = Field(description="该事件发生在第几章")
@@ -62,24 +62,23 @@ class CompletedBeatItem(BaseModel):
 
 class RevealedClueItem(BaseModel):
     """已向读者揭露的一条线索/真相"""
+
     clue_id: str = Field(description="线索唯一标识")
     content: str = Field(description="线索内容（读者和主角现在已知的信息）")
     revealed_at_chapter: int = Field(description="在第几章揭露")
     category: str = Field(
         default="truth",
-        description="类别: truth(真相)/relationship(关系变化)/identity(身份暴露)/ability(能力揭示)/other"
+        description="类别: truth(真相)/relationship(关系变化)/identity(身份暴露)/ability(能力揭示)/other",
     )
-    is_still_valid: bool = Field(
-        default=True,
-        description="该线索是否仍然有效（未被后续章节推翻/证伪）"
-    )
+    is_still_valid: bool = Field(default=True, description="该线索是否仍然有效（未被后续章节推翻/证伪）")
 
 
 class FactViolationItem(BaseModel):
     """事实违反检测（LLM 检测到生成文本与 FACT_LOCK 冲突）"""
+
     violation_type: str = Field(
         description="违反类型: dead_character_resurrected/character_drift/"
-                       "timeline_contradiction/relationship_error/unauthorized_character"
+        "timeline_contradiction/relationship_error/unauthorized_character"
     )
     description: str = Field(description="具体描述哪里违反了事实锁")
     severity: str = Field(default="warning", description="critical / warning / info")
@@ -88,19 +87,17 @@ class FactViolationItem(BaseModel):
 
 class MemoryDeltaPayload(BaseModel):
     """LLM 返回的记忆增量（extra=forbid 防止模型塞垃圾字段）"""
+
     model_config = ConfigDict(extra="forbid")
 
     completed_beats: List[CompletedBeatItem] = Field(
-        default_factory=list, max_length=_MAX_BEATS,
-        description="本章新完成的剧情节拍（之前没发生过的事件）"
+        default_factory=list, max_length=_MAX_BEATS, description="本章新完成的剧情节拍（之前没发生过的事件）"
     )
     revealed_clues: List[RevealedClueItem] = Field(
-        default_factory=list, max_length=_MAX_CLUES,
-        description="本章新向读者/主角揭露的信息或真相"
+        default_factory=list, max_length=_MAX_CLUES, description="本章新向读者/主角揭露的信息或真相"
     )
     fact_violations: List[FactViolationItem] = Field(
-        default_factory=list, max_length=20,
-        description="检测到的事实锁违反（如果有）"
+        default_factory=list, max_length=20, description="检测到的事实锁违反（如果有）"
     )
 
 
@@ -167,9 +164,10 @@ def _build_memory_extraction_user_prompt(
 # FactLockBuilder: 从 Bible 动态构建不可篡改事实块
 # ============================================================
 
+
 class FactLockBuilder:
     """从 Bible + KnowledgeGraph 动态构建 FACT_LOCK 文本
-    
+
     不是硬编码！数据来源：
     - Bible.characters → 角色白名单 + 死亡检测 + 身份锁
     - Bible.timeline_notes → 核心时间线
@@ -181,11 +179,11 @@ class FactLockBuilder:
 
     def build(self, novel_id: str, current_chapter: int = 0) -> str:
         """构建完整的 FACT_LOCK 文本块
-        
+
         Args:
             novel_id: 小说 ID
             current_chapter: 当前章节号（用于判断 hidden_profile 是否可见
-            
+
         Returns:
             格式化的 FACT_LOCK 文本
         """
@@ -216,7 +214,9 @@ class FactLockBuilder:
         if dead_chars:
             lines.append("★ 已死亡角色（绝对不可复活、不可在当下时间线中出现）：")
             for dc in dead_chars:
-                lines.append(f"   ❌ {dc['name']}({dc.get('role', '未知')}) - {dc.get('cause', '原因不详')}（死于{dc.get('when', '未知时间')}）")
+                lines.append(
+                    f"   ❌ {dc['name']}({dc.get('role', '未知')}) - {dc.get('cause', '原因不详')}（死于{dc.get('when', '未知时间')}）"
+                )
             lines.append("")
 
         # ── 3. 核心关系图谱 ──
@@ -246,15 +246,24 @@ class FactLockBuilder:
 
     def _extract_dead_characters(self, characters: list) -> list[Dict]:
         """从角色列表中推断已死亡角色
-        
+
         策略：
         - 检查 description 中是否包含死亡相关关键词
         - 检查 relationships 中是否有 "dead/died/死亡/已故" 关系
         - 后续可扩展为 Bible 的 is_dead 显式字段
         """
         dead_keywords = [
-            "死亡", " died ", "身亡", "去世", "已故", "牺牲",
-            " killed ", "被杀", "遇害", "丧命", "殒命",
+            "死亡",
+            " died ",
+            "身亡",
+            "去世",
+            "已故",
+            "牺牲",
+            " killed ",
+            "被杀",
+            "遇害",
+            "丧命",
+            "殒命",
         ]
         dead_chars = []
 
@@ -323,9 +332,7 @@ class FactLockBuilder:
                 identity_parts.append(char.public_profile)
 
             # 如果到了 reveal 章节，追加隐藏面
-            if (char.hidden_profile and
-                char.reveal_chapter is not None and
-                current_chapter >= char.reveal_chapter):
+            if char.hidden_profile and char.reveal_chapter is not None and current_chapter >= char.reveal_chapter:
                 identity_parts.append(f"[已揭露] {char.hidden_profile}")
 
             # 心理状态
@@ -340,11 +347,11 @@ class FactLockBuilder:
     def _build_timeline_lines(self, bible) -> list[str]:
         """从 Bible 的 timeline_notes 构建时间线"""
         lines = []
-        if hasattr(bible, 'timeline_notes') and bible.timeline_notes:
+        if hasattr(bible, "timeline_notes") and bible.timeline_notes:
             for note in bible.timeline_notes:
                 # TimelineNote 可能有 timestamp / event / description 等属性
-                time_str = getattr(note, 'timestamp', '')
-                event_str = getattr(note, 'event', '') or getattr(note, 'description', '')
+                time_str = getattr(note, "timestamp", "")
+                event_str = getattr(note, "event", "") or getattr(note, "description", "")
                 if event_str:
                     entry = f"[{time_str}] {event_str}" if time_str else event_str
                     lines.append(entry)
@@ -355,9 +362,11 @@ class FactLockBuilder:
 # MemoryEngine: 主入口（Facade）
 # ============================================================
 
+
 @dataclass
 class MemoryState:
     """持久化的记忆状态快照"""
+
     novel_id: str = ""
     last_updated_chapter: int = 0
     completed_beats: List[Dict[str, Any]] = field(default_factory=list)
@@ -367,22 +376,22 @@ class MemoryState:
 
 class MemoryEngine:
     """V6 记忆引擎主入口
-    
+
     职责：
     1. 构建 FACT_LOCK（通过 FactLockBuilder 从 Bible 动态生成）
     2. 管理 COMPLETED_BEATS（LLM 提取 + 去重累积）
     3. 管理 REVEALED_CLUES（LLM 提取 + 有效性追踪）
     4. 提供 T0 注入文本接口（供 ContextBudgetAllocator 使用）
     5. 章后异步回写（调用 LLM 提取增量 + 持久化）
-    
+
     使用方式：
         engine = MemoryEngine(llm_service, bible_repository, db_connection)
-        
+
         # 生成前：获取 T0 注入文本
         fact_lock = engine.build_fact_lock_section(novel_id, chapter_number)
         beats = engine.get_completed_beats_section()
         clues = engine.get_revealed_clues_section()
-        
+
         # 生成后：更新状态
         await engine.update_from_chapter(novel_id, ch_num, content, outline)
     """
@@ -421,9 +430,7 @@ class MemoryEngine:
             summary = beat.get("summary", "")
             beat_id = beat.get("beat_id", "")
             lines.append(f"   ✓ [第{ch}章] {summary}")
-        lines.append(
-            "\n⚠️ 如果你需要'回顾'这些事件，用角色的回忆/一句话带过，不要重新展开写。"
-        )
+        lines.append("\n⚠️ 如果你需要'回顾'这些事件，用角色的回忆/一句话带过，不要重新展开写。")
         return "\n".join(lines)
 
     def get_revealed_clues_section(self, novel_id: str) -> str:
@@ -443,13 +450,14 @@ class MemoryEngine:
             content = clue.get("content", "")
             category = clue.get("category", "")
             cat_emoji = {
-                "truth": "🔓真相", "relationship": "🔗关系",
-                "identity": "🎭身份", "ability": "⚡能力", "other": "📋信息"
+                "truth": "🔓真相",
+                "relationship": "🔗关系",
+                "identity": "🎭身份",
+                "ability": "⚡能力",
+                "other": "📋信息",
             }.get(category, "📋信息")
             lines.append(f"   [{cat_emoji}] [第{ch}章] {content}")
-        lines.append(
-            "\n⚠️ 以上信息已经是'已知'的，不要再把它们当作'新发现'来写。你可以在此基础上推进，但不能推翻。"
-        )
+        lines.append("\n⚠️ 以上信息已经是'已知'的，不要再把它们当作'新发现'来写。你可以在此基础上推进，但不能推翻。")
         return "\n".join(lines)
 
     # ============================================================
@@ -464,13 +472,13 @@ class MemoryEngine:
         outline: str,
     ) -> Dict[str, Any]:
         """章后状态回写：调用 LLM 提取增量 + 去重合并 + 持久化
-        
+
         Args:
             novel_id: 小说 ID
             chapter_number: 章节号
             content: 章节正文
             outline: 章节大纲
-            
+
         Returns:
             delta dict: {
                 "new_beats": int,
@@ -514,8 +522,7 @@ class MemoryEngine:
             if data is None:
                 result["errors"].extend(parse_errors)
                 logger.warning(
-                    f"MemoryEngine LLM JSON 解析失败: {parse_errors}, "
-                    f"raw response (first 200): {raw_response[:200]}"
+                    f"MemoryEngine LLM JSON 解析失败: {parse_errors}, raw response (first 200): {raw_response[:200]}"
                 )
                 return result
 
@@ -523,8 +530,7 @@ class MemoryEngine:
                 payload = MemoryDeltaPayload.model_validate(data)
             except ValidationError as e:
                 err_msg = "; ".join(
-                    f"{'/'.join(str(x) for x in err.get('loc', ''))}: {err.get('msg', '')}"
-                    for err in e.errors()[:10]
+                    f"{'/'.join(str(x) for x in err.get('loc', ''))}: {err.get('msg', '')}" for err in e.errors()[:10]
                 )
                 result["errors"].append(f"Contract 校验失败: {err_msg}")
                 logger.warning(f"MemoryEngine contract validation failed: {err_msg}")
@@ -541,13 +547,13 @@ class MemoryEngine:
             # 记录违反历史
             if payload.fact_violations:
                 for v in payload.fact_violations:
-                    state.fact_violations_history.append({
-                        "chapter": chapter_number,
-                        **v.model_dump(),
-                    })
-                logger.warning(
-                    f"检测到 {len(payload.fact_violations)} 个事实违反 @ ch{chapter_number}"
-                )
+                    state.fact_violations_history.append(
+                        {
+                            "chapter": chapter_number,
+                            **v.model_dump(),
+                        }
+                    )
+                logger.warning(f"检测到 {len(payload.fact_violations)} 个事实违反 @ ch{chapter_number}")
 
             # 6. 更新状态并持久化
             state.last_updated_chapter = chapter_number
@@ -623,11 +629,14 @@ class MemoryEngine:
 
         try:
             cursor = self.db_connection.cursor()
-            state_json = json.dumps({
-                "completed_beats": state.completed_beats,
-                "revealed_clues": state.revealed_clues,
-                "fact_violations_history": state.fact_violations_history,
-            }, ensure_ascii=False)
+            state_json = json.dumps(
+                {
+                    "completed_beats": state.completed_beats,
+                    "revealed_clues": state.revealed_clues,
+                    "fact_violations_history": state.fact_violations_history,
+                },
+                ensure_ascii=False,
+            )
 
             # UPSERT
             cursor.execute(
@@ -651,11 +660,14 @@ class MemoryEngine:
                 # 重试一次
                 try:
                     cursor = self.db_connection.cursor()
-                    state_json = json.dumps({
-                        "completed_beats": state.completed_beats,
-                        "revealed_clues": state.revealed_clues,
-                        "fact_violations_history": state.fact_violations_history,
-                    }, ensure_ascii=False)
+                    state_json = json.dumps(
+                        {
+                            "completed_beats": state.completed_beats,
+                            "revealed_clues": state.revealed_clues,
+                            "fact_violations_history": state.fact_violations_history,
+                        },
+                        ensure_ascii=False,
+                    )
                     cursor.execute(
                         """
                         INSERT INTO memory_engine_state (novel_id, state_json, last_updated_chapter, updated_at)
@@ -693,9 +705,7 @@ class MemoryEngine:
         except Exception as e:
             logger.error(f"创建 memory_engine_state 表失败: {e}")
 
-    def _merge_beats(
-        self, state: MemoryState, new_beats: List[CompletedBeatItem], chapter: int
-    ) -> int:
+    def _merge_beats(self, state: MemoryState, new_beats: List[CompletedBeatItem], chapter: int) -> int:
         """合并新的已完成节拍（去重）"""
         count = 0
         existing_ids = {b.get("beat_id") for b in state.completed_beats}
@@ -712,10 +722,7 @@ class MemoryEngine:
 
             # 也按 summary 做模糊去重
             summary = beat_data.get("summary", "")
-            if any(
-                existing.get("summary") == summary
-                for existing in state.completed_beats
-            ):
+            if any(existing.get("summary") == summary for existing in state.completed_beats):
                 continue
 
             state.completed_beats.append(beat_data)
@@ -723,9 +730,7 @@ class MemoryEngine:
 
         return count
 
-    def _merge_clues(
-        self, state: MemoryState, new_clues: List[RevealedClueItem], chapter: int
-    ) -> int:
+    def _merge_clues(self, state: MemoryState, new_clues: List[RevealedClueItem], chapter: int) -> int:
         """合并新的已揭露线索（去重 + 证伪标记）"""
         count = 0
         existing_ids = {c.get("clue_id") for c in state.revealed_clues}
@@ -741,10 +746,7 @@ class MemoryEngine:
 
             # 按内容模糊去重
             content = clue_data.get("content", "")
-            if any(
-                existing.get("content") == content
-                for existing in state.revealed_clues
-            ):
+            if any(existing.get("content") == content for existing in state.revealed_clues):
                 continue
 
             state.revealed_clues.append(clue_data)

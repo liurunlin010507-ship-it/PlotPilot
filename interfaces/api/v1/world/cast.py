@@ -1,17 +1,21 @@
 """Cast API routes"""
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+
 from typing import List, Optional
 
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
+
+from application.world.dtos.cast_dto import CastCoverageDTO, CastGraphDTO, CastSearchResultDTO
 from application.world.services.cast_service import CastService
-from application.world.dtos.cast_dto import CastGraphDTO, CastSearchResultDTO, CastCoverageDTO
 from interfaces.api.dependencies import get_cast_service
+
 router = APIRouter(tags=["cast"])
 
 
 # Request Models
 class StoryEventRequest(BaseModel):
     """Story event request"""
+
     id: str = Field(..., description="Event ID")
     summary: str = Field(..., description="Event summary")
     chapter_id: Optional[int] = Field(None, description="Chapter ID")
@@ -20,6 +24,7 @@ class StoryEventRequest(BaseModel):
 
 class CharacterRequest(BaseModel):
     """Character request"""
+
     id: str = Field(..., description="Character ID")
     name: str = Field(..., description="Character name")
     aliases: List[str] = Field(default_factory=list, description="Character aliases")
@@ -31,6 +36,7 @@ class CharacterRequest(BaseModel):
 
 class RelationshipRequest(BaseModel):
     """Relationship request"""
+
     id: str = Field(..., description="Relationship ID")
     source_id: str = Field(..., description="Source character ID")
     target_id: str = Field(..., description="Target character ID")
@@ -42,6 +48,7 @@ class RelationshipRequest(BaseModel):
 
 class UpdateCastGraphRequest(BaseModel):
     """Update cast graph request"""
+
     version: int = Field(2, description="Cast graph version")
     characters: List[CharacterRequest] = Field(..., description="Characters")
     relationships: List[RelationshipRequest] = Field(..., description="Relationships")
@@ -49,10 +56,7 @@ class UpdateCastGraphRequest(BaseModel):
 
 # Routes
 @router.get("/novels/{novel_id}/cast", response_model=CastGraphDTO)
-async def get_cast_graph(
-    novel_id: str,
-    service: CastService = Depends(get_cast_service)
-):
+async def get_cast_graph(novel_id: str, service: CastService = Depends(get_cast_service)):
     """获取人物关系图（从三元组自动生成）
 
     从 SQLite 知识库 triples 读取 facts。
@@ -89,11 +93,7 @@ async def get_cast_graph(
 
 
 @router.get("/novels/{novel_id}/cast/search", response_model=CastSearchResultDTO)
-async def search_cast(
-    novel_id: str,
-    q: str,
-    service: CastService = Depends(get_cast_service)
-):
+async def search_cast(novel_id: str, q: str, service: CastService = Depends(get_cast_service)):
     """Search characters and relationships in cast graph
 
     Args:
@@ -109,10 +109,7 @@ async def search_cast(
 
 
 @router.get("/novels/{novel_id}/cast/coverage", response_model=CastCoverageDTO)
-async def get_cast_coverage(
-    novel_id: str,
-    service: CastService = Depends(get_cast_service)
-):
+async def get_cast_coverage(novel_id: str, service: CastService = Depends(get_cast_service)):
     """Get cast coverage analysis for a novel
 
     Analyzes character mentions in chapters and compares with cast graph.

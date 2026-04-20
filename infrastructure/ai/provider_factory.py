@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from application.ai.llm_control_service import LLMControlService, LLMProfile
 from domain.ai.services.llm_service import GenerationConfig, GenerationResult, LLMService
@@ -32,9 +32,9 @@ class LLMProviderFactory:
             return MockProvider()
 
         settings = self._profile_to_settings(resolved)
-        if resolved.protocol == 'anthropic':
+        if resolved.protocol == "anthropic":
             return AnthropicProvider(settings)
-        if resolved.protocol == 'gemini':
+        if resolved.protocol == "gemini":
             return GeminiProvider(settings)
         return OpenAIProvider(settings)
 
@@ -42,9 +42,9 @@ class LLMProviderFactory:
         return self.create_from_profile(self.control_service.resolve_active_profile())
 
     def _profile_to_settings(self, profile: LLMProfile) -> Settings:
-        if profile.protocol == 'anthropic':
+        if profile.protocol == "anthropic":
             normalized_base_url = normalize_anthropic_base_url(profile.base_url)
-        elif profile.protocol == 'gemini':
+        elif profile.protocol == "gemini":
             normalized_base_url = normalize_gemini_base_url(profile.base_url)
         else:
             normalized_base_url = normalize_openai_base_url(profile.base_url)
@@ -76,7 +76,7 @@ class DynamicLLMService(LLMService):
 
     @staticmethod
     def _merge_config(config: GenerationConfig, provider: LLMService) -> GenerationConfig:
-        settings = getattr(provider, 'settings', None)
+        settings = getattr(provider, "settings", None)
         if settings is None:
             return config
 

@@ -1,8 +1,10 @@
 """Story Knowledge aggregate root"""
+
 from typing import List, Optional
-from domain.shared.base_entity import BaseEntity
-from domain.knowledge.knowledge_triple import KnowledgeTriple
+
 from domain.knowledge.chapter_summary import ChapterSummary
+from domain.knowledge.knowledge_triple import KnowledgeTriple
+from domain.shared.base_entity import BaseEntity
 
 
 class StoryKnowledge(BaseEntity):
@@ -17,7 +19,7 @@ class StoryKnowledge(BaseEntity):
         version: int = 1,
         premise_lock: str = "",
         chapters: List[ChapterSummary] = None,
-        facts: List[KnowledgeTriple] = None
+        facts: List[KnowledgeTriple] = None,
     ):
         """初始化故事知识
 

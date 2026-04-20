@@ -1,11 +1,13 @@
 """Bible 数据映射器"""
-from typing import Dict, Any
+
+from typing import Any, Dict
+
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character import Character
-from domain.bible.entities.world_setting import WorldSetting
 from domain.bible.entities.location import Location
-from domain.bible.entities.timeline_note import TimelineNote
 from domain.bible.entities.style_note import StyleNote
+from domain.bible.entities.timeline_note import TimelineNote
+from domain.bible.entities.world_setting import WorldSetting
 from domain.bible.value_objects.character_id import CharacterId
 from domain.novel.value_objects.novel_id import NovelId
 
@@ -47,7 +49,7 @@ class BibleMapper:
                     "id": setting.id,
                     "name": setting.name,
                     "description": setting.description,
-                    "setting_type": setting.setting_type
+                    "setting_type": setting.setting_type,
                 }
                 for setting in bible.world_settings
             ],
@@ -62,22 +64,12 @@ class BibleMapper:
                 for loc in bible.locations
             ],
             "timeline_notes": [
-                {
-                    "id": note.id,
-                    "event": note.event,
-                    "time_point": note.time_point,
-                    "description": note.description
-                }
+                {"id": note.id, "event": note.event, "time_point": note.time_point, "description": note.description}
                 for note in bible.timeline_notes
             ],
             "style_notes": [
-                {
-                    "id": note.id,
-                    "category": note.category,
-                    "content": note.content
-                }
-                for note in bible.style_notes
-            ]
+                {"id": note.id, "category": note.category, "content": note.content} for note in bible.style_notes
+            ],
         }
 
     @staticmethod
@@ -101,10 +93,7 @@ class BibleMapper:
 
         try:
             # 创建 Bible 实体
-            bible = Bible(
-                id=data["id"],
-                novel_id=NovelId(data["novel_id"])
-            )
+            bible = Bible(id=data["id"], novel_id=NovelId(data["novel_id"]))
 
             # 添加人物
             for char_data in data.get("characters", []):
@@ -137,7 +126,7 @@ class BibleMapper:
                     id=setting_data["id"],
                     name=setting_data["name"],
                     description=setting_data["description"],
-                    setting_type=setting_data["setting_type"]
+                    setting_type=setting_data["setting_type"],
                 )
                 bible.add_world_setting(setting)
 
@@ -160,17 +149,13 @@ class BibleMapper:
                     id=note_data["id"],
                     event=note_data["event"],
                     time_point=note_data.get("time_point", ""),
-                    description=note_data.get("description", "")
+                    description=note_data.get("description", ""),
                 )
                 bible.add_timeline_note(note)
 
             # 添加风格笔记
             for note_data in data.get("style_notes", []):
-                note = StyleNote(
-                    id=note_data["id"],
-                    category=note_data["category"],
-                    content=note_data["content"]
-                )
+                note = StyleNote(id=note_data["id"], category=note_data["category"], content=note_data["content"])
                 bible.add_style_note(note)
 
             return bible

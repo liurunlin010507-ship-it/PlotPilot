@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 提示词 v6 自测脚本 - 记忆引擎增强版
 
@@ -22,12 +21,12 @@ v6 架构升级（解决状态机崩溃三大问题）:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -50,17 +49,18 @@ NOVEL_PREMISE = {
 # ============================================================
 FACT_LOCK = {
     # ── 核心角色名单白名单（绝对全集，不许增减） ──
-    "allowed_characters": [
-        "顾言之", "乔知诺", "赵宇", "周明远", "林远"
-    ],
-    
+    "allowed_characters": ["顾言之", "乔知诺", "赵宇", "周明远", "林远"],
     # ── 已死亡角色（绝对不可复活，不可在正文中"出现"） ──
     "dead_characters": [
         {"name": "顾建国", "role": "顾言之的父亲", "cause": "十年前雨夜车祸身亡", "died_at": "十年前"},
         {"name": "顾言之的母亲", "role": "顾言之的母亲", "cause": "十年前雨夜车祸身亡（同车）", "died_at": "十年前"},
-        {"name": "乔建国", "role": "乔知诺的父亲", "cause": "十年前雨夜车祸身亡（与顾言之父母同一辆车）", "died_at": "十年前"},
+        {
+            "name": "乔建国",
+            "role": "乔知诺的父亲",
+            "cause": "十年前雨夜车祸身亡（与顾言之父母同一辆车）",
+            "died_at": "十年前",
+        },
     ],
-    
     # ── 核心人物关系图谱（不可篡改） ──
     "relationship_facts": [
         ("顾言之", "青梅竹马/ former", "乔知诺"),
@@ -70,19 +70,30 @@ FACT_LOCK = {
         ("乔知诺", "女儿", "乔建国(已死)"),
         ("顾言之", "儿子", "顾建国(已死)"),
     ],
-    
     # ── 核心事件时间线（不可矛盾） ──
     "timeline_lock": [
-        {"event": "十年前雨夜车祸", "time": "十年前", "dead": ["顾建国", "顾母", "乔建国"], "survived": ["顾言之", "乔知诺"]},
+        {
+            "event": "十年前雨夜车祸",
+            "time": "十年前",
+            "dead": ["顾建国", "顾母", "乔建国"],
+            "survived": ["顾言之", "乔知诺"],
+        },
         {"event": "乔知诺随母亲离开滨海市", "time": "车祸后不久", "note": "十年后以转学生身份回归"},
         {"event": "故事现在时间线", "time": "十年后/当前", "note": "顾言之20岁大学生，乔知诺20岁转学生"},
     ],
-    
     # ── 身份锁死（不许漂移） ──
     "identity_lock": [
-        {"character": "顾言之", "identity": "A大物理系学生，20岁", "forbidden": ["律师", "医生", "企业继承人", "少爷", "任何非学生身份"]},
+        {
+            "character": "顾言之",
+            "identity": "A大物理系学生，20岁",
+            "forbidden": ["律师", "医生", "企业继承人", "少爷", "任何非学生身份"],
+        },
         {"character": "乔知诺", "identity": "美术系转学生，20岁", "forbidden": ["任何非学生身份"]},
-        {"character": "赵宇", "identity": "社会闲散人员，混迹老街游戏厅，21岁", "forbidden": ["成功人士", "警察", "任何体面职业"]},
+        {
+            "character": "赵宇",
+            "identity": "社会闲散人员，混迹老街游戏厅，21岁",
+            "forbidden": ["成功人士", "警察", "任何体面职业"],
+        },
     ],
 }
 
@@ -148,27 +159,27 @@ CHAPTER_OUTLINES = [
     {
         "number": 1,
         "title": "雨夜的回响",
-        "outline": "暴雨夜，顾言之独自在宿舍翻看旧相册，七岁时和乔知诺的合影让他陷入回忆。雨声与记忆中的刹车声重叠。室友周明远敲门进来喝酒聊天，无意中提到乔知诺的名字让顾言之心神不宁。最后林远带回消息——乔知诺让人给他带了张纸条。悬念：纸条上写了什么？"
+        "outline": "暴雨夜，顾言之独自在宿舍翻看旧相册，七岁时和乔知诺的合影让他陷入回忆。雨声与记忆中的刹车声重叠。室友周明远敲门进来喝酒聊天，无意中提到乔知诺的名字让顾言之心神不宁。最后林远带回消息——乔知诺让人给他带了张纸条。悬念：纸条上写了什么？",
     },
     {
         "number": 2,
         "title": "十年了，你还敢来见我？",
-        "outline": "顾言之按纸条指引来到老街旧游戏厅，那是他们儿时的秘密基地。他在《合金弹头》机器旁找到了坐着的乔知诺。两人对视，她递给他一枚游戏币。一起打游戏时顾言之操作生疏，对话中试探性地问'你还恨我吗'，乔知诺反问'为什么要恨你'。就在气氛微妙时，赵宇突然出现，意味深长地问出致命问题——那天晚上车为什么会失控？"
+        "outline": "顾言之按纸条指引来到老街旧游戏厅，那是他们儿时的秘密基地。他在《合金弹头》机器旁找到了坐着的乔知诺。两人对视，她递给他一枚游戏币。一起打游戏时顾言之操作生疏，对话中试探性地问'你还恨我吗'，乔知诺反问'为什么要恨你'。就在气氛微妙时，赵宇突然出现，意味深长地问出致命问题——那天晚上车为什么会失控？",
     },
     {
         "number": 3,
         "title": "旧街灯下的第三个人",
-        "outline": "赵宇的出现打破了脆弱的平衡。他用看似随意的语气抛出关于当年车祸的细节，每一句话都像刀子。顾言之强装镇定但内心翻涌。乔知诺突然站起身离开，顾言之追出去，在昏黄的老街路灯下，她第一次露出脆弱的一面——'我不是来原谅你的，我只是想亲口听你说那句话。'但她没说完就走了。"
+        "outline": "赵宇的出现打破了脆弱的平衡。他用看似随意的语气抛出关于当年车祸的细节，每一句话都像刀子。顾言之强装镇定但内心翻涌。乔知诺突然站起身离开，顾言之追出去，在昏黄的老街路灯下，她第一次露出脆弱的一面——'我不是来原谅你的，我只是想亲口听你说那句话。'但她没说完就走了。",
     },
     {
         "number": 4,
         "title": "不该打开的门",
-        "outline": "顾言之回到宿舍彻夜难眠。第二天他开始暗中调查当年车祸的真相，发现一些不对劲的地方——事故报告有疑点，赵宇似乎知道更多。他去找赵宇对峙，在烟雾缭绕的游戏厅后巷，赵宇笑着一句话把他钉在原地：'你以为你爸是在开车？'这句话颠覆了顾言之十年的认知。"
+        "outline": "顾言之回到宿舍彻夜难眠。第二天他开始暗中调查当年车祸的真相，发现一些不对劲的地方——事故报告有疑点，赵宇似乎知道更多。他去找赵宇对峙，在烟雾缭绕的游戏厅后巷，赵宇笑着一句话把他钉在原地：'你以为你爸是在开车？'这句话颠覆了顾言之十年的认知。",
     },
     {
         "number": 5,
         "title": "崩塌与重建",
-        "outline": "真相的碎片开始拼合。顾言之发现自己十年来活在一个谎言里。他在崩溃边缘找到了乔知诺——不是为了寻求安慰，而是为了告诉她他查到了什么。两人在海边（呼应第一章照片中的海滩）对峙，乔知诺终于说出她回来的真正原因：她手里有一份证据，而这份证据指向的人，比顾言之想象的更近。"
+        "outline": "真相的碎片开始拼合。顾言之发现自己十年来活在一个谎言里。他在崩溃边缘找到了乔知诺——不是为了寻求安慰，而是为了告诉她他查到了什么。两人在海边（呼应第一章照片中的海滩）对峙，乔知诺终于说出她回来的真正原因：她手里有一份证据，而这份证据指向的人，比顾言之想象的更近。",
     },
 ]
 
@@ -179,21 +190,20 @@ CHAPTER_OUTLINES = [
 # ============================================================
 class ChapterStateMachine:
     """章间状态机 - 轻量级增量状态追踪
-    
+
     不依赖 LLM 提取，基于大纲预映射 + 关键词扫描做增量更新。
     正式系统应使用 StateExtractor(LLM)，但自测场景下轻量方案足够。
     """
-    
+
     def __init__(self):
-        self.completed_beats: List[str] = []       # 已完成的节拍（防重复）
-        self.revealed_clues: List[Dict] = []         # 已揭露线索（累积，防矛盾）
+        self.completed_beats: List[str] = []  # 已完成的节拍（防重复）
+        self.revealed_clues: List[Dict] = []  # 已揭露线索（累积，防矛盾）
         self.character_states: Dict[str, str] = {}  # 角色当前状态快照
-        self.active_threats: List[str] = []          # 当前活跃威胁/悬念
-    
-    def update_from_chapter(self, chapter_num: int, chapter_title: str,
-                            content: str, outline: str) -> Dict:
+        self.active_threats: List[str] = []  # 当前活跃威胁/悬念
+
+    def update_from_chapter(self, chapter_num: int, chapter_title: str, content: str, outline: str) -> Dict:
         """从生成的章节内容中增量提取状态（同步阻塞，无需 LLM）
-        
+
         Returns:
             delta: 增量状态字典，用于注入下一章 context
         """
@@ -203,7 +213,7 @@ class ChapterStateMachine:
             "character_states": {},
             "active_threats": [],
         }
-        
+
         # 1. 已完成节拍（基于大纲预映射 + 内容验证）
         beat_map = {
             1: "第1章：顾言之收到乔知诺纸条，陷入回忆与愧疚",
@@ -217,17 +227,25 @@ class ChapterStateMachine:
             if beat not in self.completed_beats:
                 self.completed_beats.append(beat)
                 delta["completed_beats"].append(beat)
-        
+
         # 2. 已揭露线索（基于章节号递进 + 关键词交叉验证）
         clue_map = {
-            2: [{"clue": "乔知诺已回归滨海市（转学生身份）", "since_ch": 2},
-                 {"clue": "赵宇知道当年车祸的一些内情", "since_ch": 2}],
-            3: [{"clue": "赵宇暗示车祸可能不是意外失控", "since_ch": 3},
-                 {"clue": "乔知诺的目的不是原谅而是寻求答案", "since_ch": 3}],
-            4: [{"clue": "事故报告存在疑点", "since_ch": 4},
-                 {"clue": "颠覆性信息：顾建国（顾父）可能并非当时在开车", "since_ch": 4}],
-            5: [{"clue": "乔知诺手中掌握着关于真相的证据", "since_ch": 5},
-                 {"clue": "证据指向的人物比想象中更接近顾言之", "since_ch": 5}],
+            2: [
+                {"clue": "乔知诺已回归滨海市（转学生身份）", "since_ch": 2},
+                {"clue": "赵宇知道当年车祸的一些内情", "since_ch": 2},
+            ],
+            3: [
+                {"clue": "赵宇暗示车祸可能不是意外失控", "since_ch": 3},
+                {"clue": "乔知诺的目的不是原谅而是寻求答案", "since_ch": 3},
+            ],
+            4: [
+                {"clue": "事故报告存在疑点", "since_ch": 4},
+                {"clue": "颠覆性信息：顾建国（顾父）可能并非当时在开车", "since_ch": 4},
+            ],
+            5: [
+                {"clue": "乔知诺手中掌握着关于真相的证据", "since_ch": 5},
+                {"clue": "证据指向的人物比想象中更接近顾言之", "since_ch": 5},
+            ],
         }
         if chapter_num in clue_map:
             for clue in clue_map[chapter_num]:
@@ -235,14 +253,18 @@ class ChapterStateMachine:
                 if not any(c["clue"] == clue["clue"] for c in self.revealed_clues):
                     self.revealed_clues.append(clue)
                     delta["revealed_clues"].append(clue)
-        
+
         # 3. 角色状态快照（关键词启发式）
         state_keywords = {
-            "顾言之": [("愧疚", ["愧疚", "自责", "对不起", "责任"]),
-                       ("震惊/认知崩塌", ["不可能", "骗我", "谎言", "怎么会", "颠覆"]),
-                       ("主动调查", ["调查", "查", "报告", "真相"])],
-            "乔知诺": [("冷漠/试探", ["冷淡", "疏离", "试探", "反问"]),
-                        ("脆弱/情感流露", ["脆弱", "眼泪", "声音发抖", "没说完"])],
+            "顾言之": [
+                ("愧疚", ["愧疚", "自责", "对不起", "责任"]),
+                ("震惊/认知崩塌", ["不可能", "骗我", "谎言", "怎么会", "颠覆"]),
+                ("主动调查", ["调查", "查", "报告", "真相"]),
+            ],
+            "乔知诺": [
+                ("冷漠/试探", ["冷淡", "疏离", "试探", "反问"]),
+                ("脆弱/情感流露", ["脆弱", "眼泪", "声音发抖", "没说完"]),
+            ],
             "赵宇": [("掌控/威胁", ["笑", "慢悠悠", "你想知道", "秘密"])],
         }
         for char, states in state_keywords.items():
@@ -251,32 +273,32 @@ class ChapterStateMachine:
                     self.character_states[char] = state_name
                     delta["character_states"][char] = state_name
                     break
-        
+
         return delta
-    
+
     def get_fact_lock_section(self) -> str:
         """生成 FACT_LOCK 上下文块（T0 最高优先级）"""
         lines = ["【🔒 绝对事实边界（一旦违背即为废稿）】\n"]
         lines.append("★ 角色白名单（只可使用以下有名字的角色）：")
         lines.append(f"   允许: {', '.join(FACT_LOCK['allowed_characters'])}")
         lines.append("   禁止: 创造任何其他有名字的角色！路人可以无名但不许命名！\n")
-        
+
         lines.append("★ 已死亡角色（绝对不可复活、不可在当下时间线中出现）：")
         for dead in FACT_LOCK["dead_characters"]:
             lines.append(f"   ❌ {dead['name']}({dead['role']}) - {dead['cause']}（死于{dead['died_at']}）")
         lines.append("")
-        
+
         lines.append("★ 核心关系（不可更改）：")
         for rel in FACT_LOCK["relationship_facts"]:
             lines.append(f"   {rel[0]} ——{rel[1]}—— {rel[2]}")
         lines.append("")
-        
+
         lines.append("★ 身份锁死：")
         for ident in FACT_LOCK["identity_lock"]:
             forbidden = ", ".join(ident["forbidden"])
             lines.append(f"   {ident['character']} = {ident['identity']}（禁止写成: {forbidden}）")
         lines.append("")
-        
+
         lines.append("★ 核心事件时间线（不可矛盾）：")
         for tl in FACT_LOCK["timeline_lock"]:
             dead_list = tl.get("dead", [])
@@ -285,9 +307,9 @@ class ChapterStateMachine:
             surv_str = ", ".join(surv_list) if surv_list else "无"
             note = tl.get("note", "")
             lines.append(f"   [{tl['time']}] {tl['event']} | 死者:{dead_str} | 幸存者:{surv_str} | 备注:{note}")
-        
+
         return "\n".join(lines)
-    
+
     def get_completed_beats_section(self) -> str:
         """生成已完成节拍锁（防止剧情重复）"""
         if not self.completed_beats:
@@ -297,7 +319,7 @@ class ChapterStateMachine:
             lines.append(f"   ✓ {beat}")
         lines.append("\n⚠️ 如果你需要'回顾'这些事件，用角色的回忆/一句话带过，不要重新展开写。")
         return "\n".join(lines)
-    
+
     def get_revealed_clues_section(self) -> str:
         """生成已揭露线索清单（防止矛盾）"""
         if not self.revealed_clues:
@@ -327,39 +349,45 @@ class PromptV2SelfTest:
             # 方式1: 从数据库读取 LLM 配置（和项目主流程一致）
             try:
                 from interfaces.api.dependencies import get_llm_provider_factory
+
                 factory = get_llm_provider_factory()
                 provider = factory.create_active_provider()
                 self.llm_provider = provider
-                settings = getattr(provider, 'settings', None)
-                model = getattr(settings, 'default_model', '') if settings else '(unknown)'
+                settings = getattr(provider, "settings", None)
+                model = getattr(settings, "default_model", "") if settings else "(unknown)"
                 print(f"✓ LLM 初始化成功 (from DB config), model={model}")
                 return True
             except Exception as db_err:
                 print(f"  数据库方式失败: {db_err}, 尝试环境变量...")
-            
+
             # 方式2: 环境变量回退
             import os
+
             api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")
-            
+
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
                 if api_key:
-                    from infrastructure.ai.providers.openai_provider import OpenAIProvider
                     from infrastructure.ai.config.settings import Settings
+                    from infrastructure.ai.providers.openai_provider import OpenAIProvider
+
                     settings = Settings(
                         api_key=api_key.strip(),
                         base_url=(os.getenv("OPENAI_BASE_URL") or "").strip() or None,
                         default_model=os.getenv("WRITING_MODEL") or "",
                     )
                     self.llm_provider = OpenAIProvider(settings)
-                    print(f"✓ LLM (OpenAI) 初始化成功")
+                    print("✓ LLM (OpenAI) 初始化成功")
                     return True
-            
+
             if not api_key:
-                raise ValueError("未找到 API Key。请设置 ANTHROPIC_API_KEY / OPENAI_API_KEY 环境变量，或通过前端配置面板设置 LLM")
-            
-            from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
+                raise ValueError(
+                    "未找到 API Key。请设置 ANTHROPIC_API_KEY / OPENAI_API_KEY 环境变量，或通过前端配置面板设置 LLM"
+                )
+
             from infrastructure.ai.config.settings import Settings
+            from infrastructure.ai.providers.anthropic_provider import AnthropicProvider
+
             settings = Settings(
                 api_key=api_key.strip(),
                 base_url=(os.getenv("ANTHROPIC_BASE_URL") or "").strip() or None,
@@ -371,6 +399,7 @@ class PromptV2SelfTest:
         except Exception as e:
             print(f"✗ LLM初始化失败: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -447,7 +476,7 @@ class PromptV2SelfTest:
 
     def _build_context(self, chapter_number: int, previous_chapters: List[str]) -> str:
         """构建上下文 v6（记忆引擎增强版：FACT_LOCK + 状态机 + 线索清单）
-        
+
         v6 架构变更：
         - T0 槽位新增: FACT_LOCK（不可篡改事实）+ COMPLETED_BEATS（防重复）+ REVEALED_CLUES（防矛盾）
         - 这些槽位权重 = ∞，绝对不可被裁剪
@@ -526,9 +555,9 @@ class PromptV2SelfTest:
         """构建v5版本的用户提示词"""
         user = f"""「本章你要讲的这段故事」
 
-第{chapter['number']}章《{chapter['title']}》
+第{chapter["number"]}章《{chapter["title"]}》
 
-{chapter['outline']}
+{chapter["outline"]}
 
 ━━ 写的时候记住 ━━
 
@@ -550,14 +579,11 @@ class PromptV2SelfTest:
         system_prompt = self._build_v5_system_prompt()
         context = self._build_context(chapter["number"], previous_chapters)
         # 将 context 注入 system prompt 的占位符
-        full_system = system_prompt.replace(
-            "{planning_section}{voice_block}{context}",
-            context
-        )
+        full_system = system_prompt.replace("{planning_section}{voice_block}{context}", context)
         user_prompt = self._build_user_prompt(chapter, previous_chapters)
 
-        from domain.ai.value_objects.prompt import Prompt
         from domain.ai.services.llm_service import GenerationConfig
+        from domain.ai.value_objects.prompt import Prompt
 
         prompt = Prompt(system=full_system, user=user_prompt)
         config = GenerationConfig(
@@ -572,8 +598,8 @@ class PromptV2SelfTest:
             duration = time.time() - start_time
 
             # 统计字数
-            chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', content))
-            total_chars = len(content.replace('\n', '').replace(' ', ''))
+            chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", content))
+            total_chars = len(content.replace("\n", "").replace(" ", ""))
 
             return {
                 "success": True,
@@ -627,7 +653,7 @@ class PromptV2SelfTest:
                 print(f"  ⏱️  耗时: {result['duration_seconds']}s")
 
                 # 预览前300字
-                preview = result["content"][:300].replace('\n', ' ')
+                preview = result["content"][:300].replace("\n", " ")
                 print(f"  👁️  预览: {preview}...")
 
                 # ★ v6 新增：章后状态回写（同步阻塞，无需额外 LLM 调用）
@@ -635,7 +661,7 @@ class PromptV2SelfTest:
                     chapter_num=chapter["number"],
                     chapter_title=chapter["title"],
                     content=result["content"],
-                    outline=chapter["outline"]
+                    outline=chapter["outline"],
                 )
                 if delta["completed_beats"]:
                     print(f"  📝 状态机: 节拍已锁 +{len(delta['completed_beats'])}")
@@ -663,7 +689,7 @@ class PromptV2SelfTest:
         for result in results:
             if result["success"]:
                 ch_file = round_dir / f"ch{result['chapter_number']:02d}_{result['title']}.txt"
-                with open(ch_file, 'w', encoding='utf-8') as f:
+                with open(ch_file, "w", encoding="utf-8") as f:
                     f.write(f"第{result['chapter_number']}章 {result['title']}\n")
                     f.write("=" * 40 + "\n\n")
                     f.write(result["content"])
@@ -691,7 +717,7 @@ class PromptV2SelfTest:
             "total_duration": sum(r["duration_seconds"] for r in results),
         }
 
-        with open(report_file, 'w', encoding='utf-8') as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             json.dump(report_data, f, ensure_ascii=False, indent=2)
 
         print(f"\n💾 结果已保存至: {round_dir}")
@@ -699,7 +725,7 @@ class PromptV2SelfTest:
     def _print_report(self, results: List[Dict]):
         """打印评测报告"""
         print(f"\n{'=' * 60}")
-        print(f"  📊 自测报告")
+        print("  📊 自测报告")
         print(f"{'=' * 60}")
 
         success_count = sum(1 for r in results if r["success"])
@@ -714,32 +740,33 @@ class PromptV2SelfTest:
             avg_words = total_words / success_count
             print(f"  平均字数: {avg_words:.0f} 章")
 
-        print(f"\n  📋 各章详情:")
+        print("\n  📋 各章详情:")
         for r in results:
             status = "✅" if r["success"] else "❌"
             words = f"{r['word_count']}字" if r["success"] else f"错误: {r['error'][:50]}"
             print(f"    {status} 第{r['chapter_number']}章《{r['title']}》 - {words}")
 
         # AI味检测提示
-        print(f"\n  🔍 人工审阅要点:")
-        print(f"    □ 是否有'XX地说/XX地看'等情绪副词？")
-        print(f"    □ 是否有'夜幕降临/时光荏苒'等套路过渡？")
-        print(f"    □ 对话是否有弦外之音还是都在直说？")
-        print(f"    □ 环境描写是否服务于角色心理？")
-        print(f"    □ 节奏是否有长短句变化？")
-        print(f"    □ 结尾是否有钩子/悬念？")
+        print("\n  🔍 人工审阅要点:")
+        print("    □ 是否有'XX地说/XX地看'等情绪副词？")
+        print("    □ 是否有'夜幕降临/时光荏苒'等套路过渡？")
+        print("    □ 对话是否有弦外之音还是都在直说？")
+        print("    □ 环境描写是否服务于角色心理？")
+        print("    □ 节奏是否有长短句变化？")
+        print("    □ 结尾是否有钩子/悬念？")
         # ★ v6 新增检测项
-        print(f"\n  🔒 v6 记忆引擎专项检测:")
-        print(f"    □ 是否出现了 FACT_LOCK 白名单之外的有名字角色？")
-        print(f"    □ 已死亡角色（顾建国/乔建国）是否被错误地'复活'或出现在当下？")
-        print(f"    □ 角色身份是否漂移？（顾言之是否被写成非学生身份？）")
-        print(f"    □ 车祸死者名单是否一致？（是否出现矛盾说法如'死于东南亚'？）")
-        print(f"    □ 已完成节拍是否被重复写？（如重逢场景是否出现两次？）")
-        print(f"    □ 已揭露线索是否前后矛盾？（如事故报告的说法是否反复变化？）")
+        print("\n  🔒 v6 记忆引擎专项检测:")
+        print("    □ 是否出现了 FACT_LOCK 白名单之外的有名字角色？")
+        print("    □ 已死亡角色（顾建国/乔建国）是否被错误地'复活'或出现在当下？")
+        print("    □ 角色身份是否漂移？（顾言之是否被写成非学生身份？）")
+        print("    □ 车祸死者名单是否一致？（是否出现矛盾说法如'死于东南亚'？）")
+        print("    □ 已完成节拍是否被重复写？（如重逢场景是否出现两次？）")
+        print("    □ 已揭露线索是否前后矛盾？（如事故报告的说法是否反复变化？）")
 
 
 async def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="提示词V2自测工具")
     parser.add_argument("--round", "-r", type=int, default=1, help="迭代轮次编号")
     parser.add_argument("--chapters", "-c", type=int, default=5, help="生成章节数")

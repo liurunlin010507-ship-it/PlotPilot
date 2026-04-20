@@ -2,10 +2,12 @@
 
 注意：这是临时实现，生产环境需要替换为真正的数据库实现
 """
-from typing import List, Optional, Dict
-from domain.novel.entities.novel import Novel, AutopilotStatus
-from domain.novel.value_objects.novel_id import NovelId
+
+from typing import Dict, List, Optional
+
+from domain.novel.entities.novel import AutopilotStatus, Novel
 from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.novel_id import NovelId
 
 
 class InMemoryNovelRepository(NovelRepository):
@@ -32,10 +34,7 @@ class InMemoryNovelRepository(NovelRepository):
 
     def find_by_autopilot_status(self, status: AutopilotStatus) -> List[Novel]:
         """根据自动驾驶状态查询小说"""
-        return [
-            novel for novel in self._storage.values()
-            if novel.autopilot_status == status
-        ]
+        return [novel for novel in self._storage.values() if novel.autopilot_status == status]
 
     def delete(self, novel_id: NovelId) -> None:
         """删除小说"""

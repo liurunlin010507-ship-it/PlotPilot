@@ -1,7 +1,9 @@
 """基于文件系统的存储实现"""
+
 import json
 from pathlib import Path
 from typing import Any, List
+
 from .backend import StorageBackend
 
 
@@ -37,7 +39,7 @@ class FileStorage(StorageBackend):
         if not full_path.exists():
             raise FileNotFoundError(f"File not found: {path}")
 
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, encoding="utf-8") as f:
             return json.load(f)
 
     def write_json(self, path: str, data: Any) -> None:
@@ -45,7 +47,7 @@ class FileStorage(StorageBackend):
         full_path = self._resolve_path(path)
         full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(full_path, 'w', encoding='utf-8') as f:
+        with open(full_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def read_text(self, path: str) -> str:
@@ -54,7 +56,7 @@ class FileStorage(StorageBackend):
         if not full_path.exists():
             raise FileNotFoundError(f"File not found: {path}")
 
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, encoding="utf-8") as f:
             return f.read()
 
     def write_text(self, path: str, content: str) -> None:
@@ -62,7 +64,7 @@ class FileStorage(StorageBackend):
         full_path = self._resolve_path(path)
         full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(full_path, 'w', encoding='utf-8') as f:
+        with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def exists(self, path: str) -> bool:

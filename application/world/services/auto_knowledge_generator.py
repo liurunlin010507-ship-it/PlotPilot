@@ -1,14 +1,16 @@
 """自动 Knowledge 生成器 - 从小说 Bible 生成初始知识图谱"""
+
 import logging
-from typing import Dict, Any
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
+from typing import Any, Dict
+
 from application.ai.knowledge_llm_contract import (
     build_initial_knowledge_system_prompt,
     parse_initial_knowledge_llm_response,
     to_knowledge_service_update_dict,
 )
 from application.world.services.knowledge_service import KnowledgeService
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +27,7 @@ class AutoKnowledgeGenerator:
         self.llm_service = llm_service
         self.knowledge_service = knowledge_service
 
-    async def generate_and_save(
-        self,
-        novel_id: str,
-        title: str,
-        bible_summary: str = ""
-    ) -> Dict[str, Any]:
+    async def generate_and_save(self, novel_id: str, title: str, bible_summary: str = "") -> Dict[str, Any]:
         """生成并保存初始 Knowledge
 
         Args:
@@ -47,10 +44,7 @@ class AutoKnowledgeGenerator:
 
         self._save_to_knowledge(novel_id, knowledge_data)
 
-        logger.info(
-            f"Knowledge generated for {novel_id}: "
-            f"facts={len(knowledge_data.get('facts', []))}"
-        )
+        logger.info(f"Knowledge generated for {novel_id}: facts={len(knowledge_data.get('facts', []))}")
         return knowledge_data
 
     async def _generate_knowledge_data(self, title: str, bible_summary: str) -> Dict[str, Any]:
@@ -92,7 +86,7 @@ class AutoKnowledgeGenerator:
             "chapters": knowledge_data.get("chapters", []),
             "facts": [
                 {
-                    "id": f.get("id", f"fact-{i+1:03d}"),
+                    "id": f.get("id", f"fact-{i + 1:03d}"),
                     "subject": f.get("subject", ""),
                     "predicate": f.get("predicate", ""),
                     "object": f.get("object", ""),

@@ -1,9 +1,11 @@
 """Writer Block API endpoints."""
 
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException
+
 from application.analyst.services.tension_analyzer import TensionAnalyzer
-from application.workbench.dtos.writer_block_dto import TensionSlingshotRequest, TensionDiagnosis
+from application.workbench.dtos.writer_block_dto import TensionDiagnosis, TensionSlingshotRequest
 from interfaces.api.dependencies import get_tension_analyzer
 
 logger = logging.getLogger(__name__)
@@ -13,9 +15,7 @@ router = APIRouter(prefix="/novels", tags=["writer-block"])
 
 @router.post("/{novel_id}/writer-block/tension-slingshot", response_model=TensionDiagnosis)
 async def tension_slingshot(
-    novel_id: str,
-    request: TensionSlingshotRequest,
-    analyzer: TensionAnalyzer = Depends(get_tension_analyzer)
+    novel_id: str, request: TensionSlingshotRequest, analyzer: TensionAnalyzer = Depends(get_tension_analyzer)
 ) -> TensionDiagnosis:
     """
     Analyze writer's block and generate breakthrough suggestions.
@@ -38,10 +38,7 @@ async def tension_slingshot(
     try:
         # Validate novel_id matches request
         if request.novel_id != novel_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Novel ID in path does not match request body"
-            )
+            raise HTTPException(status_code=400, detail="Novel ID in path does not match request body")
 
         # Analyze tension
         diagnosis = await analyzer.analyze_tension(request)

@@ -1,7 +1,9 @@
 """Anthropic LLM 提供商实现"""
+
 import json
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 from anthropic import Anthropic, AsyncAnthropic
@@ -10,6 +12,7 @@ from domain.ai.services.llm_service import GenerationConfig, GenerationResult
 from domain.ai.value_objects.prompt import Prompt
 from domain.ai.value_objects.token_usage import TokenUsage
 from infrastructure.ai.config.settings import Settings
+
 from .base import BaseProvider
 from .model_resolution import require_resolved_model_id
 
@@ -102,11 +105,8 @@ class AnthropicProvider(BaseProvider):
 
         # 兼容旧字段：若其他模块引用，保留归一化后的值
         self.proxy_base_url = base
-    async def generate(
-        self,
-        prompt: Prompt,
-        config: GenerationConfig
-    ) -> GenerationResult:
+
+    async def generate(self, prompt: Prompt, config: GenerationConfig) -> GenerationResult:
         """生成文本
 
         Args:
@@ -156,8 +156,7 @@ class AnthropicProvider(BaseProvider):
 
             # 创建 token 使用统计
             token_usage = TokenUsage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens
+                input_tokens=response.usage.input_tokens, output_tokens=response.usage.output_tokens
             )
 
             return GenerationResult(content=content, token_usage=token_usage)
@@ -167,11 +166,7 @@ class AnthropicProvider(BaseProvider):
         except Exception as e:
             raise RuntimeError(f"Failed to generate text: {str(e)}") from e
 
-    async def stream_generate(
-        self,
-        prompt: Prompt,
-        config: GenerationConfig
-    ) -> AsyncIterator[str]:
+    async def stream_generate(self, prompt: Prompt, config: GenerationConfig) -> AsyncIterator[str]:
         """流式生成内容。
 
         直接使用 httpx 解析 SSE 流，走代理服务器（如果配置了 base_url）。
@@ -209,31 +204,33 @@ class AnthropicProvider(BaseProvider):
         logger.debug(f"[Stream] Calling {url}")
 
         try:
-            async with httpx.AsyncClient(
-                timeout=self.settings.timeout_seconds,
-                trust_env=False,
-            ) as client:
-                async with client.stream(
+            async with (
+                httpx.AsyncClient(
+                    timeout=self.settings.timeout_seconds,
+                    trust_env=False,
+                ) as client,
+                client.stream(
                     "POST",
                     url,
                     headers=headers,
                     params=self.settings.extra_query or None,
                     json=payload,
-                ) as response:
-                    if response.status_code != 200:
-                        error_body = await response.aread()
-                        raise RuntimeError(f"API error {response.status_code}: {error_body.decode()}")
+                ) as response,
+            ):
+                if response.status_code != 200:
+                    error_body = await response.aread()
+                    raise RuntimeError(f"API error {response.status_code}: {error_body.decode()}")
 
-                    buffer = ""
-                    async for chunk in response.aiter_text():
-                        buffer += chunk
+                buffer = ""
+                async for chunk in response.aiter_text():
+                    buffer += chunk
 
-                        # 解析 SSE 事件
-                        while "\n\n" in buffer:
-                            event_text, buffer = buffer.split("\n\n", 1)
-                            text_content = self._parse_sse_event(event_text)
-                            if text_content:
-                                yield text_content
+                    # 解析 SSE 事件
+                    while "\n\n" in buffer:
+                        event_text, buffer = buffer.split("\n\n", 1)
+                        text_content = self._parse_sse_event(event_text)
+                        if text_content:
+                            yield text_content
 
         except Exception as e:
             logger.error(f"[Stream] Failed: {e}")

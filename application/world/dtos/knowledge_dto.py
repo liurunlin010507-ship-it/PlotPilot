@@ -1,10 +1,13 @@
 """Knowledge DTOs"""
-from typing import List, Optional, Dict, Any
+
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class ChapterSummaryDTO(BaseModel):
     """章节摘要 DTO"""
+
     chapter_id: int = Field(..., description="章节号")
     summary: str = Field(default="", description="章末总结")
     key_events: str = Field(default="", description="关键事件")
@@ -17,6 +20,7 @@ class ChapterSummaryDTO(BaseModel):
 
 class KnowledgeTripleDTO(BaseModel):
     """知识三元组 DTO"""
+
     id: str = Field(..., description="三元组ID")
     subject: str = Field(default="", description="主语")
     predicate: str = Field(default="", description="谓词")
@@ -46,6 +50,7 @@ class KnowledgeTripleDTO(BaseModel):
 
 class StoryKnowledgeDTO(BaseModel):
     """故事知识 DTO"""
+
     version: int = Field(default=1, description="数据版本")
     premise_lock: str = Field(default="", description="梗概锁定")
     chapters: List[ChapterSummaryDTO] = Field(default_factory=list, description="章节摘要列表")
@@ -54,6 +59,7 @@ class StoryKnowledgeDTO(BaseModel):
 
 class KnowledgeSearchHitDTO(BaseModel):
     """知识搜索结果项 DTO"""
+
     id: str = Field(..., description="结果ID")
     text: str = Field(..., description="文本内容")
     meta: Optional[dict] = Field(default=None, description="元数据")
@@ -61,4 +67,5 @@ class KnowledgeSearchHitDTO(BaseModel):
 
 class KnowledgeSearchResponseDTO(BaseModel):
     """知识搜索响应 DTO"""
+
     hits: List[KnowledgeSearchHitDTO] = Field(default_factory=list, description="搜索结果列表")

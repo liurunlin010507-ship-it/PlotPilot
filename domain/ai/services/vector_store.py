@@ -7,13 +7,7 @@ class VectorStore(ABC):
     """向量存储接口（领域服务）"""
 
     @abstractmethod
-    async def insert(
-        self,
-        collection: str,
-        id: str,
-        vector: List[float],
-        payload: dict
-    ) -> None:
+    async def insert(self, collection: str, id: str, vector: List[float], payload: dict) -> None:
         """
         插入向量到集合中
 
@@ -26,12 +20,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def search(
-        self,
-        collection: str,
-        query_vector: List[float],
-        limit: int
-    ) -> List[dict]:
+    async def search(self, collection: str, query_vector: List[float], limit: int) -> List[dict]:
         """
         搜索相似向量
 
@@ -46,11 +35,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def delete(
-        self,
-        collection: str,
-        id: str
-    ) -> None:
+    async def delete(self, collection: str, id: str) -> None:
         """
         删除向量
 
@@ -61,11 +46,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def create_collection(
-        self,
-        collection: str,
-        dimension: int
-    ) -> None:
+    async def create_collection(self, collection: str, dimension: int) -> None:
         """
         创建集合
 
@@ -76,10 +57,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def delete_collection(
-        self,
-        collection: str
-    ) -> None:
+    async def delete_collection(self, collection: str) -> None:
         """
         删除集合
 

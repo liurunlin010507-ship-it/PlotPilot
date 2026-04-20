@@ -23,7 +23,7 @@ class CharacterImportance(Enum):
             CharacterImportance.MAJOR_SUPPORTING: 4,
             CharacterImportance.IMPORTANT_SUPPORTING: 3,
             CharacterImportance.MINOR: 2,
-            CharacterImportance.BACKGROUND: 1
+            CharacterImportance.BACKGROUND: 1,
         }
         return order[self] < order[other]
 
@@ -37,7 +37,7 @@ class CharacterImportance(Enum):
             CharacterImportance.MAJOR_SUPPORTING: 4,
             CharacterImportance.IMPORTANT_SUPPORTING: 3,
             CharacterImportance.MINOR: 2,
-            CharacterImportance.BACKGROUND: 1
+            CharacterImportance.BACKGROUND: 1,
         }
         return order[self] > order[other]
 
@@ -52,6 +52,6 @@ class CharacterImportance(Enum):
             CharacterImportance.MAJOR_SUPPORTING: 800,
             CharacterImportance.IMPORTANT_SUPPORTING: 150,
             CharacterImportance.MINOR: 50,
-            CharacterImportance.BACKGROUND: 20
+            CharacterImportance.BACKGROUND: 20,
         }
         return allocations[self]

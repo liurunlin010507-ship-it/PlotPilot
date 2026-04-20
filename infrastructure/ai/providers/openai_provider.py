@@ -1,15 +1,18 @@
 """OpenAI LLM 提供商实现"""
-import logging
-import openai
-import httpx
-from typing import Any, AsyncIterator
 
+import logging
+from collections.abc import AsyncIterator
+from typing import Any
+
+import httpx
+import openai
 from openai import AsyncOpenAI
 
 from domain.ai.services.llm_service import GenerationConfig, GenerationResult
 from domain.ai.value_objects.prompt import Prompt
 from domain.ai.value_objects.token_usage import TokenUsage
 from infrastructure.ai.config.settings import Settings
+
 from .base import BaseProvider
 from .model_resolution import require_resolved_model_id
 
@@ -51,11 +54,7 @@ class OpenAIProvider(BaseProvider):
         client_kwargs["http_client"] = self._http_client
         self.async_client = AsyncOpenAI(**client_kwargs)
 
-    async def generate(
-        self,
-        prompt: Prompt,
-        config: GenerationConfig
-    ) -> GenerationResult:
+    async def generate(self, prompt: Prompt, config: GenerationConfig) -> GenerationResult:
         try:
             base_url = self.settings.base_url or "https://api.openai.com/v1"
             use_responses = not self._use_legacy and base_url not in self.__class__._fallback_to_chat_cache
@@ -68,7 +67,13 @@ class OpenAIProvider(BaseProvider):
                     self.__class__._fallback_to_chat_cache.add(base_url)
                 except Exception as e:
                     # 某些网关在路径错误时可能不抛严格的 404 而是抛出其他错误，如果消息含有明确路径错误也尝试降级
-                    if "404" in str(e) or "Not Found" in str(e) or "400" in str(e) or "Account invalid" in str(e) or "INVALID_ARGUMENT" in str(e):
+                    if (
+                        "404" in str(e)
+                        or "Not Found" in str(e)
+                        or "400" in str(e)
+                        or "Account invalid" in str(e)
+                        or "INVALID_ARGUMENT" in str(e)
+                    ):
                         logger.info(f"Gateway returned error for Responses API ({base_url}), falling back: {str(e)}")
                         self.__class__._fallback_to_chat_cache.add(base_url)
                     else:
@@ -91,8 +96,7 @@ class OpenAIProvider(BaseProvider):
 
         if not content:
             logger.warning(
-                "OpenAI-compatible response returned empty non-stream content; "
-                "falling back to streaming aggregation"
+                "OpenAI-compatible response returned empty non-stream content; falling back to streaming aggregation"
             )
             content, token_usage = await self._generate_via_stream(request_kwargs)
             return GenerationResult(content=content, token_usage=token_usage)
@@ -104,11 +108,7 @@ class OpenAIProvider(BaseProvider):
             token_usage=TokenUsage(input_tokens=input_tokens, output_tokens=output_tokens),
         )
 
-    async def stream_generate(
-        self,
-        prompt: Prompt,
-        config: GenerationConfig
-    ) -> AsyncIterator[str]:
+    async def stream_generate(self, prompt: Prompt, config: GenerationConfig) -> AsyncIterator[str]:
         try:
             base_url = self.settings.base_url or "https://api.openai.com/v1"
             use_responses = not self._use_legacy and base_url not in self.__class__._fallback_to_chat_cache
@@ -127,7 +127,13 @@ class OpenAIProvider(BaseProvider):
                     self.__class__._fallback_to_chat_cache.add(base_url)
                     logger.info(f"Stream: Responses API unsupported for {base_url}, falling back.")
                 except Exception as e:
-                    if "404" in str(e) or "Not Found" in str(e) or "400" in str(e) or "Account invalid" in str(e) or "INVALID_ARGUMENT" in str(e):
+                    if (
+                        "404" in str(e)
+                        or "Not Found" in str(e)
+                        or "400" in str(e)
+                        or "Account invalid" in str(e)
+                        or "INVALID_ARGUMENT" in str(e)
+                    ):
                         self.__class__._fallback_to_chat_cache.add(base_url)
                         logger.info(f"Stream: Gateway returned error for Responses API ({base_url}), falling back.")
                     else:
@@ -148,10 +154,7 @@ class OpenAIProvider(BaseProvider):
 
     @staticmethod
     def _build_messages(prompt: Prompt) -> list[dict[str, str]]:
-        return [
-            {"role": "system", "content": prompt.system},
-            {"role": "user", "content": prompt.user}
-        ]
+        return [{"role": "system", "content": prompt.system}, {"role": "user", "content": prompt.user}]
 
     def _build_chat_request_kwargs(
         self,
@@ -199,7 +202,7 @@ class OpenAIProvider(BaseProvider):
             "max_output_tokens": config.max_tokens,
         }
         if self.settings.extra_body:
-             kwargs.update(self.settings.extra_body)
+            kwargs.update(self.settings.extra_body)
 
         if stream:
             kwargs["stream"] = True
@@ -228,8 +231,7 @@ class OpenAIProvider(BaseProvider):
         output_tokens = response.usage.completion_tokens if response.usage else 0
 
         return GenerationResult(
-            content=content,
-            token_usage=TokenUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+            content=content, token_usage=TokenUsage(input_tokens=input_tokens, output_tokens=output_tokens)
         )
 
     @staticmethod
@@ -244,9 +246,9 @@ class OpenAIProvider(BaseProvider):
             elif event_type == "message.delta":
                 delta = getattr(chunk, "delta", None)
                 if delta:
-                     content = getattr(delta, "content", None)
-                     if isinstance(content, str):
-                         return content
+                    content = getattr(delta, "content", None)
+                    if isinstance(content, str):
+                        return content
         except Exception:
             pass
         return ""
@@ -300,9 +302,7 @@ class OpenAIProvider(BaseProvider):
         return ""
 
     async def _generate_via_stream(self, request_kwargs: dict[str, Any]) -> tuple[str, TokenUsage]:
-        stream = await self.async_client.chat.completions.create(
-            **{**request_kwargs, "stream": True}
-        )
+        stream = await self.async_client.chat.completions.create(**{**request_kwargs, "stream": True})
 
         parts: list[str] = []
         input_tokens = 0

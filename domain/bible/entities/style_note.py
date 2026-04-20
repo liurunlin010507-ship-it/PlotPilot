@@ -1,10 +1,12 @@
 """StyleNote 实体"""
+
 from dataclasses import dataclass
 
 
 @dataclass
 class StyleNote:
     """风格笔记实体"""
+
     id: str
     category: str  # "tone", "vocabulary", "pacing", "other"
     content: str

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 后端服务启动器
 ━━━━━━━━━━━━━━━━━━━━
@@ -11,17 +10,23 @@ aitex 后端服务启动器
 """
 
 import os
-import sys
 import subprocess
-import time
+import sys
 import threading
+import time
 import webbrowser
 
-from theme import OK_C, WARN_C, ERR_C, ACCENT2
 from utils import (
-    get_proj_dir, get_log_dir, port_in_use, find_free_port,
-    check_uvicorn, NO_WIN, DEFAULT_PORT,
-    write_lock, kill_port, get_pid_by_port,
+    DEFAULT_PORT,
+    NO_WIN,
+    check_uvicorn,
+    find_free_port,
+    get_log_dir,
+    get_pid_by_port,
+    get_proj_dir,
+    kill_port,
+    port_in_use,
+    write_lock,
 )
 
 
@@ -50,8 +55,7 @@ class BackendLauncher:
         (88, "启动 HTTP 服务"),
     ]
 
-    def __init__(self, venv_py=None, on_log=None, on_progress=None,
-                 on_ready=None, on_failed=None):
+    def __init__(self, venv_py=None, on_log=None, on_progress=None, on_ready=None, on_failed=None):
         self.venv_py = venv_py  # 已安装依赖的 Python 路径（优先使用）
         self.on_log = on_log or (lambda *a: None)
         self.on_progress = on_progress or (lambda *a: None)
@@ -76,6 +80,7 @@ class BackendLauncher:
             return self._do_launch(port)
         except Exception as e:
             import traceback
+
             tb = traceback.format_exc()
             self._log(f"启动异常: {e}", "error")
             self.on_failed(str(e), tb)
@@ -140,6 +145,7 @@ class BackendLauncher:
         # 阻塞等待退出
         self.proc.wait()
         from .utils import remove_lock
+
         remove_lock()
         self._log("服务已停止", "warn")
         return True
@@ -159,6 +165,7 @@ class BackendLauncher:
 
         # 3) 系统 PATH
         import shutil
+
         for cmd in ("python", "python3"):
             sys_py = shutil.which(cmd)
             if sys_py and check_uvicorn(sys_py):
@@ -188,11 +195,16 @@ class BackendLauncher:
         try:
             self.proc = subprocess.Popen(
                 [
-                    backend_exe, "-m", "uvicorn",
+                    backend_exe,
+                    "-m",
+                    "uvicorn",
                     "interfaces.main:app",
-                    "--host", "127.0.0.1",
-                    "--port", str(port),
-                    "--log-level", "info",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(port),
+                    "--log-level",
+                    "info",
                 ],
                 cwd=self.proj_dir,
                 env={
@@ -231,8 +243,8 @@ class BackendLauncher:
 
     def _wait_ready(self, port, timeout=120):
         """轮询等待服务就绪（HTTP 健康检查）"""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         deadline = time.time() + timeout
         prog = 90.0
@@ -249,8 +261,7 @@ class BackendLauncher:
         else:
             self.on_failed(
                 f"后端进程未能在 {timeout}s 内绑定端口 {port}",
-                "可能原因：依赖缺失 / 端口被占用 / Python 环境异常\n"
-                f"详细日志: logs/backend_startup.log"
+                "可能原因：依赖缺失 / 端口被占用 / Python 环境异常\n详细日志: logs/backend_startup.log",
             )
             return False
 
@@ -273,19 +284,15 @@ class BackendLauncher:
             self.on_failed(
                 "后端进程启动后立即退出了！",
                 "请查看日志面板或 logs/backend_startup.log 获取错误详情\n"
-                "常见原因：缺少依赖包 / import 错误 / 配置文件问题"
+                "常见原因：缺少依赖包 / import 错误 / 配置文件问题",
             )
         else:
-            self.on_failed(
-                f"服务启动超时（{timeout}s）",
-                "端口已监听但 HTTP 无响应\n"
-                f"请查看: logs/backend_startup.log"
-            )
+            self.on_failed(f"服务启动超时（{timeout}s）", "端口已监听但 HTTP 无响应\n请查看: logs/backend_startup.log")
         return False
 
     @property
     def port(self):
-        return getattr(self, '_port', DEFAULT_PORT)
+        return getattr(self, "_port", DEFAULT_PORT)
 
     def wait(self):
         """阻塞直到子进程退出"""
@@ -316,7 +323,7 @@ class BackendLauncher:
         if not os.path.exists(log_path):
             return
 
-        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
             f.seek(0, 2)  # 定位到末尾
             while self.proc and self.proc.poll() is None:
                 line = f.readline()

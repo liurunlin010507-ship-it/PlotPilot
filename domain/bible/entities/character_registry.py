@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional
 from collections import defaultdict
-import re
+from typing import Dict, List, Optional
 
-from domain.shared.base_entity import BaseEntity
 from domain.bible.entities.character import Character
+from domain.bible.value_objects.activity_metrics import ActivityMetrics
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.character_importance import CharacterImportance
-from domain.bible.value_objects.activity_metrics import ActivityMetrics
 from domain.bible.value_objects.relationship_graph import RelationshipGraph
+from domain.shared.base_entity import BaseEntity
 
 
 class CharacterRegistry(BaseEntity):
@@ -28,11 +27,7 @@ class CharacterRegistry(BaseEntity):
         # 关系图（可选）
         self._relationship_graph: Optional[RelationshipGraph] = None
 
-    def register_character(
-        self,
-        character: Character,
-        importance: CharacterImportance
-    ) -> None:
+    def register_character(self, character: Character, importance: CharacterImportance) -> None:
         """注册角色并设置重要性级别
 
         Args:
@@ -43,11 +38,7 @@ class CharacterRegistry(BaseEntity):
         self.activity_metrics[character.character_id] = ActivityMetrics()
         self._character_index[character.character_id] = character
 
-    def update_importance(
-        self,
-        character_id: CharacterId,
-        new_importance: CharacterImportance
-    ) -> None:
+    def update_importance(self, character_id: CharacterId, new_importance: CharacterImportance) -> None:
         """更新角色重要性级别
 
         Args:
@@ -71,12 +62,7 @@ class CharacterRegistry(BaseEntity):
         # 添加到新的重要性列表
         self.characters_by_importance[new_importance].append(character)
 
-    def update_activity(
-        self,
-        character_id: CharacterId,
-        chapter_number: int,
-        dialogue_count: int = 0
-    ) -> None:
+    def update_activity(self, character_id: CharacterId, chapter_number: int, dialogue_count: int = 0) -> None:
         """更新角色活动度
 
         Args:
@@ -85,15 +71,9 @@ class CharacterRegistry(BaseEntity):
             dialogue_count: 对话数量（可选）
         """
         if character_id in self.activity_metrics:
-            self.activity_metrics[character_id].update_activity(
-                chapter_number,
-                dialogue_count
-            )
+            self.activity_metrics[character_id].update_activity(chapter_number, dialogue_count)
 
-    def get_characters_by_importance(
-        self,
-        importance: CharacterImportance
-    ) -> List[Character]:
+    def get_characters_by_importance(self, importance: CharacterImportance) -> List[Character]:
         """获取指定重要性级别的所有角色
 
         Args:
@@ -128,10 +108,7 @@ class CharacterRegistry(BaseEntity):
         self._relationship_graph = graph
 
     def get_characters_for_context(
-        self,
-        outline: str,
-        max_tokens: int,
-        relationship_graph: Optional[RelationshipGraph] = None
+        self, outline: str, max_tokens: int, relationship_graph: Optional[RelationshipGraph] = None
     ) -> List[Character]:
         """智能选择角色用于上下文生成
 
@@ -166,7 +143,7 @@ class CharacterRegistry(BaseEntity):
         for importance in [
             CharacterImportance.PROTAGONIST,
             CharacterImportance.MAJOR_SUPPORTING,
-            CharacterImportance.IMPORTANT_SUPPORTING
+            CharacterImportance.IMPORTANT_SUPPORTING,
         ]:
             for char in self.characters_by_importance[importance]:
                 if char not in candidates:
@@ -205,11 +182,7 @@ class CharacterRegistry(BaseEntity):
                 mentioned.append(char_id)
         return mentioned
 
-    def _expand_with_relationships(
-        self,
-        characters: List[Character],
-        graph: RelationshipGraph
-    ) -> List[Character]:
+    def _expand_with_relationships(self, characters: List[Character], graph: RelationshipGraph) -> List[Character]:
         """使用关系图扩展角色列表
 
         Args:
@@ -240,6 +213,7 @@ class CharacterRegistry(BaseEntity):
         Returns:
             排序后的角色列表
         """
+
         def get_importance(char: Character) -> int:
             """获取角色重要性排序值"""
             for importance, chars in self.characters_by_importance.items():
@@ -249,7 +223,7 @@ class CharacterRegistry(BaseEntity):
                         CharacterImportance.MAJOR_SUPPORTING: 1,
                         CharacterImportance.IMPORTANT_SUPPORTING: 2,
                         CharacterImportance.MINOR: 3,
-                        CharacterImportance.BACKGROUND: 4
+                        CharacterImportance.BACKGROUND: 4,
                     }
                     return order[importance]
             return 999
@@ -260,16 +234,9 @@ class CharacterRegistry(BaseEntity):
                 return self.activity_metrics[char.character_id].appearance_count
             return 0
 
-        return sorted(
-            characters,
-            key=lambda c: (get_importance(c), -get_activity(c), c.name)
-        )
+        return sorted(characters, key=lambda c: (get_importance(c), -get_activity(c), c.name))
 
-    def _truncate_by_tokens(
-        self,
-        characters: List[Character],
-        max_tokens: int
-    ) -> List[Character]:
+    def _truncate_by_tokens(self, characters: List[Character], max_tokens: int) -> List[Character]:
         """根据 token 限制截断角色列表
 
         Args:

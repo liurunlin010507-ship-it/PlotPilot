@@ -1,4 +1,5 @@
 """构建「工作台上下文」聚合载荷：故事线/弧光、编年史、叙事知识、关系图统计、伏笔、宏观事件数、沙盒依赖等。"""
+
 from __future__ import annotations
 
 import logging

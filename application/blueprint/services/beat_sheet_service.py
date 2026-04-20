@@ -3,19 +3,18 @@
 为章节大纲生成场景列表（Beat Sheet）
 """
 
-import uuid
 import json
 import logging
-from typing import Dict, List, Optional, TYPE_CHECKING
-from datetime import datetime
+import uuid
+from typing import TYPE_CHECKING, Dict, List, Optional
 
+from domain.ai.services.llm_service import GenerationConfig, LLMService
+from domain.ai.value_objects.prompt import Prompt
 from domain.novel.entities.beat_sheet import BeatSheet
-from domain.novel.value_objects.scene import Scene
 from domain.novel.repositories.beat_sheet_repository import BeatSheetRepository
 from domain.novel.repositories.chapter_repository import ChapterRepository
 from domain.novel.repositories.storyline_repository import StorylineRepository
-from domain.ai.services.llm_service import LLMService, GenerationConfig
-from domain.ai.value_objects.prompt import Prompt
+from domain.novel.value_objects.scene import Scene
 
 if TYPE_CHECKING:
     from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
@@ -47,11 +46,7 @@ class BeatSheetService:
         self.vector_store = vector_store
         self.bible_service = bible_service
 
-    async def generate_beat_sheet(
-        self,
-        chapter_id: str,
-        outline: str
-    ) -> BeatSheet:
+    async def generate_beat_sheet(self, chapter_id: str, outline: str) -> BeatSheet:
         """为章节生成节拍表
 
         Args:
@@ -77,11 +72,7 @@ class BeatSheetService:
         scenes = self._parse_llm_response(response)
 
         # 5. 创建节拍表实体
-        beat_sheet = BeatSheet(
-            id=str(uuid.uuid4()),
-            chapter_id=chapter_id,
-            scenes=scenes
-        )
+        beat_sheet = BeatSheet(id=str(uuid.uuid4()), chapter_id=chapter_id, scenes=scenes)
 
         # 6. 保存到仓储
         await self.beat_sheet_repo.save(beat_sheet)
@@ -89,12 +80,7 @@ class BeatSheetService:
         logger.info(f"Beat sheet generated with {len(scenes)} scenes")
         return beat_sheet
 
-    async def _retrieve_relevant_context(
-        self,
-        chapter_id: str,
-        outline: str,
-        max_tokens: int = 3000
-    ) -> Dict:
+    async def _retrieve_relevant_context(self, chapter_id: str, outline: str, max_tokens: int = 3000) -> Dict:
         """混合检索策略：强制包含 + 向量检索 + 智能去重 + tokens 控制
 
         Phase 1.2 完整版：
@@ -117,11 +103,12 @@ class BeatSheetService:
             "previous_chapter": None,
             "foreshadowings": [],
             "locations": [],
-            "timeline_events": []
+            "timeline_events": [],
         }
 
         # 获取章节信息
         from domain.novel.value_objects.chapter_id import ChapterId
+
         chapter = self.chapter_repo.get_by_id(ChapterId(chapter_id))
         if not chapter:
             logger.warning(f"Chapter {chapter_id} not found")
@@ -134,8 +121,8 @@ class BeatSheetService:
 
         # 1. 获取主要人物（从 Cast）
         try:
-            from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
             from infrastructure.persistence.database.connection import get_database
+            from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
 
             cast_repo = SqliteCastRepository(get_database())
             cast = cast_repo.get_by_novel_id(novel_id)
@@ -147,7 +134,7 @@ class BeatSheetService:
                     {
                         "name": char.name,
                         "role": getattr(char, "role", "未知"),
-                        "brief": getattr(char, "personality", "")[:100]  # 简短描述
+                        "brief": getattr(char, "personality", "")[:100],  # 简短描述
                     }
                     for char in main_characters
                 ]
@@ -160,16 +147,20 @@ class BeatSheetService:
             all_storylines = self.storyline_repo.get_by_novel_id(novel_id)
             # 过滤活跃的故事线（有 last_active_chapter 且在当前章节附近）
             active_storylines = [
-                sl for sl in all_storylines
-                if hasattr(sl, 'last_active_chapter') and sl.last_active_chapter
+                sl
+                for sl in all_storylines
+                if hasattr(sl, "last_active_chapter")
+                and sl.last_active_chapter
                 and abs(sl.last_active_chapter - chapter_number) <= 5
             ]
             if active_storylines:
                 context["storylines"] = [
                     {
                         "name": sl.name,
-                        "type": sl.storyline_type.value if hasattr(sl.storyline_type, 'value') else str(sl.storyline_type),
-                        "progress": getattr(sl, "progress_summary", "")[:150]
+                        "type": sl.storyline_type.value
+                        if hasattr(sl.storyline_type, "value")
+                        else str(sl.storyline_type),
+                        "progress": getattr(sl, "progress_summary", "")[:150],
                     }
                     for sl in active_storylines[:3]  # 最多 3 条
                 ]
@@ -181,13 +172,13 @@ class BeatSheetService:
         if chapter_number > 1:
             try:
                 prev_chapter = self.chapter_repo.get_by_number(novel_id, chapter_number - 1)
-                if prev_chapter and hasattr(prev_chapter, 'state') and prev_chapter.state:
+                if prev_chapter and hasattr(prev_chapter, "state") and prev_chapter.state:
                     context["previous_chapter"] = {
                         "number": prev_chapter.chapter_number,
                         "title": prev_chapter.title,
-                        "summary": getattr(prev_chapter.state, "summary", "")[:200]
+                        "summary": getattr(prev_chapter.state, "summary", "")[:200],
                     }
-                    logger.info(f"Retrieved previous chapter state")
+                    logger.info("Retrieved previous chapter state")
             except Exception as e:
                 logger.warning(f"Failed to retrieve previous chapter: {e}")
 
@@ -211,25 +202,18 @@ class BeatSheetService:
 
         # 6. 获取相关时间线事件
         try:
-            from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
             from infrastructure.persistence.database.connection import get_database
+            from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
 
             timeline_repo = SqliteTimelineRepository(get_database())
             timeline_registry = timeline_repo.get_by_novel_id(novel_id)
 
             if timeline_registry and timeline_registry.events:
                 # 获取当前章节之前的最近 5 个事件
-                recent_events = [
-                    e for e in timeline_registry.events
-                    if e.chapter_number < chapter_number
-                ][-5:]
+                recent_events = [e for e in timeline_registry.events if e.chapter_number < chapter_number][-5:]
 
                 context["timeline_events"] = [
-                    {
-                        "description": event.description,
-                        "time_type": event.time_type,
-                        "chapter": event.chapter_number
-                    }
+                    {"description": event.description, "time_type": event.time_type, "chapter": event.chapter_number}
                     for event in recent_events
                 ]
 
@@ -257,6 +241,7 @@ class BeatSheetService:
         Returns:
             处理后的上下文
         """
+
         # 粗略估算：1 token ≈ 1.5 字符（中文）
         def estimate_tokens(text: str) -> int:
             return int(len(text) / 1.5)
@@ -328,11 +313,7 @@ class BeatSheetService:
 
         return context
 
-    def _build_beat_sheet_prompt(
-        self,
-        outline: str,
-        context: Dict
-    ) -> Prompt:
+    def _build_beat_sheet_prompt(self, outline: str, context: Dict) -> Prompt:
         """构建节拍表生成提示词（使用增强的上下文）"""
 
         system_prompt = """你是一位专业的小说编剧，擅长将章节大纲拆解为具体的场景（Scene）。
@@ -387,7 +368,7 @@ class BeatSheetService:
         # 添加前置章节状态
         if context.get("previous_chapter"):
             prev = context["previous_chapter"]
-            user_prompt += f"\n=== 前一章节 ===\n"
+            user_prompt += "\n=== 前一章节 ===\n"
             user_prompt += f"第 {prev['number']} 章《{prev['title']}》: {prev['summary']}\n"
 
         # 添加相关伏笔
@@ -410,18 +391,15 @@ class BeatSheetService:
 
         user_prompt += "\n请基于以上信息生成场景列表（JSON 格式）："
 
-        return Prompt(
-            system=system_prompt,
-            user=user_prompt
-        )
+        return Prompt(system=system_prompt, user=user_prompt)
 
     def _parse_llm_response(self, response) -> List[Scene]:
         """解析 LLM 响应，提取场景列表"""
         try:
             # 提取响应文本（处理 GenerationResult 对象）
-            if hasattr(response, 'content'):
+            if hasattr(response, "content"):
                 response_text = response.content
-            elif hasattr(response, 'text'):
+            elif hasattr(response, "text"):
                 response_text = response.text
             else:
                 response_text = str(response)
@@ -442,13 +420,13 @@ class BeatSheetService:
             scenes = []
             for i, scene_data in enumerate(scenes_data):
                 scene = Scene(
-                    title=scene_data.get("title", f"场景 {i+1}"),
+                    title=scene_data.get("title", f"场景 {i + 1}"),
                     goal=scene_data.get("goal", ""),
                     pov_character=scene_data.get("pov_character", "未知"),
                     location=scene_data.get("location"),
                     tone=scene_data.get("tone"),
                     estimated_words=scene_data.get("estimated_words", 800),
-                    order_index=i
+                    order_index=i,
                 )
                 scenes.append(scene)
 

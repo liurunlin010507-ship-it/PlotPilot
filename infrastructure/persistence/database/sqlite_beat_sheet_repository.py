@@ -1,11 +1,11 @@
 """SQLite 节拍表仓储实现"""
 
 import json
-import uuid
 from typing import Optional
+
 from domain.novel.entities.beat_sheet import BeatSheet
-from domain.novel.value_objects.scene import Scene
 from domain.novel.repositories.beat_sheet_repository import BeatSheetRepository
+from domain.novel.value_objects.scene import Scene
 
 
 class SqliteBeatSheetRepository(BeatSheetRepository):
@@ -53,7 +53,7 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
                 SET data = ?
                 WHERE chapter_id = ?
                 """,
-                (json.dumps(data), beat_sheet.chapter_id)
+                (json.dumps(data), beat_sheet.chapter_id),
             )
         else:
             # 插入
@@ -62,7 +62,7 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
                 INSERT INTO beat_sheets (id, chapter_id, data)
                 VALUES (?, ?, ?)
                 """,
-                (beat_sheet.id, beat_sheet.chapter_id, json.dumps(data))
+                (beat_sheet.id, beat_sheet.chapter_id, json.dumps(data)),
             )
         conn.commit()
 
@@ -73,7 +73,7 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
             SELECT data FROM beat_sheets
             WHERE chapter_id = ?
             """,
-            (chapter_id,)
+            (chapter_id,),
         )
         row = cursor.fetchone()
         if not row:
@@ -95,11 +95,7 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
             for scene_data in data["scenes"]
         ]
 
-        beat_sheet = BeatSheet(
-            id=data["id"],
-            chapter_id=data["chapter_id"],
-            scenes=scenes
-        )
+        beat_sheet = BeatSheet(id=data["id"], chapter_id=data["chapter_id"], scenes=scenes)
 
         return beat_sheet
 
@@ -111,7 +107,7 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
             DELETE FROM beat_sheets
             WHERE chapter_id = ?
             """,
-            (chapter_id,)
+            (chapter_id,),
         )
         conn.commit()
 
@@ -122,6 +118,6 @@ class SqliteBeatSheetRepository(BeatSheetRepository):
             SELECT 1 FROM beat_sheets
             WHERE chapter_id = ?
             """,
-            (chapter_id,)
+            (chapter_id,),
         )
         return cursor.fetchone() is not None

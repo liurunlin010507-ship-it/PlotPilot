@@ -1,10 +1,12 @@
 """TimelineNote 实体"""
+
 from dataclasses import dataclass
 
 
 @dataclass
 class TimelineNote:
     """时间线笔记实体"""
+
     id: str
     event: str
     time_point: str  # 时间点描述，如 "第一章"、"三年后"

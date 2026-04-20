@@ -1,16 +1,18 @@
 """Chapter 应用服务"""
-from typing import List, Optional, Any
-from datetime import datetime
+
 import re
+from datetime import datetime
+from typing import Any, List, Optional
+
+from application.audit.dtos.chapter_review_dto import ChapterReviewDTO
+from application.core.dtos.chapter_dto import ChapterDTO
+from application.core.dtos.chapter_structure_dto import ChapterStructureDTO
 from domain.novel.entities.chapter import Chapter, ChapterStatus
-from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.repositories.chapter_repository import ChapterRepository
 from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.chapter_id import ChapterId
+from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
-from application.core.dtos.chapter_dto import ChapterDTO
-from application.audit.dtos.chapter_review_dto import ChapterReviewDTO
-from application.core.dtos.chapter_structure_dto import ChapterStructureDTO
 
 
 class ChapterService:
@@ -36,11 +38,7 @@ class ChapterService:
         self.chapter_review_repository = chapter_review_repository
         self._chapter_renumber_coordinator = chapter_renumber_coordinator
 
-    def update_chapter_content(
-        self,
-        chapter_id: str,
-        content: str
-    ) -> ChapterDTO:
+    def update_chapter_content(self, chapter_id: str, content: str) -> ChapterDTO:
         """更新章节内容
 
         Args:
@@ -97,22 +95,14 @@ class ChapterService:
         chapter = self.chapter_repository.get_by_id(ChapterId(chapter_id))
         if chapter is None:
             return
-        novel_id = (
-            chapter.novel_id.value
-            if hasattr(chapter.novel_id, "value")
-            else chapter.novel_id
-        )
+        novel_id = chapter.novel_id.value if hasattr(chapter.novel_id, "value") else chapter.novel_id
         deleted_number = chapter.number
         self.chapter_repository.delete(ChapterId(chapter_id))
         coordinator = self._chapter_renumber_coordinator
         if coordinator is not None:
             coordinator.on_chapter_deleted(novel_id, deleted_number)
 
-    def get_chapter_by_novel_and_number(
-        self,
-        novel_id: str,
-        chapter_number: int
-    ) -> Optional[ChapterDTO]:
+    def get_chapter_by_novel_and_number(self, novel_id: str, chapter_number: int) -> Optional[ChapterDTO]:
         """根据小说 ID 和章节号获取章节
 
         Args:
@@ -129,10 +119,7 @@ class ChapterService:
         return None
 
     def update_chapter_by_novel_and_number(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        content: str
+        self, novel_id: str, chapter_number: int, content: str
     ) -> Optional[ChapterDTO]:
         """根据小说 ID 和章节号更新章节内容
 
@@ -155,11 +142,7 @@ class ChapterService:
                 return ChapterDTO.from_domain(chapter)
         raise EntityNotFoundError("Chapter", f"{novel_id}/chapter-{chapter_number}")
 
-    def get_chapter_review(
-        self,
-        novel_id: str,
-        chapter_number: int
-    ) -> ChapterReviewDTO:
+    def get_chapter_review(self, novel_id: str, chapter_number: int) -> ChapterReviewDTO:
         """获取章节审阅
 
         Args:
@@ -185,20 +168,9 @@ class ChapterService:
 
         # 返回默认审阅
         now = datetime.utcnow()
-        return ChapterReviewDTO(
-            status="draft",
-            memo="",
-            created_at=now,
-            updated_at=now
-        )
+        return ChapterReviewDTO(status="draft", memo="", created_at=now, updated_at=now)
 
-    def save_chapter_review(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        status: str,
-        memo: str
-    ) -> ChapterReviewDTO:
+    def save_chapter_review(self, novel_id: str, chapter_number: int, status: str, memo: str) -> ChapterReviewDTO:
         """保存章节审阅
 
         Args:
@@ -220,24 +192,13 @@ class ChapterService:
 
         # 使用数据库 repository
         if self.chapter_review_repository:
-            return self.chapter_review_repository.upsert(
-                novel_id, chapter_number, status=status, memo=memo
-            )
+            return self.chapter_review_repository.upsert(novel_id, chapter_number, status=status, memo=memo)
 
         # 降级：返回临时对象（不应该到达这里）
         now = datetime.utcnow()
-        return ChapterReviewDTO(
-            status=status,
-            memo=memo,
-            created_at=now,
-            updated_at=now
-        )
+        return ChapterReviewDTO(status=status, memo=memo, created_at=now, updated_at=now)
 
-    def get_chapter_structure(
-        self,
-        novel_id: str,
-        chapter_number: int
-    ) -> ChapterStructureDTO:
+    def get_chapter_structure(self, novel_id: str, chapter_number: int) -> ChapterStructureDTO:
         """获取章节结构分析
 
         Args:
@@ -259,20 +220,16 @@ class ChapterService:
         # 分析章节结构
         if not content or not content.strip():
             return ChapterStructureDTO(
-                word_count=0,
-                paragraph_count=0,
-                dialogue_ratio=0.0,
-                scene_count=0,
-                pacing="medium"
+                word_count=0, paragraph_count=0, dialogue_ratio=0.0, scene_count=0, pacing="medium"
             )
 
         # 计算字数（中文字符 + 英文单词）
-        chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', content))
-        english_words = len(re.findall(r'\b[a-zA-Z]+\b', content))
+        chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", content))
+        english_words = len(re.findall(r"\b[a-zA-Z]+\b", content))
         word_count = chinese_chars + english_words
 
         # 计算段落数（非空行）
-        paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
+        paragraphs = [p.strip() for p in content.split("\n") if p.strip()]
         paragraph_count = len(paragraphs)
 
         # 计算对话比例（引号内的内容）
@@ -282,7 +239,7 @@ class ChapterService:
         dialogue_ratio = dialogue_chars / word_count if word_count > 0 else 0.0
 
         # 计算场景数（通过分隔符或空行判断）
-        scene_count = len(re.findall(r'---+|\n\n\n+', content)) + 1
+        scene_count = len(re.findall(r"---+|\n\n\n+", content)) + 1
 
         # 判断节奏（基于平均段落长度）
         avg_paragraph_length = word_count / paragraph_count if paragraph_count > 0 else 0
@@ -298,15 +255,10 @@ class ChapterService:
             paragraph_count=paragraph_count,
             dialogue_ratio=round(dialogue_ratio, 2),
             scene_count=scene_count,
-            pacing=pacing
+            pacing=pacing,
         )
 
-    def ensure_chapter(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        title: str = ""
-    ) -> ChapterDTO:
+    def ensure_chapter(self, novel_id: str, chapter_number: int, title: str = "") -> ChapterDTO:
         """确保章节在正文库中存在；不存在则创建空白记录（不校验章节号连续性）。
 
         Args:
@@ -334,11 +286,7 @@ class ChapterService:
         self.chapter_repository.save(chapter)
         return ChapterDTO.from_domain(chapter)
 
-    def _get_chapter_by_novel_and_number(
-        self,
-        novel_id: str,
-        chapter_number: int
-    ) -> Optional[Chapter]:
+    def _get_chapter_by_novel_and_number(self, novel_id: str, chapter_number: int) -> Optional[Chapter]:
         """根据小说 ID 和章节号获取章节实体
 
         Args:

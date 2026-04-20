@@ -1,4 +1,5 @@
 """知识三元组 ↔ 持久化/API 字典（单一形状，避免字段漂移）"""
+
 from __future__ import annotations
 
 from typing import Any, Dict

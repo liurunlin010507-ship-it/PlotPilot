@@ -1,6 +1,7 @@
 from collections import deque
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional
+
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.relationship import Relationship, RelationType
 from domain.bible.value_objects.relationship_graph import RelationshipGraph
@@ -8,6 +9,7 @@ from domain.bible.value_objects.relationship_graph import RelationshipGraph
 
 class RelationshipTrend(Enum):
     """关系趋势枚举"""
+
     IMPROVING = "improving"
     DETERIORATING = "deteriorating"
     STABLE = "stable"
@@ -46,12 +48,7 @@ class RelationshipEngine:
         """
         self._graph = graph
 
-    def add_relationship(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId,
-        relation: Relationship
-    ) -> None:
+    def add_relationship(self, char1_id: CharacterId, char2_id: CharacterId, relation: Relationship) -> None:
         """添加关系
 
         Args:
@@ -61,11 +58,7 @@ class RelationshipEngine:
         """
         self._graph.add_relationship(char1_id, char2_id, relation)
 
-    def get_current_relationship(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> Optional[Relationship]:
+    def get_current_relationship(self, char1_id: CharacterId, char2_id: CharacterId) -> Optional[Relationship]:
         """获取最新关系
 
         Args:
@@ -77,11 +70,7 @@ class RelationshipEngine:
         """
         return self._graph.get_current_relationship(char1_id, char2_id)
 
-    def get_relationship_history(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> List[Relationship]:
+    def get_relationship_history(self, char1_id: CharacterId, char2_id: CharacterId) -> List[Relationship]:
         """获取关系演变历史
 
         Args:
@@ -94,10 +83,7 @@ class RelationshipEngine:
         return self._graph.get_relationship_history(char1_id, char2_id)
 
     def find_path(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId,
-        max_depth: int = 3
+        self, char1_id: CharacterId, char2_id: CharacterId, max_depth: int = 3
     ) -> Optional[List[CharacterId]]:
         """使用 BFS 查找两个角色之间的路径
 
@@ -137,11 +123,7 @@ class RelationshipEngine:
 
         return None
 
-    def get_common_connections(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> List[CharacterId]:
+    def get_common_connections(self, char1_id: CharacterId, char2_id: CharacterId) -> List[CharacterId]:
         """查找共同连接
 
         Args:
@@ -166,11 +148,7 @@ class RelationshipEngine:
 
         return list(common)
 
-    def get_relationship_cluster(
-        self,
-        char_id: CharacterId,
-        depth: int = 2
-    ) -> List[CharacterId]:
+    def get_relationship_cluster(self, char_id: CharacterId, depth: int = 2) -> List[CharacterId]:
         """获取关系网络聚类
 
         Args:
@@ -200,11 +178,7 @@ class RelationshipEngine:
         visited.discard(char_id)
         return list(visited)
 
-    def calculate_relationship_strength(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> float:
+    def calculate_relationship_strength(self, char1_id: CharacterId, char2_id: CharacterId) -> float:
         """计算关系强度
 
         强度计算公式：
@@ -237,11 +211,7 @@ class RelationshipEngine:
 
         return base_strength + interaction_bonus + common_bonus
 
-    def analyze_relationship_trend(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> RelationshipTrend:
+    def analyze_relationship_trend(self, char1_id: CharacterId, char2_id: CharacterId) -> RelationshipTrend:
         """分析关系趋势
 
         趋势类型：
@@ -291,11 +261,7 @@ class RelationshipEngine:
         # 稳定：没有变化或变化很小
         return RelationshipTrend.STABLE
 
-    def suggest_relationship_development(
-        self,
-        char1_id: CharacterId,
-        char2_id: CharacterId
-    ) -> List[str]:
+    def suggest_relationship_development(self, char1_id: CharacterId, char2_id: CharacterId) -> List[str]:
         """建议关系发展方向
 
         Args:

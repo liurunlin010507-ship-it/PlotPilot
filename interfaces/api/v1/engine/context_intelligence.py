@@ -1,18 +1,19 @@
 """FastAPI 路由 - 场景导演分析"""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from application.engine.dtos.scene_director_dto import (
-    SceneDirectorAnalyzeRequest,
-    SceneDirectorAnalyzeResponse,
-    SceneDirectorAnalysis,
     ContextRetrieveRequest,
     ContextRetrieveResponse,
+    SceneDirectorAnalysis,
+    SceneDirectorAnalyzeRequest,
+    SceneDirectorAnalyzeResponse,
 )
-from application.engine.services.scene_director_service import SceneDirectorService
 from application.engine.services.context_builder import ContextBuilder
-from interfaces.api.dependencies import get_scene_director_service, get_context_builder
+from application.engine.services.scene_director_service import SceneDirectorService
+from interfaces.api.dependencies import get_context_builder, get_scene_director_service
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +41,7 @@ async def analyze_scene(
         r = await svc.analyze(body.chapter_number, body.outline)
     except Exception as e:
         logger.exception("scene-director failed for novel_id=%s", novel_id)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to analyze scene"
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to analyze scene") from e
     return SceneDirectorAnalyzeResponse(**r.model_dump())
 
 
@@ -85,6 +83,5 @@ def retrieve_context(
     except Exception as e:
         logger.exception("context retrieve failed for novel_id=%s", novel_id)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve context"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve context"
         ) from e

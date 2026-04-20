@@ -1,4 +1,5 @@
 """Voice Vault Repository Interface"""
+
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
@@ -14,7 +15,7 @@ class VoiceVaultRepository(ABC):
         scene_type: Optional[str],
         ai_original: str,
         author_refined: str,
-        diff_analysis: str
+        diff_analysis: str,
     ) -> str:
         """
         添加文风样本
@@ -60,9 +61,7 @@ class VoiceVaultRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_novel(
-        self, novel_id: str, pov_character_id: Optional[str] = None
-    ) -> List[dict]:
+    def get_by_novel(self, novel_id: str, pov_character_id: Optional[str] = None) -> List[dict]:
         """
         获取小说的所有样本（用于指纹计算）
 

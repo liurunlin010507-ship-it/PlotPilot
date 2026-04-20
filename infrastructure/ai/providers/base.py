@@ -1,5 +1,7 @@
 """LLM 提供商基类"""
+
 from abc import ABC
+
 from domain.ai.services.llm_service import LLMService
 from infrastructure.ai.config.settings import Settings
 

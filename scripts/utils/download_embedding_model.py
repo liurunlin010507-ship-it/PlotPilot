@@ -2,6 +2,7 @@
 
 下载 BAAI/bge-small-zh-v1.5 模型到本地
 """
+
 import sys
 from pathlib import Path
 
@@ -21,7 +22,7 @@ print()
 
 try:
     # 下载模型（首次运行会从 HuggingFace 下载）
-    model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+    model = SentenceTransformer("BAAI/bge-small-zh-v1.5")
     print("✓ 模型下载成功！")
 
     # 测试模型
@@ -29,7 +30,7 @@ try:
     test_texts = [
         "林雪站在雪山之巅，寒风刺骨。",
         "李明在图书馆里翻阅古籍，寻找线索。",
-        "雪山上的风越来越大，林雪感到一丝不安。"
+        "雪山上的风越来越大，林雪感到一丝不安。",
     ]
 
     print(f"    测试文本数量: {len(test_texts)}")
@@ -55,9 +56,9 @@ try:
     print("✓ 本地模型下载并测试成功！")
     print("=" * 60)
     print("\n模型信息:")
-    print(f"  - 模型名称: BAAI/bge-small-zh-v1.5")
+    print("  - 模型名称: BAAI/bge-small-zh-v1.5")
     print(f"  - 向量维度: {embeddings.shape[1]}")
-    print(f"  - 缓存位置: ~/.cache/huggingface/hub/")
+    print("  - 缓存位置: ~/.cache/huggingface/hub/")
     print("\n下一步:")
     print("  1. 配置 .env: EMBEDDING_SERVICE=local")
     print("  2. 使用本地模型替代 OpenAI API")

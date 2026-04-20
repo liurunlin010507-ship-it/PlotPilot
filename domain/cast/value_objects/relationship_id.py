@@ -1,4 +1,5 @@
 """Relationship ID value object"""
+
 from dataclasses import dataclass
 
 

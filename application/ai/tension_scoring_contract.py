@@ -5,6 +5,7 @@
 - 日后 provider 支持 function calling 时，可直接把
   tension_scoring_openai_function_tool() 交给网关
 """
+
 from __future__ import annotations
 
 import re
@@ -14,7 +15,6 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from application.ai.llm_json_extract import parse_llm_json_to_dict
 from domain.novel.value_objects.tension_dimensions import TensionDimensions
-
 
 # ---------------------------------------------------------------------------
 # 与 LLM 约定的响应形状
@@ -81,8 +81,7 @@ def parse_tension_scoring_llm_response(
     except ValidationError as e:
         err_list = e.errors()
         msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
+            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}" for err in err_list[:12]
         )
         return None, [msg or str(e)]
 

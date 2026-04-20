@@ -1,14 +1,17 @@
 """托管连写：自动规划大纲 + 按章流式生成 + 可选落库，上下文由 ContextBuilder 维护。"""
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, AsyncIterator, Dict, Optional, TYPE_CHECKING
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from application.core.services.chapter_service import ChapterService
 from application.core.services.novel_service import NovelService
 from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
 from domain.shared.exceptions import EntityNotFoundError
+
 if TYPE_CHECKING:
     from application.engine.services.chapter_aftermath_pipeline import ChapterAftermathPipeline
 
@@ -23,7 +26,7 @@ class HostedWriteService:
         workflow: AutoNovelGenerationWorkflow,
         chapter_service: ChapterService,
         novel_service: NovelService,
-        chapter_aftermath_pipeline: Optional["ChapterAftermathPipeline"] = None,
+        chapter_aftermath_pipeline: Optional[ChapterAftermathPipeline] = None,
     ):
         self._workflow = workflow
         self._chapter = chapter_service
@@ -42,9 +45,7 @@ class HostedWriteService:
                     return
                 await self._aftermath.run_after_chapter_saved(novel_id, chapter_number, content)
             except Exception as e:
-                logger.warning(
-                    "托管章后管线失败 novel=%s ch=%s: %s", novel_id, chapter_number, e
-                )
+                logger.warning("托管章后管线失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
 
         try:
             asyncio.create_task(_run())
@@ -54,10 +55,7 @@ class HostedWriteService:
     def _fallback_outline(self, novel_id: str, chapter_number: int) -> str:
         dto = self._chapter.get_chapter_by_novel_and_number(novel_id, chapter_number)
         title = dto.title if dto else f"第{chapter_number}章"
-        return (
-            f"【托管】{title}\n\n"
-            "承接已有正文与设定，推进本章情节与人物；保持人称、时态与全书一致。"
-        )
+        return f"【托管】{title}\n\n承接已有正文与设定，推进本章情节与人物；保持人称、时态与全书一致。"
 
     async def stream_hosted_write(
         self,
@@ -72,10 +70,10 @@ class HostedWriteService:
         事件在单章事件上增加 ``chapter``；并可能发出 ``session`` / ``chapter_start`` /
         ``outline`` / ``saved``。
         """
-        logger.info(f"========================================")
+        logger.info("========================================")
         logger.info(f"开始托管连写: 小说={novel_id}, 章节范围={from_chapter}-{to_chapter}")
         logger.info(f"配置: auto_save={auto_save}, auto_outline={auto_outline}")
-        logger.info(f"========================================")
+        logger.info("========================================")
 
         if from_chapter < 1 or to_chapter < 1 or to_chapter < from_chapter:
             logger.error(f"无效的章节范围: {from_chapter}-{to_chapter}")
@@ -94,9 +92,9 @@ class HostedWriteService:
         }
 
         for index, n in enumerate(range(from_chapter, to_chapter + 1), start=1):
-            logger.info(f"----------------------------------------")
+            logger.info("----------------------------------------")
             logger.info(f"开始处理章节 {n} ({index}/{total})")
-            logger.info(f"----------------------------------------")
+            logger.info("----------------------------------------")
 
             yield {"type": "chapter_start", "chapter": n, "index": index, "total": total}
 
@@ -109,7 +107,7 @@ class HostedWriteService:
                     logger.warning(f"  × 大纲生成失败: {e}, 使用默认模板")
                     outline = self._fallback_outline(novel_id, n)
             else:
-                logger.info(f"  → 使用默认大纲模板")
+                logger.info("  → 使用默认大纲模板")
                 outline = self._fallback_outline(novel_id, n)
 
             yield {"type": "outline", "chapter": n, "text": outline}
@@ -124,24 +122,18 @@ class HostedWriteService:
                     logger.info(f"  → 尝试保存章节 {n} ({len(content)} 字符)")
                     try:
                         # 先尝试更新已存在的章节
-                        self._chapter.update_chapter_by_novel_and_number(
-                            novel_id, n, content
-                        )
+                        self._chapter.update_chapter_by_novel_and_number(novel_id, n, content)
                         logger.info(f"  ✓ 章节 {n} 更新成功")
                         self._schedule_chapter_aftermath(novel_id, n, content)
                         yield {"type": "saved", "chapter": n, "ok": True}
-                    except EntityNotFoundError as e:
+                    except EntityNotFoundError:
                         # 章节不存在，创建新章节
                         logger.info(f"  → 章节 {n} 不存在，创建新章节")
                         try:
                             chapter_id = f"chapter-{novel_id}-{n}"
                             title = f"第{n}章"
                             self._novel.add_chapter(
-                                novel_id=novel_id,
-                                chapter_id=chapter_id,
-                                number=n,
-                                title=title,
-                                content=content
+                                novel_id=novel_id, chapter_id=chapter_id, number=n, title=title, content=content
                             )
                             logger.info(f"  ✓ 章节 {n} 创建成功")
                             self._schedule_chapter_aftermath(novel_id, n, content)
@@ -167,7 +159,7 @@ class HostedWriteService:
                     logger.error(f"  × 章节 {n} 生成失败，终止托管连写")
                     return
 
-        logger.info(f"========================================")
+        logger.info("========================================")
         logger.info(f"托管连写完成: 小说={novel_id}, 共生成 {total} 个章节")
-        logger.info(f"========================================")
+        logger.info("========================================")
         yield {"type": "session_done", "novel_id": novel_id}

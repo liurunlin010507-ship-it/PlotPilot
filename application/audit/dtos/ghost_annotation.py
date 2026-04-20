@@ -1,4 +1,5 @@
 """Ghost Annotation DTO - 幽灵批注数据传输对象"""
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,6 +11,7 @@ class GhostAnnotation:
     在章节生成后，侧边栏显示的设定偏离警告。
     不打断生成流程，只在后置审查时提示。
     """
+
     type: str  # "setting_conflict", "character_inconsistency", "timeline_error"
     severity: str  # "warning", "error", "info"
     message: str  # 人类可读的提示信息

@@ -1,4 +1,5 @@
 """SQLite 章节文风评分仓储"""
+
 from typing import List, Optional
 from uuid import uuid4
 
@@ -61,9 +62,7 @@ class SqliteChapterStyleScoreRepository:
         )
         return score_id
 
-    def get_by_chapter(
-        self, novel_id: str, chapter_number: int
-    ) -> Optional[dict]:
+    def get_by_chapter(self, novel_id: str, chapter_number: int) -> Optional[dict]:
         row = self.db.fetch_one(
             """
             SELECT score_id, novel_id, chapter_number, adjective_density,
@@ -75,9 +74,7 @@ class SqliteChapterStyleScoreRepository:
         )
         return dict(row) if row else None
 
-    def list_by_novel(
-        self, novel_id: str, limit: int = 50
-    ) -> List[dict]:
+    def list_by_novel(self, novel_id: str, limit: int = 50) -> List[dict]:
         rows = self.db.fetch_all(
             """
             SELECT score_id, novel_id, chapter_number, adjective_density,

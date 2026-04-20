@@ -1,13 +1,14 @@
 """Statistics API router for tracking writing progress and content analysis."""
+
 import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import PositiveInt
 
-from ..services.stats_service import StatsService
 from ..models.responses import SuccessResponse
-from ..models.stats_models import GlobalStats, BookStats, ChapterStats, WritingProgress
+from ..models.stats_models import BookStats, ChapterStats, GlobalStats, WritingProgress
+from ..services.stats_service import StatsService
 
 logger = logging.getLogger("aitext.web.routers.stats")
 
@@ -56,18 +57,12 @@ def create_stats_router(stats_service: StatsService) -> APIRouter:
 
         stats = stats_service.get_book_stats(slug)
         if stats is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Book '{slug}' not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book '{slug}' not found")
 
         return SuccessResponse(data=stats)
 
     @router.get("/book/{slug}/chapter/{chapter_id}", response_model=SuccessResponse[ChapterStats])
-    def get_chapter_stats(
-        slug: str,
-        chapter_id: PositiveInt
-    ) -> SuccessResponse[ChapterStats]:
+    def get_chapter_stats(slug: str, chapter_id: PositiveInt) -> SuccessResponse[ChapterStats]:
         """Get statistics for a specific chapter.
 
         Args:
@@ -85,16 +80,14 @@ def create_stats_router(stats_service: StatsService) -> APIRouter:
         stats = stats_service.get_chapter_stats(slug, chapter_id)
         if stats is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Chapter {chapter_id} in book '{slug}' not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Chapter {chapter_id} in book '{slug}' not found"
             )
 
         return SuccessResponse(data=stats)
 
     @router.get("/book/{slug}/progress", response_model=SuccessResponse[List[WritingProgress]])
     def get_writing_progress(
-        slug: str,
-        days: int = Query(default=30, ge=1, le=365, description="Number of days to look back (1-365)")
+        slug: str, days: int = Query(default=30, ge=1, le=365, description="Number of days to look back (1-365)")
     ) -> SuccessResponse[List[WritingProgress]]:
         """Get writing progress over time for a specific book.
 
@@ -118,14 +111,13 @@ def create_stats_router(stats_service: StatsService) -> APIRouter:
         # Check if book exists before returning progress
         book_stats = stats_service.get_book_stats(slug)
         if book_stats is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Book '{slug}' not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book '{slug}' not found")
 
         # Get writing progress (empty list for now, Week 2 feature)
         progress = stats_service.get_writing_progress(slug, days)
         return SuccessResponse(data=progress)
 
-    logger.info("Statistics router created with endpoints: /global, /book/{slug}, /book/{slug}/chapter/{chapter_id}, /book/{slug}/progress")
+    logger.info(
+        "Statistics router created with endpoints: /global, /book/{slug}, /book/{slug}/chapter/{chapter_id}, /book/{slug}/progress"
+    )
     return router

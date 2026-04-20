@@ -1,8 +1,9 @@
 """
 Service for Worldbuilding
 """
-from typing import Optional
+
 import uuid
+from typing import Optional
 
 from domain.worldbuilding.worldbuilding import Worldbuilding
 from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository

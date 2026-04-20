@@ -1,4 +1,4 @@
-from typing import List, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 if TYPE_CHECKING:
     from domain.bible.entities.character import Character
@@ -22,7 +22,7 @@ class AppearanceScheduler:
         self,
         outline: str,
         available_characters: List[Tuple["Character", "CharacterImportance", "ActivityMetrics"]],
-        max_characters: int
+        max_characters: int,
     ) -> List["Character"]:
         """调度角色出场
 
@@ -53,8 +53,8 @@ class AppearanceScheduler:
             key=lambda x: (
                 self._importance_priority(x[1]),  # 重要性优先级
                 -x[2].appearance_count,  # 活动度（降序）
-                -x[2].last_appearance_chapter  # 最近出现章节（降序）
-            )
+                -x[2].last_appearance_chapter,  # 最近出现章节（降序）
+            ),
         )
 
         # 3. 合并：提到的角色 + 未提到的角色
@@ -72,6 +72,6 @@ class AppearanceScheduler:
             CharacterImportance.MAJOR_SUPPORTING: 1,
             CharacterImportance.IMPORTANT_SUPPORTING: 2,
             CharacterImportance.MINOR: 3,
-            CharacterImportance.BACKGROUND: 4
+            CharacterImportance.BACKGROUND: 4,
         }
         return priority_map.get(importance, 999)

@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
+
 from domain.novel.entities.chapter import Chapter
-from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.chapter_id import ChapterId
+from domain.novel.value_objects.novel_id import NovelId
 
 
 class ChapterRepository(ABC):

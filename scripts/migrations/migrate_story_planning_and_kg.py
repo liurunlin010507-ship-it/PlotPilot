@@ -8,11 +8,12 @@
 
 import sqlite3
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # 数据库路径
 DB_PATH = Path(__file__).parent.parent / "data" / "aitext.db"
+
 
 def check_column_exists(cursor, table: str, column: str) -> bool:
     """检查列是否存在"""
@@ -20,13 +21,12 @@ def check_column_exists(cursor, table: str, column: str) -> bool:
     columns = {col[1] for col in cursor.fetchall()}
     return column in columns
 
+
 def check_table_exists(cursor, table: str) -> bool:
     """检查表是否存在"""
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        (table,)
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
     return cursor.fetchone() is not None
+
 
 def migrate_story_nodes(cursor):
     """迁移 story_nodes 表"""
@@ -52,6 +52,7 @@ def migrate_story_nodes(cursor):
             print(f"✓ 添加字段: {field_name}")
         else:
             print(f"⊙ 字段已存在: {field_name}")
+
 
 def create_chapter_elements(cursor):
     """创建 chapter_elements 表"""
@@ -93,6 +94,7 @@ def create_chapter_elements(cursor):
     cursor.execute("CREATE INDEX idx_chapter_elements_element ON chapter_elements(element_type, element_id)")
     print("✓ 创建索引")
 
+
 def create_chapter_scenes(cursor):
     """创建 chapter_scenes 表"""
     print("\n=== 创建 chapter_scenes 表 ===")
@@ -133,6 +135,7 @@ def create_chapter_scenes(cursor):
     cursor.execute("CREATE INDEX idx_chapter_scenes_chapter ON chapter_scenes(chapter_id)")
     print("✓ 创建索引")
 
+
 def migrate_triples(cursor):
     """迁移 triples 表"""
     print("\n=== 迁移 triples 表 ===")
@@ -161,6 +164,7 @@ def migrate_triples(cursor):
     except Exception as e:
         print(f"⊙ 索引可能已存在: {e}")
 
+
 def verify_migration(cursor):
     """验证迁移结果"""
     print("\n=== 验证迁移结果 ===")
@@ -169,9 +173,17 @@ def verify_migration(cursor):
     cursor.execute("PRAGMA table_info(story_nodes)")
     story_nodes_columns = {col[1] for col in cursor.fetchall()}
     required_story_nodes = {
-        "planning_status", "planning_source", "outline", "suggested_chapter_count",
-        "themes", "key_events", "narrative_arc", "conflicts",
-        "pov_character_id", "timeline_start", "timeline_end"
+        "planning_status",
+        "planning_source",
+        "outline",
+        "suggested_chapter_count",
+        "themes",
+        "key_events",
+        "narrative_arc",
+        "conflicts",
+        "pov_character_id",
+        "timeline_start",
+        "timeline_end",
     }
     missing = required_story_nodes - story_nodes_columns
     if missing:
@@ -194,10 +206,7 @@ def verify_migration(cursor):
     # 检查 triples 字段
     cursor.execute("PRAGMA table_info(triples)")
     triples_columns = {col[1] for col in cursor.fetchall()}
-    required_triples = {
-        "confidence", "source_type", "source_chapter_id",
-        "first_appearance", "related_chapters"
-    }
+    required_triples = {"confidence", "source_type", "source_chapter_id", "first_appearance", "related_chapters"}
     missing = required_triples - triples_columns
     if missing:
         print(f"✗ triples 缺少字段: {missing}")
@@ -205,6 +214,7 @@ def verify_migration(cursor):
     print("✓ triples 字段完整")
 
     return True
+
 
 def main():
     """执行迁移"""
@@ -247,10 +257,12 @@ def main():
         conn.rollback()
         print(f"\n✗ 迁移失败: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 """时间线事件值对象"""
+
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -9,6 +9,7 @@ class TimelineEvent:
 
     记录小说中发生的事件及其时间戳
     """
+
     id: str
     chapter_number: int
     event: str  # 事件描述

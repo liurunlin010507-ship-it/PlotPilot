@@ -2,24 +2,24 @@
 知识图谱推断 API 路由
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
 from typing import Optional
 
-from application.world.services.knowledge_graph_service import KnowledgeGraphService
-from infrastructure.persistence.database.triple_repository import TripleRepository
-from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from application.paths import get_db_path
-from domain.bible.triple import SourceType
-from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
-from interfaces.api.dependencies import get_knowledge_repository
+from fastapi import APIRouter, Depends, HTTPException
 
+from application.paths import get_db_path
+from application.world.services.knowledge_graph_service import KnowledgeGraphService
+from domain.bible.triple import SourceType
+from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+from infrastructure.persistence.database.triple_repository import TripleRepository
+from interfaces.api.dependencies import get_knowledge_repository
 
 router = APIRouter(prefix="/api/v1/knowledge-graph", tags=["knowledge-graph"])
 
 
 # ==================== 依赖注入 ====================
+
 
 def get_kg_service() -> KnowledgeGraphService:
     """获取知识图谱服务"""
@@ -37,6 +37,7 @@ def get_triple_repo() -> TripleRepository:
 
 
 # ==================== API 端点 ====================
+
 
 @router.get("/novels/{novel_id}/chapters/by-number/{chapter_number}/inference-evidence")
 async def get_chapter_inference_evidence(
@@ -121,10 +122,7 @@ async def revoke_single_chapter_inferred_triple(
 
 
 @router.post("/novels/{novel_id}/infer")
-async def infer_novel_knowledge_graph(
-    novel_id: str,
-    service: KnowledgeGraphService = Depends(get_kg_service)
-):
+async def infer_novel_knowledge_graph(novel_id: str, service: KnowledgeGraphService = Depends(get_kg_service)):
     """
     推断整部小说的知识图谱
 
@@ -134,19 +132,13 @@ async def infer_novel_knowledge_graph(
     try:
         stats = await service.infer_from_novel(novel_id)
 
-        return {
-            "success": True,
-            "data": stats
-        }
+        return {"success": True, "data": stats}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"推断知识图谱失败: {str(e)}")
 
 
 @router.post("/chapters/{chapter_id}/infer")
-async def infer_chapter_knowledge_graph(
-    chapter_id: str,
-    service: KnowledgeGraphService = Depends(get_kg_service)
-):
+async def infer_chapter_knowledge_graph(chapter_id: str, service: KnowledgeGraphService = Depends(get_kg_service)):
     """
     推断单个章节的知识图谱
 
@@ -160,8 +152,8 @@ async def infer_chapter_knowledge_graph(
             "data": {
                 "chapter_id": chapter_id,
                 "inferred_triples": len(triples),
-                "triples": [triple.to_dict() for triple in triples]
-            }
+                "triples": [triple.to_dict() for triple in triples],
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"推断章节知识图谱失败: {str(e)}")
@@ -172,7 +164,7 @@ async def get_novel_triples(
     novel_id: str,
     source_type: Optional[str] = None,
     min_confidence: float = 0.0,
-    repo: TripleRepository = Depends(get_triple_repo)
+    repo: TripleRepository = Depends(get_triple_repo),
 ):
     """
     获取小说的所有三元组
@@ -183,32 +175,19 @@ async def get_novel_triples(
     """
     try:
         if source_type:
-            triples = await repo.get_by_source_type(
-                novel_id,
-                SourceType(source_type),
-                min_confidence
-            )
+            triples = await repo.get_by_source_type(novel_id, SourceType(source_type), min_confidence)
         else:
             triples = await repo.get_by_novel(novel_id)
             # 过滤置信度
             triples = [t for t in triples if t.confidence >= min_confidence]
 
-        return {
-            "success": True,
-            "data": {
-                "total": len(triples),
-                "triples": [triple.to_dict() for triple in triples]
-            }
-        }
+        return {"success": True, "data": {"total": len(triples), "triples": [triple.to_dict() for triple in triples]}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取三元组失败: {str(e)}")
 
 
 @router.get("/chapters/{chapter_id}/triples")
-async def get_chapter_triples(
-    chapter_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def get_chapter_triples(chapter_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     获取章节相关的三元组
 
@@ -222,18 +201,15 @@ async def get_chapter_triples(
             "data": {
                 "chapter_id": chapter_id,
                 "total": len(triples),
-                "triples": [triple.to_dict() for triple in triples]
-            }
+                "triples": [triple.to_dict() for triple in triples],
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取章节三元组失败: {str(e)}")
 
 
 @router.post("/triples/{triple_id}/confirm")
-async def confirm_triple(
-    triple_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def confirm_triple(triple_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     确认三元组
 
@@ -247,10 +223,7 @@ async def confirm_triple(
         triple.confirm()
         await repo.update(triple)
 
-        return {
-            "success": True,
-            "data": triple.to_dict()
-        }
+        return {"success": True, "data": triple.to_dict()}
     except HTTPException:
         raise
     except Exception as e:
@@ -258,10 +231,7 @@ async def confirm_triple(
 
 
 @router.delete("/triples/{triple_id}")
-async def delete_triple(
-    triple_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def delete_triple(triple_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     删除三元组
 
@@ -273,10 +243,7 @@ async def delete_triple(
         if not success:
             raise HTTPException(status_code=404, detail="三元组不存在")
 
-        return {
-            "success": True,
-            "message": "删除成功"
-        }
+        return {"success": True, "message": "删除成功"}
     except HTTPException:
         raise
     except Exception as e:
@@ -284,11 +251,7 @@ async def delete_triple(
 
 
 @router.get("/elements/{element_type}/{element_id}/relations")
-async def get_element_relations(
-    element_type: str,
-    element_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def get_element_relations(element_type: str, element_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     获取元素的所有关系
 
@@ -300,14 +263,14 @@ async def get_element_relations(
         subject_triples = await repo.get_by_subject(
             novel_id="",  # 需要从元素 ID 推断
             subject_type=element_type,
-            subject_id=element_id
+            subject_id=element_id,
         )
 
         # 获取作为客体的关系
         object_triples = await repo.get_by_object(
             novel_id="",  # 需要从元素 ID 推断
             object_type=element_type,
-            object_id=element_id
+            object_id=element_id,
         )
 
         return {
@@ -317,18 +280,15 @@ async def get_element_relations(
                 "element_id": element_id,
                 "as_subject": [t.to_dict() for t in subject_triples],
                 "as_object": [t.to_dict() for t in object_triples],
-                "total": len(subject_triples) + len(object_triples)
-            }
+                "total": len(subject_triples) + len(object_triples),
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取元素关系失败: {str(e)}")
 
 
 @router.get("/novels/{novel_id}/statistics")
-async def get_knowledge_graph_statistics(
-    novel_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def get_knowledge_graph_statistics(novel_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     获取知识图谱统计信息
 
@@ -345,9 +305,9 @@ async def get_knowledge_graph_statistics(
 
         # 统计置信度分布
         confidence_ranges = {
-            "high": 0,      # >= 0.8
-            "medium": 0,    # 0.6 - 0.8
-            "low": 0        # < 0.6
+            "high": 0,  # >= 0.8
+            "medium": 0,  # 0.6 - 0.8
+            "low": 0,  # < 0.6
         }
         for triple in all_triples:
             if triple.confidence >= 0.8:
@@ -369,8 +329,8 @@ async def get_knowledge_graph_statistics(
                 "total_triples": len(all_triples),
                 "source_distribution": source_stats,
                 "confidence_distribution": confidence_ranges,
-                "predicate_distribution": predicate_stats
-            }
+                "predicate_distribution": predicate_stats,
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取统计信息失败: {str(e)}")
@@ -378,61 +338,51 @@ async def get_knowledge_graph_statistics(
 
 # ==================== 向量索引与语义检索 ====================
 
+
 @router.post("/novels/{novel_id}/index")
-async def index_novel_triples(
-    novel_id: str,
-    repo: TripleRepository = Depends(get_triple_repo)
-):
+async def index_novel_triples(novel_id: str, repo: TripleRepository = Depends(get_triple_repo)):
     """
     将小说的所有三元组索引到向量数据库
-    
+
     建立向量索引后，支持通过语义相似度检索三元组。
     这是一个耗时操作，建议在后台执行。
     """
     try:
         from interfaces.api.dependencies import get_triple_indexing_service
-        
+
         indexing_service = get_triple_indexing_service()
         if indexing_service is None:
-            raise HTTPException(
-                status_code=503, 
-                detail="向量索引服务不可用，请检查 EMBEDDING_SERVICE 配置"
-            )
-        
+            raise HTTPException(status_code=503, detail="向量索引服务不可用，请检查 EMBEDDING_SERVICE 配置")
+
         # 获取所有三元组
         triples = await repo.get_by_novel(novel_id)
         if not triples:
-            return {
-                "success": True,
-                "message": "没有需要索引的三元组",
-                "data": {"indexed_count": 0}
-            }
-        
+            return {"success": True, "message": "没有需要索引的三元组", "data": {"indexed_count": 0}}
+
         # 转换为字典格式
         triple_dicts = []
         for t in triples:
-            triple_dicts.append({
-                "id": t.id,
-                "subject": t.subject_id,
-                "predicate": t.predicate,
-                "object": t.object_id,
-                "subject_type": t.subject_type,
-                "object_type": t.object_type,
-                "description": t.description,
-                "chapter_number": t.first_appearance,
-                "confidence": t.confidence,
-            })
-        
+            triple_dicts.append(
+                {
+                    "id": t.id,
+                    "subject": t.subject_id,
+                    "predicate": t.predicate,
+                    "object": t.object_id,
+                    "subject_type": t.subject_type,
+                    "object_type": t.object_type,
+                    "description": t.description,
+                    "chapter_number": t.first_appearance,
+                    "confidence": t.confidence,
+                }
+            )
+
         # 批量索引
         indexed_count = await indexing_service.index_triples_batch(novel_id, triple_dicts)
-        
+
         return {
             "success": True,
             "message": f"成功索引 {indexed_count} 个三元组",
-            "data": {
-                "total_triples": len(triples),
-                "indexed_count": indexed_count
-            }
+            "data": {"total_triples": len(triples), "indexed_count": indexed_count},
         }
     except HTTPException:
         raise
@@ -449,10 +399,10 @@ async def semantic_search_triples(
 ):
     """
     语义检索三元组
-    
+
     使用向量相似度搜索找到与查询语义相关的三元组。
     需要先调用 /novels/{novel_id}/index 建立索引。
-    
+
     Args:
         novel_id: 小说 ID
         query: 查询文本（如 "战斗技能"、"武器属性"）
@@ -461,29 +411,19 @@ async def semantic_search_triples(
     """
     try:
         from interfaces.api.dependencies import get_triple_indexing_service
-        
+
         indexing_service = get_triple_indexing_service()
         if indexing_service is None:
-            raise HTTPException(
-                status_code=503,
-                detail="向量索引服务不可用，请检查 EMBEDDING_SERVICE 配置"
-            )
-        
+            raise HTTPException(status_code=503, detail="向量索引服务不可用，请检查 EMBEDDING_SERVICE 配置")
+
         results = await indexing_service.search_triples(
             novel_id=novel_id,
             query=query,
             limit=limit,
             min_score=min_score,
         )
-        
-        return {
-            "success": True,
-            "data": {
-                "query": query,
-                "total": len(results),
-                "results": results
-            }
-        }
+
+        return {"success": True, "data": {"query": query, "total": len(results), "results": results}}
     except HTTPException:
         raise
     except Exception as e:

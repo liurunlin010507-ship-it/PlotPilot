@@ -1,14 +1,10 @@
 import re
-from typing import List, Dict, Any
-from domain.novel.value_objects.consistency_context import ConsistencyContext
-from domain.novel.value_objects.consistency_report import (
-    ConsistencyReport,
-    Issue,
-    IssueType,
-    Severity
-)
-from domain.novel.value_objects.chapter_state import ChapterState
+from typing import Any, Dict, List
+
 from domain.bible.value_objects.character_id import CharacterId
+from domain.novel.value_objects.chapter_state import ChapterState
+from domain.novel.value_objects.consistency_context import ConsistencyContext
+from domain.novel.value_objects.consistency_report import ConsistencyReport, Issue, IssueType, Severity
 
 
 def _coerce_issue_location(value: Any) -> int:
@@ -36,12 +32,7 @@ class ConsistencyChecker:
     提供多维度的一致性验证功能
     """
 
-    def check_character_consistency(
-        self,
-        character_id: str,
-        action: str,
-        context: ConsistencyContext
-    ) -> List[Issue]:
+    def check_character_consistency(self, character_id: str, action: str, context: ConsistencyContext) -> List[Issue]:
         """检查角色行为一致性
 
         Args:
@@ -59,21 +50,19 @@ class ConsistencyChecker:
         character = context.bible.get_character(char_id)
 
         if character is None:
-            issues.append(Issue(
-                type=IssueType.CHARACTER_INCONSISTENCY,
-                severity=Severity.CRITICAL,
-                description=f"Character '{character_id}' not found in Bible",
-                location=1,
-            ))
+            issues.append(
+                Issue(
+                    type=IssueType.CHARACTER_INCONSISTENCY,
+                    severity=Severity.CRITICAL,
+                    description=f"Character '{character_id}' not found in Bible",
+                    location=1,
+                )
+            )
 
         return issues
 
     def check_relationship_consistency(
-        self,
-        char1: str,
-        char2: str,
-        new_relation: str,
-        context: ConsistencyContext
+        self, char1: str, char2: str, new_relation: str, context: ConsistencyContext
     ) -> List[Issue]:
         """检查关系变化一致性
 
@@ -96,28 +85,28 @@ class ConsistencyChecker:
         character2 = context.bible.get_character(char2_id)
 
         if character1 is None:
-            issues.append(Issue(
-                type=IssueType.RELATIONSHIP_INCONSISTENCY,
-                severity=Severity.CRITICAL,
-                description=f"Character '{char1}' not found in Bible",
-                location=1
-            ))
+            issues.append(
+                Issue(
+                    type=IssueType.RELATIONSHIP_INCONSISTENCY,
+                    severity=Severity.CRITICAL,
+                    description=f"Character '{char1}' not found in Bible",
+                    location=1,
+                )
+            )
 
         if character2 is None:
-            issues.append(Issue(
-                type=IssueType.RELATIONSHIP_INCONSISTENCY,
-                severity=Severity.CRITICAL,
-                description=f"Character '{char2}' not found in Bible",
-                location=1
-            ))
+            issues.append(
+                Issue(
+                    type=IssueType.RELATIONSHIP_INCONSISTENCY,
+                    severity=Severity.CRITICAL,
+                    description=f"Character '{char2}' not found in Bible",
+                    location=1,
+                )
+            )
 
         return issues
 
-    def check_event_logic(
-        self,
-        event: Dict[str, Any],
-        context: ConsistencyContext
-    ) -> List[Issue]:
+    def check_event_logic(self, event: Dict[str, Any], context: ConsistencyContext) -> List[Issue]:
         """检查事件逻辑一致性
 
         Args:
@@ -136,20 +125,18 @@ class ConsistencyChecker:
             character = context.bible.get_character(char_id)
 
             if character is None:
-                issues.append(Issue(
-                    type=IssueType.EVENT_LOGIC_ERROR,
-                    severity=Severity.IMPORTANT,
-                    description=f"Event involves unknown character '{char_id_str}'",
-                    location=_coerce_issue_location(event.get("chapter", 1)),
-                ))
+                issues.append(
+                    Issue(
+                        type=IssueType.EVENT_LOGIC_ERROR,
+                        severity=Severity.IMPORTANT,
+                        description=f"Event involves unknown character '{char_id_str}'",
+                        location=_coerce_issue_location(event.get("chapter", 1)),
+                    )
+                )
 
         return issues
 
-    def check_foreshadowing(
-        self,
-        foreshadowing_id: str,
-        context: ConsistencyContext
-    ) -> List[Issue]:
+    def check_foreshadowing(self, foreshadowing_id: str, context: ConsistencyContext) -> List[Issue]:
         """检查伏笔一致性
 
         Args:
@@ -165,12 +152,14 @@ class ConsistencyChecker:
         foreshadowing = context.foreshadowing_registry.get_by_id(foreshadowing_id)
 
         if foreshadowing is None:
-            issues.append(Issue(
-                type=IssueType.FORESHADOWING_ERROR,
-                severity=Severity.CRITICAL,
-                description=f"Foreshadowing '{foreshadowing_id}' not found in registry",
-                location=1
-            ))
+            issues.append(
+                Issue(
+                    type=IssueType.FORESHADOWING_ERROR,
+                    severity=Severity.CRITICAL,
+                    description=f"Foreshadowing '{foreshadowing_id}' not found in registry",
+                    location=1,
+                )
+            )
 
         return issues
 
@@ -184,13 +173,17 @@ class ConsistencyChecker:
         if fid and context.foreshadowing_registry.get_by_id(fid):
             return fid
 
-        description = str(
-            resolved_data.get("description")
-            or resolved_data.get("foreshadowing_description")
-            or resolved_data.get("resolved_foreshadowing")
-            or fid
-            or ""
-        ).strip().lower()
+        description = (
+            str(
+                resolved_data.get("description")
+                or resolved_data.get("foreshadowing_description")
+                or resolved_data.get("resolved_foreshadowing")
+                or fid
+                or ""
+            )
+            .strip()
+            .lower()
+        )
         if not description:
             return fid
 
@@ -214,11 +207,7 @@ class ConsistencyChecker:
             return ""
         return fid
 
-    def check_all(
-        self,
-        chapter_state: ChapterState,
-        context: ConsistencyContext
-    ) -> ConsistencyReport:
+    def check_all(self, chapter_state: ChapterState, context: ConsistencyContext) -> ConsistencyReport:
         """执行完整的一致性检查
 
         Args:
@@ -235,9 +224,7 @@ class ConsistencyChecker:
         # 检查角色行为
         for action in chapter_state.character_actions:
             issues = self.check_character_consistency(
-                character_id=action["character_id"],
-                action=action["action"],
-                context=context
+                character_id=action["character_id"], action=action["action"], context=context
             )
             all_issues.extend(issues)
 
@@ -247,28 +234,20 @@ class ConsistencyChecker:
                 char1=rel_change["char1"],
                 char2=rel_change["char2"],
                 new_relation=rel_change["new_type"],
-                context=context
+                context=context,
             )
             all_issues.extend(issues)
 
         # 检查事件
         for event in chapter_state.events:
-            issues = self.check_event_logic(
-                event=event,
-                context=context
-            )
+            issues = self.check_event_logic(event=event, context=context)
             all_issues.extend(issues)
 
         # 检查伏笔解决
         for resolved in chapter_state.foreshadowing_resolved:
             issues = self.check_foreshadowing(
-                foreshadowing_id=self.resolve_foreshadowing_reference(resolved, context),
-                context=context
+                foreshadowing_id=self.resolve_foreshadowing_reference(resolved, context), context=context
             )
             all_issues.extend(issues)
 
-        return ConsistencyReport(
-            issues=all_issues,
-            warnings=all_warnings,
-            suggestions=suggestions
-        )
+        return ConsistencyReport(issues=all_issues, warnings=all_warnings, suggestions=suggestions)

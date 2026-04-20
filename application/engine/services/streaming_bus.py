@@ -12,13 +12,14 @@ Windows 兼容性说明：
 - 守护进程调用 publish() 写入队列
 - SSE 接口调用 get_chunk() 从队列读取
 """
+
 import asyncio
+import logging
 import multiprocessing as mp
 import threading
 import time
-import logging
 from collections import defaultdict
-from queue import Full, Empty
+from queue import Empty, Full
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -66,10 +67,7 @@ def _get_queue() -> Optional[mp.Queue]:
     current_process = mp.current_process()
 
     if current_process.daemon:
-        logger.warning(
-            "[StreamingBus] 守护进程未注入队列，流式推送不可用。"
-            "请确保在启动守护进程时传入 Queue。"
-        )
+        logger.warning("[StreamingBus] 守护进程未注入队列，流式推送不可用。请确保在启动守护进程时传入 Queue。")
         return None
 
     logger.debug("[StreamingBus] _get_queue: 队列未初始化，尝试初始化...")
@@ -103,10 +101,7 @@ class StreamingBus:
             return
 
         try:
-            message = {
-                "novel_id": novel_id,
-                "chunk": chunk
-            }
+            message = {"novel_id": novel_id, "chunk": chunk}
 
             try:
                 queue.put_nowait(message)
@@ -191,7 +186,9 @@ class StreamingBus:
                         try:
                             queue.put_nowait(message)
                         except Full:
-                            logger.warning(f"[StreamingBus] get_chunk_async: 无法将消息重新放回队列，小说ID: {msg_novel_id}")
+                            logger.warning(
+                                f"[StreamingBus] get_chunk_async: 无法将消息重新放回队列，小说ID: {msg_novel_id}"
+                            )
 
             except Empty:
                 await asyncio.sleep(0.001)

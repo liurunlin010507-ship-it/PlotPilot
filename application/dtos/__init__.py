@@ -1,8 +1,7 @@
 """兼容旧导入路径：application.dtos.* -> 新分层 DTO 模块。"""
 
-from importlib import import_module
 import sys
-
+from importlib import import_module
 
 _MODULE_ALIASES = {
     "bible_dto": "application.world.dtos.bible_dto",

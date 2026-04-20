@@ -1,7 +1,9 @@
 """Claude 章节摘要生成器实现"""
+
 import os
+
 from domain.ai.services.chapter_summarizer import ChapterSummarizer
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
 
 
@@ -63,11 +65,7 @@ Requirements:
             prompt = Prompt(system=system_prompt, user=user_prompt)
 
             # 配置生成参数
-            config = GenerationConfig(
-                model=os.getenv("WRITING_MODEL", ""),
-                max_tokens=1024,
-                temperature=0.7
-            )
+            config = GenerationConfig(model=os.getenv("WRITING_MODEL", ""), max_tokens=1024, temperature=0.7)
 
             # 调用 LLM 服务生成摘要
             result = await self.llm_service.generate(prompt, config)

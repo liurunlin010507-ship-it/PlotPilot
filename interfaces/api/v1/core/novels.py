@@ -1,19 +1,17 @@
 """Novel API 路由"""
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
-import logging
 
+import logging
+from typing import List, Literal, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from application.core.dtos.novel_dto import NovelDTO
 from application.core.services.novel_service import NovelService
 from application.world.services.auto_bible_generator import AutoBibleGenerator
 from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
-from application.core.dtos.novel_dto import NovelDTO
-from interfaces.api.dependencies import (
-    get_novel_service,
-    get_auto_bible_generator,
-    get_auto_knowledge_generator
-)
 from domain.shared.exceptions import EntityNotFoundError
+from interfaces.api.dependencies import get_novel_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +21,7 @@ router = APIRouter(prefix="/novels", tags=["novels"])
 # Request Models
 class CreateNovelRequest(BaseModel):
     """创建小说请求"""
+
     novel_id: str = Field(..., description="小说 ID")
     title: str = Field(..., description="小说标题")
     author: str = Field(..., description="作者")
@@ -46,11 +45,13 @@ class CreateNovelRequest(BaseModel):
 
 class UpdateStageRequest(BaseModel):
     """更新阶段请求"""
+
     stage: str = Field(..., description="小说阶段")
 
 
 class UpdateNovelRequest(BaseModel):
     """更新小说基本信息请求"""
+
     title: str = Field(None, description="小说标题")
     author: str = Field(None, description="作者")
     target_chapters: int = Field(None, gt=0, description="目标章节数")
@@ -65,6 +66,7 @@ class UpdateNovelRequest(BaseModel):
 
 class UpdateAutoApproveRequest(BaseModel):
     """更新全自动模式请求"""
+
     auto_approve_mode: bool = Field(..., description="是否开启全自动模式（跳过所有人工审阅）")
 
 
@@ -73,29 +75,21 @@ async def _generate_bible_background(
     title: str,
     target_chapters: int,
     bible_generator: AutoBibleGenerator,
-    knowledge_generator: AutoKnowledgeGenerator
+    knowledge_generator: AutoKnowledgeGenerator,
 ):
     """后台任务：生成 Bible 和 Knowledge"""
     bible_summary = ""
     try:
-        bible_data = await bible_generator.generate_and_save(
-            novel_id,
-            title,
-            target_chapters
-        )
+        bible_data = await bible_generator.generate_and_save(novel_id, title, target_chapters)
         # 构建 Bible 摘要供 Knowledge 生成使用
         chars = bible_data.get("characters", [])
         locs = bible_data.get("locations", [])
         char_desc = "、".join(f"{c['name']}（{c.get('role', '')}）" for c in chars[:5])
-        loc_desc = "、".join(c['name'] for c in locs[:3])
+        loc_desc = "、".join(c["name"] for c in locs[:3])
         bible_summary = f"主要角色：{char_desc}。重要地点：{loc_desc}。文风：{bible_data.get('style', '')}。"
 
         # 生成初始 Knowledge
-        await knowledge_generator.generate_and_save(
-            novel_id,
-            title,
-            bible_summary
-        )
+        await knowledge_generator.generate_and_save(novel_id, title, bible_summary)
         logger.info(f"Bible and Knowledge generated successfully for {novel_id}")
     except Exception as e:
         logger.error(f"Failed to generate Bible/Knowledge for {novel_id}: {e}")
@@ -103,10 +97,7 @@ async def _generate_bible_background(
 
 # Routes
 @router.post("/", response_model=NovelDTO, status_code=201)
-async def create_novel(
-    request: CreateNovelRequest,
-    service: NovelService = Depends(get_novel_service)
-):
+async def create_novel(request: CreateNovelRequest, service: NovelService = Depends(get_novel_service)):
     """创建新小说（不自动生成 Bible）
 
     创建小说后，前端应该：
@@ -139,10 +130,7 @@ async def create_novel(
 
 
 @router.get("/{novel_id}", response_model=NovelDTO)
-async def get_novel(
-    novel_id: str,
-    service: NovelService = Depends(get_novel_service)
-):
+async def get_novel(novel_id: str, service: NovelService = Depends(get_novel_service)):
     """获取小说详情
 
     Args:
@@ -175,11 +163,7 @@ async def list_novels(service: NovelService = Depends(get_novel_service)):
 
 
 @router.put("/{novel_id}", response_model=NovelDTO)
-async def update_novel(
-    novel_id: str,
-    request: UpdateNovelRequest,
-    service: NovelService = Depends(get_novel_service)
-):
+async def update_novel(novel_id: str, request: UpdateNovelRequest, service: NovelService = Depends(get_novel_service)):
     """更新小说基本信息
 
     Args:
@@ -208,9 +192,7 @@ async def update_novel(
 
 @router.put("/{novel_id}/stage", response_model=NovelDTO)
 async def update_novel_stage(
-    novel_id: str,
-    request: UpdateStageRequest,
-    service: NovelService = Depends(get_novel_service)
+    novel_id: str, request: UpdateStageRequest, service: NovelService = Depends(get_novel_service)
 ):
     """更新小说阶段
 
@@ -232,10 +214,7 @@ async def update_novel_stage(
 
 
 @router.delete("/{novel_id}", status_code=204)
-async def delete_novel(
-    novel_id: str,
-    service: NovelService = Depends(get_novel_service)
-):
+async def delete_novel(novel_id: str, service: NovelService = Depends(get_novel_service)):
     """删除小说
 
     Args:
@@ -247,20 +226,18 @@ async def delete_novel(
 
 @router.patch("/{novel_id}/auto-approve-mode", response_model=NovelDTO)
 async def update_auto_approve_mode(
-    novel_id: str,
-    request: UpdateAutoApproveRequest,
-    service: NovelService = Depends(get_novel_service)
+    novel_id: str, request: UpdateAutoApproveRequest, service: NovelService = Depends(get_novel_service)
 ):
     """更新全自动模式设置
-    
+
     Args:
         novel_id: 小说 ID
         request: 更新全自动模式请求
         service: Novel 服务
-        
+
     Returns:
         更新后的小说 DTO
-        
+
     Raises:
         HTTPException: 如果小说不存在
     """
@@ -271,10 +248,7 @@ async def update_auto_approve_mode(
 
 
 @router.get("/{novel_id}/statistics")
-async def get_novel_statistics(
-    novel_id: str,
-    service: NovelService = Depends(get_novel_service)
-):
+async def get_novel_statistics(novel_id: str, service: NovelService = Depends(get_novel_service)):
     """获取小说统计信息
 
     Args:

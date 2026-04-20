@@ -1,4 +1,5 @@
 """V1 体量档位（T 恤尺码）：用户只选篇幅档，章数/每章字数/宏观结构由服务端推导并写入梗概黑盒。"""
+
 from __future__ import annotations
 
 import math
@@ -40,8 +41,10 @@ def resolve_v1_length_params(
     tier = (length_tier or "").strip().lower()
     if tier in V1_LENGTH_TIERS:
         meta = V1_LENGTH_TIERS[tier]
-        wpc = target_words_per_chapter if target_words_per_chapter and target_words_per_chapter > 0 else int(
-            meta["default_chapter_words"]
+        wpc = (
+            target_words_per_chapter
+            if target_words_per_chapter and target_words_per_chapter > 0
+            else int(meta["default_chapter_words"])
         )
         wpc = max(500, min(10000, wpc))
         total = int(meta["approx_total_words"])

@@ -1,7 +1,9 @@
 """SQLite-based Cast repository implementation with JSON storage"""
+
 import json
 import logging
 from typing import Optional
+
 from domain.cast.aggregates.cast_graph import CastGraph
 from domain.cast.repositories.cast_repository import CastRepository
 from domain.novel.value_objects.novel_id import NovelId
@@ -53,14 +55,17 @@ class SqliteCastRepository(CastRepository):
         json_data = json.dumps(data, ensure_ascii=False, indent=2)
 
         conn = self.db.get_connection()
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO cast_snapshots (novel_id, data, updated_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(novel_id) DO UPDATE SET
                 data = excluded.data,
                 version = version + 1,
                 updated_at = CURRENT_TIMESTAMP
-        """, (novel_id, json_data))
+        """,
+            (novel_id, json_data),
+        )
         conn.commit()
 
         logger.info(f"Saved cast graph for novel {novel_id}")
@@ -74,10 +79,7 @@ class SqliteCastRepository(CastRepository):
         Returns:
             Cast graph if found, None otherwise
         """
-        cursor = self.db.execute(
-            "SELECT data FROM cast_snapshots WHERE novel_id = ?",
-            (novel_id.value,)
-        )
+        cursor = self.db.execute("SELECT data FROM cast_snapshots WHERE novel_id = ?", (novel_id.value,))
         row = cursor.fetchone()
 
         if not row:
@@ -100,10 +102,7 @@ class SqliteCastRepository(CastRepository):
             novel_id: Novel ID
         """
         conn = self.db.get_connection()
-        conn.execute(
-            "DELETE FROM cast_snapshots WHERE novel_id = ?",
-            (novel_id.value,)
-        )
+        conn.execute("DELETE FROM cast_snapshots WHERE novel_id = ?", (novel_id.value,))
         conn.commit()
         logger.info(f"Deleted cast graph for novel {novel_id.value}")
 
@@ -116,8 +115,5 @@ class SqliteCastRepository(CastRepository):
         Returns:
             True if exists, False otherwise
         """
-        cursor = self.db.execute(
-            "SELECT 1 FROM cast_snapshots WHERE novel_id = ? LIMIT 1",
-            (novel_id.value,)
-        )
+        cursor = self.db.execute("SELECT 1 FROM cast_snapshots WHERE novel_id = ? LIMIT 1", (novel_id.value,))
         return cursor.fetchone() is not None

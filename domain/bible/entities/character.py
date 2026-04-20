@@ -1,6 +1,7 @@
-from typing import List, Any
-from domain.shared.base_entity import BaseEntity
+from typing import Any, List
+
 from domain.bible.value_objects.character_id import CharacterId
+from domain.shared.base_entity import BaseEntity
 from domain.shared.exceptions import InvalidOperationError
 
 

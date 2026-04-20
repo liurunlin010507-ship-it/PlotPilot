@@ -1,8 +1,10 @@
 """时间线注册表实体"""
+
 from typing import List, Optional
-from domain.shared.base_entity import BaseEntity
+
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.timeline_event import TimelineEvent
+from domain.shared.base_entity import BaseEntity
 
 
 class TimelineRegistry(BaseEntity):
@@ -11,12 +13,7 @@ class TimelineRegistry(BaseEntity):
     管理小说中所有时间线事件，支持绝对时间、相对时间和模糊时间
     """
 
-    def __init__(
-        self,
-        id: str,
-        novel_id: NovelId,
-        events: Optional[List[TimelineEvent]] = None
-    ):
+    def __init__(self, id: str, novel_id: NovelId, events: Optional[List[TimelineEvent]] = None):
         super().__init__(id)
         self.novel_id = novel_id
         self.events: List[TimelineEvent] = events if events is not None else []

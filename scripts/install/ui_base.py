@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 可复用 UI 组件基类
 ━━━━━━━━━━━━━━━━━━
@@ -11,25 +10,43 @@ aitex 可复用 UI 组件基类
   - 弹窗工具:   fatal / warning / success popup
 """
 
+import os
+import threading
 import tkinter as tk
 from tkinter import ttk
-import threading
-import os
 
 from theme import (
-    BG, BG2, BG3, ACCENT, ACCENT2, OK_C, WARN_C, ERR_C,
-    TEXT, TEXT_DIM, BORDER,
-    FONT_TITLE, FONT_BODY, FONT_SMALL, FONT_MONO,
-    FONT_LOGO, FONT_ICON, FONT_BTN,
-    WINDOW_W, WINDOW_H, TITLE_BAR_H, LOGO_H, FOOT_H, CARD_PADX,
+    ACCENT,
+    ACCENT2,
+    BG,
+    BG2,
+    BG3,
+    BORDER,
+    CARD_PADX,
+    ERR_C,
+    FONT_BODY,
+    FONT_BTN,
+    FONT_ICON,
+    FONT_LOGO,
+    FONT_MONO,
+    FONT_SMALL,
+    FONT_TITLE,
+    FOOT_H,
+    LOGO_H,
+    OK_C,
+    TEXT,
+    TEXT_DIM,
+    TITLE_BAR_H,
+    WARN_C,
+    WINDOW_H,
+    WINDOW_W,
     setup_progressbar_style,
 )
-from utils import NO_WIN
-
 
 # ══════════════════════════════════════════════
 # 系统托盘 (Windows) — 使用 ctypes 调用 Shell API
 # ══════════════════════════════════════════════
+
 
 class SystemTray:
     """
@@ -99,8 +116,18 @@ class SystemTray:
                 return
 
             self._tray_hwnd = user32.CreateWindowExW(
-                0, wc_name, "", 0,
-                0, 0, 0, 0, 0, 0, wc.hInstance, None,
+                0,
+                wc_name,
+                "",
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                wc.hInstance,
+                None,
             )
             if not self._tray_hwnd:
                 return
@@ -137,8 +164,7 @@ class SystemTray:
 
     def _tray_wnd_proc(self, hwnd, msg, wparam, lparam):
         """托盘消息处理：双击恢复窗口"""
-        import ctypes
-        from ctypes import wintypes
+
         WM_USER = 0x0400
         WM_LBUTTONDBLCLK = WM_USER + 3
         if msg == WM_LBUTTONDBLCLK:
@@ -152,8 +178,10 @@ class SystemTray:
         """后台消息循环，接收托盘事件"""
         import ctypes
         from ctypes import wintypes
+
         MSG = ctypes.Structure if False else None  # placeholder
         try:
+
             class MSG(ctypes.Structure):
                 _fields_ = [
                     ("hwnd", wintypes.HWND),
@@ -163,6 +191,7 @@ class SystemTray:
                     ("time", wintypes.DWORD),
                     ("pt", wintypes.POINT),
                 ]
+
             user32 = ctypes.windll.user32
             while self._msg_thread_running:
                 m = MSG()
@@ -171,6 +200,7 @@ class SystemTray:
                     user32.DispatchMessageW(ctypes.byref(m))
                 else:
                     import time
+
                     time.sleep(0.05)
         except Exception:
             pass
@@ -190,7 +220,7 @@ class SystemTray:
 
     def hide_to_tray(self):
         """隐藏窗口到系统托盘"""
-        if not getattr(self, '_tray_hwnd', None):
+        if not getattr(self, "_tray_hwnd", None):
             return
         try:
             self.root.withdraw()  # 隐藏窗口（不是 iconify）
@@ -203,8 +233,7 @@ class SystemTray:
         self._msg_thread_running = False
         if hasattr(self, "_shell32") and hasattr(self, "_nid"):
             try:
-                self._shell32.Shell_NotifyIconW(
-                    self._NIM_DELETE, ctypes.byref(self._nid))
+                self._shell32.Shell_NotifyIconW(self._NIM_DELETE, ctypes.byref(self._nid))
             except Exception:
                 pass
 
@@ -212,6 +241,7 @@ class SystemTray:
 # ══════════════════════════════════════════════
 # 基础窗口
 # ══════════════════════════════════════════════
+
 
 class BaseWindow:
     """
@@ -223,15 +253,14 @@ class BaseWindow:
           否则 winfo_x/y 返回错误值导致崩溃。
     """
 
-    def __init__(self, title, width=WINDOW_W, height=WINDOW_H,
-                 show_minimize=False, on_close=None):
+    def __init__(self, title, width=WINDOW_W, height=WINDOW_H, show_minimize=False, on_close=None):
         self.width = width
         self.height = height
         self._running = True
         self._drag_x = self._drag_y = 0
         self._on_close_cb = on_close
         self._mapped = False  # 窗口是否已映射（<Map> 事件后为 True）
-        self._tray = None     # 系统托盘实例
+        self._tray = None  # 系统托盘实例
 
         self.root = tk.Tk()
         self.root.title(title)
@@ -243,7 +272,7 @@ class BaseWindow:
         # 居中
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
-        self.root.geometry(f"{width}x{height}+{(sw-width)//2}+{(sh-height)//2}")
+        self.root.geometry(f"{width}x{height}+{(sw - width) // 2}+{(sh - height) // 2}")
 
         # 自定义标题栏
         self.root.overrideredirect(True)
@@ -277,37 +306,52 @@ class BaseWindow:
         bar = tk.Frame(self.root, bg=BG2, height=TITLE_BAR_H)
         bar.pack(fill="x")
         bar.bind("<ButtonPress-1>", self._drag_start)
-        bar.bind("<B1-Motion>",     self._drag_move)
+        bar.bind("<B1-Motion>", self._drag_move)
 
-        tk.Label(bar, text=f"  ✦  {title}",
-                 bg=BG2, fg=TEXT, font=FONT_TITLE).pack(side="left", pady=6)
+        tk.Label(bar, text=f"  ✦  {title}", bg=BG2, fg=TEXT, font=FONT_TITLE).pack(side="left", pady=6)
 
         btn_frame = tk.Frame(bar, bg=BG2)
         btn_frame.pack(side="right")
 
         if show_minimize:
-            tk.Button(btn_frame, text="─", bg=BG2, fg=TEXT_DIM,
-                      relief="flat", bd=0, font=("Arial", 12), cursor="hand2",
-                      activebackground=BORDER, activeforeground=TEXT,
-                      command=self._minimize).pack(side="right", padx=2, pady=4)
+            tk.Button(
+                btn_frame,
+                text="─",
+                bg=BG2,
+                fg=TEXT_DIM,
+                relief="flat",
+                bd=0,
+                font=("Arial", 12),
+                cursor="hand2",
+                activebackground=BORDER,
+                activeforeground=TEXT,
+                command=self._minimize,
+            ).pack(side="right", padx=2, pady=4)
 
-        tk.Button(btn_frame, text="✕", bg=BG2, fg=TEXT_DIM,
-                  relief="flat", bd=0, font=("Arial", 12), cursor="hand2",
-                  activebackground=ERR_C, activeforeground="#fff",
-                  command=self._on_close).pack(side="right", padx=10, pady=4)
+        tk.Button(
+            btn_frame,
+            text="✕",
+            bg=BG2,
+            fg=TEXT_DIM,
+            relief="flat",
+            bd=0,
+            font=("Arial", 12),
+            cursor="hand2",
+            activebackground=ERR_C,
+            activeforeground="#fff",
+            command=self._on_close,
+        ).pack(side="right", padx=10, pady=4)
 
     def _build_logo_area(self, title):
         """Logo 区域（子类可覆写）"""
         logo_f = tk.Frame(self.root, bg=BG, height=LOGO_H)
         logo_f.pack(fill="x")
         logo_f.pack_propagate(False)
-        tk.Label(logo_f, text="PlotPilot",
-                 bg=BG, fg=ACCENT, font=FONT_LOGO).pack(expand=True)
+        tk.Label(logo_f, text="PlotPilot", bg=BG, fg=ACCENT, font=FONT_LOGO).pack(expand=True)
 
     def _build_separator(self):
         """分割线"""
-        tk.Frame(self.root, bg=BORDER, height=1).pack(
-            fill="x", padx=CARD_PADX, pady=(8, 0))
+        tk.Frame(self.root, bg=BORDER, height=1).pack(fill="x", padx=CARD_PADX, pady=(8, 0))
 
     def _build_body(self):
         """子类覆写：在分割线下方构建主体内容"""
@@ -319,7 +363,7 @@ class BaseWindow:
         self._drag_y = e.y_root - self.root.winfo_y()
 
     def _drag_move(self, e):
-        self.root.geometry(f"+{e.x_root-self._drag_x}+{e.y_root-self._drag_y}")
+        self.root.geometry(f"+{e.x_root - self._drag_x}+{e.y_root - self._drag_y}")
 
     def _raise_window(self):
         """将窗口提升到桌面最顶层（防止被其他窗口遮挡）"""
@@ -359,7 +403,7 @@ class BaseWindow:
     def _cancel_auto_restore(self):
         """取消自动恢复定时器"""
         try:
-            if hasattr(self, '_auto_restore_id'):
+            if hasattr(self, "_auto_restore_id"):
                 self.root.after_cancel(self._auto_restore_id)
         except Exception:
             pass
@@ -400,6 +444,7 @@ class BaseWindow:
 # 可复用组件
 # ══════════════════════════════════════════════
 
+
 class LogPanel:
     """日志面板 (Text + Scrollbar + 颜色 tag)"""
 
@@ -410,8 +455,14 @@ class LogPanel:
         frame.pack(fill="both", expand=True, padx=CARD_PADX, pady=(0, 4))
 
         self.text = tk.Text(
-            frame, bg=BG3, fg=TEXT, font=FONT_MONO,
-            relief="flat", bd=0, state="disabled", wrap="none",
+            frame,
+            bg=BG3,
+            fg=TEXT,
+            font=FONT_MONO,
+            relief="flat",
+            bd=0,
+            state="disabled",
+            wrap="none",
             selectbackground=ACCENT,
         )
         scroll = tk.Scrollbar(frame, command=self.text.yview, bg=BG3)
@@ -421,19 +472,21 @@ class LogPanel:
 
         # 颜色 tag
         for tag, color in [
-            ("info", TEXT_DIM), ("ok", OK_C),
-            ("warn", WARN_C), ("error", ERR_C),
+            ("info", TEXT_DIM),
+            ("ok", OK_C),
+            ("warn", WARN_C),
+            ("error", ERR_C),
             ("title", ACCENT2),
         ]:
             if tag == "title":
-                self.text.tag_configure(tag, foreground=color,
-                                        font=(FONT_MONO[0], FONT_MONO[1], "bold"))
+                self.text.tag_configure(tag, foreground=color, font=(FONT_MONO[0], FONT_MONO[1], "bold"))
             else:
                 self.text.tag_configure(tag, foreground=color)
 
     def log(self, msg, tag="info"):
         """线程安全：追加一行日志"""
         import time as _time
+
         def _do():
             try:
                 self.text.configure(state="normal")
@@ -443,6 +496,7 @@ class LogPanel:
                 self.text.configure(state="disabled")
             except Exception:
                 pass
+
         self.text.after(0, _do)
 
 
@@ -459,27 +513,31 @@ class StatusCard:
         self.icon = tk.Label(row1, text="⏳", bg=BG2, fg=ACCENT2, font=FONT_ICON)
         self.icon.pack(side="left")
 
-        self.label = tk.Label(row1, text="正在初始化...",
-                               bg=BG2, fg=TEXT, font=("微软雅黑", 11, "bold"))
+        self.label = tk.Label(row1, text="正在初始化...", bg=BG2, fg=TEXT, font=("微软雅黑", 11, "bold"))
         self.label.pack(side="left", padx=8)
 
         self.port_badge = tk.Label(
-            row1, text=f"端口 {port}",
-            bg=ACCENT, fg="#fff", font=FONT_SMALL, padx=8, pady=2,
+            row1,
+            text=f"端口 {port}",
+            bg=ACCENT,
+            fg="#fff",
+            font=FONT_SMALL,
+            padx=8,
+            pady=2,
         )
         self.port_badge.pack(side="right", padx=4)
 
         # 进度条
         style_name = setup_progressbar_style()
         self.pv = tk.DoubleVar(value=0)
-        ttk.Progressbar(card, variable=self.pv, maximum=100,
-                        style=style_name, length=680).pack(padx=16, pady=(0, 4))
+        ttk.Progressbar(card, variable=self.pv, maximum=100, style=style_name, length=680).pack(padx=16, pady=(0, 4))
 
         self.pct_lbl = tk.Label(card, text="0%", bg=BG2, fg=TEXT_DIM, font=FONT_SMALL)
         self.pct_lbl.pack(anchor="e", padx=16)
 
     def update(self, pct, label="", icon="⏳"):
         """更新状态"""
+
         def _do():
             self.pv.set(pct)
             self.pct_lbl.config(text=f"{int(pct)}%")
@@ -487,6 +545,7 @@ class StatusCard:
                 self.label.config(text=label)
             if icon:
                 self.icon.config(text=icon)
+
         self.icon.after(0, _do)
 
 
@@ -498,13 +557,13 @@ class StepIndicator:
         frame = tk.Frame(parent, bg=BG)
         frame.pack(fill="x", padx=CARD_PADX, pady=(0, 4))
         for i, name in enumerate(step_names):
-            lbl = tk.Label(frame, text=f"{i+1}. {name}",
-                           bg=BG, fg=TEXT_DIM, font=FONT_SMALL)
+            lbl = tk.Label(frame, text=f"{i + 1}. {name}", bg=BG, fg=TEXT_DIM, font=FONT_SMALL)
             lbl.pack(side="left", padx=10)
             self.labels.append(lbl)
 
     def highlight(self, current_idx):
         """高亮当前步骤，之前标绿，之后灰色"""
+
         def _do():
             for i, lbl in enumerate(self.labels):
                 if i < current_idx:
@@ -513,6 +572,7 @@ class StepIndicator:
                     lbl.config(fg=ACCENT2, font=(FONT_SMALL[0], FONT_SMALL[1], "bold"))
                 else:
                     lbl.config(fg=TEXT_DIM, font=FONT_SMALL)
+
         # 找一个 after 的宿主
         widget = self.labels[0] if self.labels else None
         if widget:
@@ -549,12 +609,19 @@ class FootBar:
             self.lbl.config(text=msg)
             if fg:
                 self.lbl.config(fg=fg)
+
         self.lbl.after(0, _do)
 
     def add_button(self, text, command, **opts):
         default_opts = {
-            "bg": BG3, "fg": TEXT_DIM, "relief": "flat", "bd": 0,
-            "font": FONT_SMALL, "cursor": "hand2", "padx": 10, "pady": 3,
+            "bg": BG3,
+            "fg": TEXT_DIM,
+            "relief": "flat",
+            "bd": 0,
+            "font": FONT_SMALL,
+            "cursor": "hand2",
+            "padx": 10,
+            "pady": 3,
             "activebackground": BORDER,
         }
         default_opts.update(opts)
@@ -568,8 +635,8 @@ class FootBar:
 # 弹窗工厂
 # ══════════════════════════════════════════════
 
-def show_popup(parent, title, content, width=480, height=340,
-               color=ERR_C, icon="✘", buttons=None):
+
+def show_popup(parent, title, content, width=480, height=340, color=ERR_C, icon="✘", buttons=None):
     """
     在 parent 上方显示模态弹窗。
 
@@ -597,15 +664,24 @@ def show_popup(parent, title, content, width=480, height=340,
 
     tk.Frame(popup, bg=BORDER, height=1).pack(fill="x", padx=20, pady=10)
 
-    tk.Label(popup, text=content, bg=BG2, fg=TEXT, font=FONT_BODY,
-             justify="left", wraplength=width - 48).pack(padx=24, pady=(0, 16))
+    tk.Label(popup, text=content, bg=BG2, fg=TEXT, font=FONT_BODY, justify="left", wraplength=width - 48).pack(
+        padx=24, pady=(0, 16)
+    )
 
     if buttons:
         btn_row = tk.Frame(popup, bg=BG2)
         btn_row.pack(pady=(0, 16))
         for label, cmd, opts in buttons:
-            defaults = {"bg": ACCENT, "fg": "#fff", "relief": "flat", "bd": 0,
-                        "cursor": "hand2", "font": FONT_BTN, "padx": 14, "pady": 6}
+            defaults = {
+                "bg": ACCENT,
+                "fg": "#fff",
+                "relief": "flat",
+                "bd": 0,
+                "cursor": "hand2",
+                "font": FONT_BTN,
+                "padx": 14,
+                "pady": 6,
+            }
             defaults.update(opts)
             tk.Button(btn_row, text=label, command=cmd, **defaults).pack(side="left", padx=6)
 
@@ -653,7 +729,9 @@ def show_fatal_console(title, message):
     try:
         input()
     except EOFError:
-        import time as _t; _t.sleep(5)
+        import time as _t
+
+        _t.sleep(5)
 
 
 def start_dot_animation(label_widget, running_ref):

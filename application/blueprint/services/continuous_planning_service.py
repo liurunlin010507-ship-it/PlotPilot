@@ -4,24 +4,24 @@
 """
 
 import json
-import uuid
 import logging
 import re
+import uuid
 from typing import Dict, List, Optional
-from datetime import datetime
+
 from json_repair import repair_json
 
-from domain.structure.story_node import StoryNode, NodeType, PlanningStatus, PlanningSource
-from domain.structure.chapter_element import ChapterElement, ElementType, RelationType, Importance
-from domain.novel.entities.chapter import Chapter, ChapterStatus
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.chapter_id import ChapterId
-from domain.novel.repositories.chapter_repository import ChapterRepository
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from application.audit.services.macro_merge_engine import MacroMergeEngine, MergeConflictException
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
-from application.audit.services.macro_merge_engine import MacroMergeEngine, MergePlan, MergeConflictException
+from domain.novel.entities.chapter import Chapter, ChapterStatus
+from domain.novel.repositories.chapter_repository import ChapterRepository
+from domain.novel.value_objects.chapter_id import ChapterId
+from domain.novel.value_objects.novel_id import NovelId
+from domain.structure.chapter_element import ChapterElement, ElementType, Importance, RelationType
+from domain.structure.story_node import NodeType, PlanningSource, PlanningStatus, StoryNode
+from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
 
 logger = logging.getLogger(__name__)
 _macro_plan_progress_store: Dict[str, Dict] = {}
@@ -160,25 +160,31 @@ def _repair_json_string(text: str) -> str:
 
 
 # 导出 MergeConflictException 供路由层使用
-__all__ = ['ContinuousPlanningService', 'MergeConflictException']
+__all__ = ["ContinuousPlanningService", "MergeConflictException"]
 
 
 def get_macro_plan_progress(novel_id: str) -> Dict:
-    return _macro_plan_progress_store.get(novel_id, {
-        "status": "idle",
-        "current": 0,
-        "total": 0,
-        "percent": 0,
-        "message": "",
-    }).copy()
+    return _macro_plan_progress_store.get(
+        novel_id,
+        {
+            "status": "idle",
+            "current": 0,
+            "total": 0,
+            "percent": 0,
+            "message": "",
+        },
+    ).copy()
 
 
 def get_macro_plan_result(novel_id: str) -> Dict:
-    return _macro_plan_result_store.get(novel_id, {
-        "ready": False,
-        "result": None,
-        "error": None,
-    }).copy()
+    return _macro_plan_result_store.get(
+        novel_id,
+        {
+            "ready": False,
+            "result": None,
+            "error": None,
+        },
+    ).copy()
 
 
 class ContinuousPlanningService:
@@ -214,6 +220,7 @@ class ContinuousPlanningService:
     ) -> Dict:
         """生成宏观规划"""
         import time
+
         start_time = time.time()
 
         logger.info(f"Generating macro plan for novel {novel_id}")
@@ -228,7 +235,7 @@ class ContinuousPlanningService:
                 prompt = self._build_macro_planning_prompt(
                     bible_context=bible_context,
                     target_chapters=target_chapters,
-                    structure_preference=structure_preference
+                    structure_preference=structure_preference,
                 )
 
                 # 调用 LLM 生成规划
@@ -249,7 +256,7 @@ class ContinuousPlanningService:
                 structure=structure,
                 bible_context=bible_context,
                 target_chapters=target_chapters,
-                structure_preference=structure_preference
+                structure_preference=structure_preference,
             )
 
             logger.info(f"[MacroPlanQuality] novel={novel_id}, time={elapsed_time:.2f}s, metrics={quality_metrics}")
@@ -265,7 +272,7 @@ class ContinuousPlanningService:
                 "success": True,
                 "structure": structure.get("parts", []),
                 "quality_metrics": quality_metrics,
-                "generation_time": elapsed_time
+                "generation_time": elapsed_time,
             }
         except Exception:
             self._update_macro_progress(
@@ -276,11 +283,7 @@ class ContinuousPlanningService:
             raise
 
     async def _generate_precise_macro_plan(
-        self,
-        novel_id: str,
-        bible_context: Dict,
-        target_chapters: int,
-        structure_preference: Dict[str, int]
+        self, novel_id: str, bible_context: Dict, target_chapters: int, structure_preference: Dict[str, int]
     ) -> Dict:
         """精密模式：系统先搭固定骨架，整版生成后再定向补全缺失字段。"""
         skeleton = self._build_precise_structure_skeleton(target_chapters, structure_preference)
@@ -349,11 +352,7 @@ class ContinuousPlanningService:
         self._rebalance_act_chapters(all_acts, target_chapters)
         return skeleton
 
-    def _build_precise_structure_skeleton(
-        self,
-        target_chapters: int,
-        structure_preference: Dict[str, int]
-    ) -> Dict:
+    def _build_precise_structure_skeleton(self, target_chapters: int, structure_preference: Dict[str, int]) -> Dict:
         """按用户指定网格构造固定骨架，节点数量不交给 AI 决定。"""
         parts = structure_preference.get("parts", 3)
         volumes_per_part = structure_preference.get("volumes_per_part", 3)
@@ -377,19 +376,21 @@ class ContinuousPlanningService:
                     "acts": [],
                 }
                 for act_index in range(1, acts_per_volume + 1):
-                    volume_node["acts"].append({
-                        "node_id": f"A{part_index}_{volume_index}_{act_index}",
-                        "title": f"第{act_index}幕",
-                        "description": "",
-                        "estimated_chapters": avg_chapters_per_act,
-                        "narrative_goal": "",
-                        "plot_points": [],
-                        "key_characters": [],
-                        "key_locations": [],
-                        "emotional_arc": "",
-                        "setup_for": [],
-                        "payoff_from": [],
-                    })
+                    volume_node["acts"].append(
+                        {
+                            "node_id": f"A{part_index}_{volume_index}_{act_index}",
+                            "title": f"第{act_index}幕",
+                            "description": "",
+                            "estimated_chapters": avg_chapters_per_act,
+                            "narrative_goal": "",
+                            "plot_points": [],
+                            "key_characters": [],
+                            "key_locations": [],
+                            "emotional_arc": "",
+                            "setup_for": [],
+                            "payoff_from": [],
+                        }
+                    )
                 part_node["volumes"].append(volume_node)
             structure["parts"].append(part_node)
         return structure
@@ -508,21 +509,21 @@ class ContinuousPlanningService:
         for part in skeleton.get("parts", []):
             for volume in part.get("volumes", []):
                 for act in volume.get("acts", []):
-                    missing_fields = [
-                        field for field in required_text_fields
-                        if not str(act.get(field) or "").strip()
-                    ]
+                    missing_fields = [field for field in required_text_fields if not str(act.get(field) or "").strip()]
                     missing_fields.extend(
-                        field for field in required_list_fields
+                        field
+                        for field in required_list_fields
                         if not isinstance(act.get(field), list) or not act.get(field)
                     )
                     if missing_fields:
-                        incomplete.append({
-                            "node_id": act["node_id"],
-                            "title": act.get("title", ""),
-                            "description": act.get("description", ""),
-                            "missing_fields": missing_fields,
-                        })
+                        incomplete.append(
+                            {
+                                "node_id": act["node_id"],
+                                "title": act.get("title", ""),
+                                "description": act.get("description", ""),
+                                "missing_fields": missing_fields,
+                            }
+                        )
         return incomplete
 
     def _get_total_volumes(self, structure_preference: Optional[Dict[str, int]]) -> int:
@@ -542,13 +543,16 @@ class ContinuousPlanningService:
         total: Optional[int] = None,
         message: Optional[str] = None,
     ) -> None:
-        progress = _macro_plan_progress_store.get(novel_id, {
-            "status": "idle",
-            "current": 0,
-            "total": 0,
-            "percent": 0,
-            "message": "",
-        }).copy()
+        progress = _macro_plan_progress_store.get(
+            novel_id,
+            {
+                "status": "idle",
+                "current": 0,
+                "total": 0,
+                "percent": 0,
+                "message": "",
+            },
+        ).copy()
         progress["status"] = status
         if current is not None:
             progress["current"] = current
@@ -590,11 +594,7 @@ class ContinuousPlanningService:
         }
 
     def _evaluate_macro_plan_quality(
-        self,
-        structure: Dict,
-        bible_context: Dict,
-        target_chapters: int,
-        structure_preference: Dict[str, int]
+        self, structure: Dict, bible_context: Dict, target_chapters: int, structure_preference: Dict[str, int]
     ) -> Dict:
         """评估宏观规划质量
 
@@ -609,18 +609,14 @@ class ContinuousPlanningService:
         # 基础统计
         part_count = len(parts)
         volume_count = sum(len(p.get("volumes", [])) for p in parts)
-        act_count = sum(
-            len(v.get("acts", []))
-            for p in parts
-            for v in p.get("volumes", [])
-        )
+        act_count = sum(len(v.get("acts", [])) for p in parts for v in p.get("volumes", []))
 
         # 检查结构偏好匹配度
         expected_parts = structure_preference.get("parts") if structure_preference else None
         structure_match = {
             "parts_match": expected_parts is None or part_count == expected_parts,
             "expected_parts": expected_parts,
-            "actual_parts": part_count
+            "actual_parts": part_count,
         }
 
         # 收集所有幕
@@ -630,10 +626,7 @@ class ContinuousPlanningService:
                 all_acts.extend(v.get("acts", []))
 
         # 评估冲突密度
-        acts_with_conflict = sum(
-            1 for a in all_acts
-            if a.get("core_conflict") and len(a.get("core_conflict", "")) > 10
-        )
+        acts_with_conflict = sum(1 for a in all_acts if a.get("core_conflict") and len(a.get("core_conflict", "")) > 10)
         conflict_density = acts_with_conflict / len(all_acts) if all_acts else 0
 
         # 评估世界观融合度
@@ -659,7 +652,7 @@ class ContinuousPlanningService:
 
         world_fusion = {
             "character_coverage": char_mentions / len(all_acts) if all_acts else 0,
-            "location_coverage": location_mentions / len(all_acts) if all_acts else 0
+            "location_coverage": location_mentions / len(all_acts) if all_acts else 0,
         }
 
         # 评估标题质量
@@ -667,7 +660,26 @@ class ContinuousPlanningService:
         avg_title_length = sum(len(t) for t in titles) / len(titles) if titles else 0
 
         # 检查标题是否包含动词（简单启发式）
-        action_words = ["战", "杀", "破", "夺", "逃", "追", "救", "毁", "变", "觉醒", "背叛", "降临", "崛起", "坠落", "燃烧", "冻结", "撕裂", "缝合"]
+        action_words = [
+            "战",
+            "杀",
+            "破",
+            "夺",
+            "逃",
+            "追",
+            "救",
+            "毁",
+            "变",
+            "觉醒",
+            "背叛",
+            "降临",
+            "崛起",
+            "坠落",
+            "燃烧",
+            "冻结",
+            "撕裂",
+            "缝合",
+        ]
         titles_with_action = sum(1 for t in titles if any(w in t for w in action_words))
         title_action_ratio = titles_with_action / len(titles) if titles else 0
 
@@ -676,25 +688,23 @@ class ContinuousPlanningService:
         emotion_field_ratio = acts_with_emotion / len(all_acts) if all_acts else 0
 
         return {
-            "structure_stats": {
-                "parts": part_count,
-                "volumes": volume_count,
-                "acts": act_count
-            },
+            "structure_stats": {"parts": part_count, "volumes": volume_count, "acts": act_count},
             "structure_match": structure_match,
             "conflict_density": round(conflict_density, 2),
             "world_fusion": {
                 "character_coverage": round(world_fusion["character_coverage"], 2),
-                "location_coverage": round(world_fusion["location_coverage"], 2)
+                "location_coverage": round(world_fusion["location_coverage"], 2),
             },
             "title_quality": {
                 "avg_length": round(avg_title_length, 1),
-                "action_word_ratio": round(title_action_ratio, 2)
+                "action_word_ratio": round(title_action_ratio, 2),
             },
             "prompt_version_features": {
                 "emotional_turn_field": round(emotion_field_ratio, 2),
-                "key_characters_field": round(sum(1 for a in all_acts if a.get("key_characters")) / len(all_acts), 2) if all_acts else 0
-            }
+                "key_characters_field": round(sum(1 for a in all_acts if a.get("key_characters")) / len(all_acts), 2)
+                if all_acts
+                else 0,
+            },
         }
 
     async def confirm_macro_plan(self, novel_id: str, structure: List[Dict]) -> Dict:
@@ -715,9 +725,7 @@ class ContinuousPlanningService:
         for part_data in structure:
             part_number += 1
             part_data["number"] = part_number
-            part_node = self._create_node_from_data(
-                novel_id, None, NodeType.PART, part_data, order_index
-            )
+            part_node = self._create_node_from_data(novel_id, None, NodeType.PART, part_data, order_index)
             created_nodes.append(part_node)
             order_index += 1
 
@@ -744,7 +752,7 @@ class ContinuousPlanningService:
         return {
             "success": True,
             "created_nodes": len(created_nodes),
-            "message": f"已创建 {len(created_nodes)} 个结构节点"
+            "message": f"已创建 {len(created_nodes)} 个结构节点",
         }
 
     async def confirm_macro_plan_safe(self, novel_id: str, structure: List[Dict]) -> Dict:
@@ -794,38 +802,26 @@ class ContinuousPlanningService:
         # 阶段 2：匹配与继承 - 执行比对
         engine = MacroMergeEngine(old_nodes, new_nodes)
         plan = engine.execute_diff()
-        logger.info(f"[SafeMerge] Merge plan: creates={len(plan.creates)}, updates={len(plan.updates)}, deletes={len(plan.deletes)}, conflicts={len(plan.conflicts)}")
+        logger.info(
+            f"[SafeMerge] Merge plan: creates={len(plan.creates)}, updates={len(plan.updates)}, deletes={len(plan.deletes)}, conflicts={len(plan.conflicts)}"
+        )
 
         # 阶段 3：冲突检测 - 红色阻断
         if plan.has_fatal_conflict:
             logger.error(f"[SafeMerge] Fatal conflicts detected: {plan.conflicts}")
-            raise MergeConflictException(
-                message="重构导致部分已有正文的章节孤立",
-                conflicts=plan.conflicts
-            )
+            raise MergeConflictException(message="重构导致部分已有正文的章节孤立", conflicts=plan.conflicts)
 
         # 阶段 4：执行合并 - 原子性事务
-        logger.info(f"[SafeMerge] Applying merge plan...")
-        await self.story_node_repo.apply_merge_plan(
-            creates=plan.creates,
-            updates=plan.updates,
-            deletes=plan.deletes
-        )
+        logger.info("[SafeMerge] Applying merge plan...")
+        await self.story_node_repo.apply_merge_plan(creates=plan.creates, updates=plan.updates, deletes=plan.deletes)
 
         logger.info(f"[SafeMerge] Merge completed successfully: {plan.summary}")
-        return {
-            "success": True,
-            "summary": plan.summary
-        }
+        return {"success": True, "summary": plan.summary}
 
     async def _count_macro_structure_nodes(self, novel_id: str) -> int:
         """部 / 卷 / 幕节点数量（用于落库后展示规模）。"""
         nodes = await self.story_node_repo.get_by_novel(novel_id)
-        return sum(
-            1
-            for n in nodes
-            if n.node_type in (NodeType.PART, NodeType.VOLUME, NodeType.ACT)
-        )
+        return sum(1 for n in nodes if n.node_type in (NodeType.PART, NodeType.VOLUME, NodeType.ACT))
 
     async def persist_macro_structure_with_fallback(
         self,
@@ -842,18 +838,14 @@ class ContinuousPlanningService:
                 "message": f"已同步 {count} 个结构节点",
             }
         except Exception as e:
-            logger.warning(
-                f"[{novel_id}] confirm_macro_plan_safe 失败，回退 confirm_macro_plan：{e}"
-            )
+            logger.warning(f"[{novel_id}] confirm_macro_plan_safe 失败，回退 confirm_macro_plan：{e}")
             return await self.confirm_macro_plan(novel_id=novel_id, structure=structure)
 
     def build_minimal_macro_structure(
         self,
         target_chapters: int,
         *,
-        placeholder_description: str = (
-            "系统生成的占位结构（可在审阅后于结构树中调整）"
-        ),
+        placeholder_description: str = ("系统生成的占位结构（可在审阅后于结构树中调整）"),
     ) -> List[Dict]:
         """LLM 无有效输出时的最小部–卷–幕骨架（左侧规划与全托管共用）。"""
         target = max(int(target_chapters or 30), 1)
@@ -902,9 +894,7 @@ class ContinuousPlanningService:
         """
         struct = llm_result.get("structure") if isinstance(llm_result, dict) else None
         if llm_result.get("success") and isinstance(struct, list) and len(struct) > 0:
-            confirm = await self.persist_macro_structure_with_fallback(
-                novel_id, struct
-            )
+            confirm = await self.persist_macro_structure_with_fallback(novel_id, struct)
             return {
                 "success": True,
                 "created_nodes": confirm["created_nodes"],
@@ -913,9 +903,7 @@ class ContinuousPlanningService:
             }
 
         if not minimal_fallback_on_empty:
-            raise ValueError(
-                "宏观规划未返回有效结构（success 或 structure 无效）"
-            )
+            raise ValueError("宏观规划未返回有效结构（success 或 structure 无效）")
 
         logger.warning(
             "宏观规划未返回有效结构（success=%r），使用最小占位结构 novel_id=%s",
@@ -923,9 +911,7 @@ class ContinuousPlanningService:
             novel_id,
         )
         minimal = self.build_minimal_macro_structure(target_chapters)
-        confirm = await self.persist_macro_structure_with_fallback(
-            novel_id, minimal
-        )
+        confirm = await self.persist_macro_structure_with_fallback(novel_id, minimal)
         return {
             "success": True,
             "created_nodes": confirm["created_nodes"],
@@ -935,9 +921,7 @@ class ContinuousPlanningService:
 
     # ==================== 幕级规划 ====================
 
-    async def plan_act_chapters(
-        self, act_id: str, custom_chapter_count: Optional[int] = None
-    ) -> Dict:
+    async def plan_act_chapters(self, act_id: str, custom_chapter_count: Optional[int] = None) -> Dict:
         """为指定幕生成章节规划"""
         logger.info(f"Planning chapters for act {act_id}")
 
@@ -949,14 +933,10 @@ class ContinuousPlanningService:
         previous_summary = await self._get_previous_acts_summary(act_node)
         chapter_count = custom_chapter_count or act_node.suggested_chapter_count or 5
 
-        prompt = self._build_act_planning_prompt(
-            act_node, bible_context, previous_summary, chapter_count
-        )
+        prompt = self._build_act_planning_prompt(act_node, bible_context, previous_summary, chapter_count)
 
         try:
-            response = await self.llm_service.generate(
-                prompt, GenerationConfig(max_tokens=4096, temperature=0.7)
-            )
+            response = await self.llm_service.generate(prompt, GenerationConfig(max_tokens=4096, temperature=0.7))
         except Exception as e:
             logger.warning(f"幕级规划 LLM 调用失败 act={act_id}: {e}")
             return {"success": False, "act_id": act_id, "chapters": [], "error": str(e)}
@@ -1094,7 +1074,7 @@ class ContinuousPlanningService:
                     "has_next_act": True,
                     "current_act": current_act.to_dict(),
                     "next_act": next_act.to_dict(),
-                    "message": f"第 {current_act.number} 幕已完成，可以开始第 {next_act.number} 幕"
+                    "message": f"第 {current_act.number} 幕已完成，可以开始第 {next_act.number} 幕",
                 }
             else:
                 return {
@@ -1103,7 +1083,7 @@ class ContinuousPlanningService:
                     "has_next_act": False,
                     "current_act": current_act.to_dict(),
                     "suggest_create_next": True,
-                    "message": f"第 {current_act.number} 幕已完成，是否需要 AI 生成下一幕？"
+                    "message": f"第 {current_act.number} 幕已完成，是否需要 AI 生成下一幕？",
                 }
         else:
             return {
@@ -1111,7 +1091,7 @@ class ContinuousPlanningService:
                 "act_completed": False,
                 "current_act": current_act.to_dict(),
                 "progress": f"{chapters_written}/{chapters_planned}",
-                "message": f"继续第 {current_act.number} 幕"
+                "message": f"继续第 {current_act.number} 幕",
             }
 
     async def create_next_act_auto(self, novel_id: str, current_act_id: str) -> Dict:
@@ -1138,7 +1118,7 @@ class ContinuousPlanningService:
                 "narrative_arc": next_act_info.get("narrative_arc"),
                 "conflicts": next_act_info.get("conflicts", []),
             },
-            current_act.order_index + 1
+            current_act.order_index + 1,
         )
 
         await self.story_node_repo.save(next_act)
@@ -1146,7 +1126,7 @@ class ContinuousPlanningService:
         return {
             "success": True,
             "next_act": next_act.to_dict(),
-            "message": f"已创建第 {next_act.number} 幕，请为其规划章节"
+            "message": f"已创建第 {next_act.number} 幕，请为其规划章节",
         }
 
     # ==================== 辅助方法 ====================
@@ -1161,19 +1141,18 @@ class ContinuousPlanningService:
             return {}
 
         return {
-            "characters": [{"id": c.id, "name": c.name, "description": c.description}
-                           for c in bible.characters],
-            "world_settings": [{"id": w.id, "name": w.name, "description": w.description}
-                               for w in bible.world_settings],
-            "locations": [{"id": l.id, "name": l.name, "description": l.description}
-                          for l in bible.locations],
-            "timeline_notes": [{"id": t.id, "event": t.event, "description": t.description}
-                               for t in bible.timeline_notes],
+            "characters": [{"id": c.id, "name": c.name, "description": c.description} for c in bible.characters],
+            "world_settings": [
+                {"id": w.id, "name": w.name, "description": w.description} for w in bible.world_settings
+            ],
+            "locations": [{"id": l.id, "name": l.name, "description": l.description} for l in bible.locations],
+            "timeline_notes": [
+                {"id": t.id, "event": t.event, "description": t.description} for t in bible.timeline_notes
+            ],
         }
 
     def _create_node_from_data(
-        self, novel_id: str, parent_id: Optional[str], node_type: NodeType,
-        data: Dict, order_index: int
+        self, novel_id: str, parent_id: Optional[str], node_type: NodeType, data: Dict, order_index: int
     ) -> StoryNode:
         """从数据创建节点"""
         return StoryNode(
@@ -1215,16 +1194,18 @@ class ContinuousPlanningService:
             part_data["number"] = part_number
             part_id = f"part-{novel_id}-{part_number}"
 
-            nodes.append({
-                "id": part_id,
-                "novel_id": novel_id,
-                "parent_id": None,
-                "node_type": "part",
-                "number": part_number,
-                "title": part_data["title"],
-                "description": part_data.get("description", ""),
-                "order_index": order_index,
-            })
+            nodes.append(
+                {
+                    "id": part_id,
+                    "novel_id": novel_id,
+                    "parent_id": None,
+                    "node_type": "part",
+                    "number": part_number,
+                    "title": part_data["title"],
+                    "description": part_data.get("description", ""),
+                    "order_index": order_index,
+                }
+            )
             order_index += 1
 
             for volume_data in part_data.get("volumes", []):
@@ -1232,16 +1213,18 @@ class ContinuousPlanningService:
                 volume_data["number"] = volume_number
                 volume_id = f"volume-{novel_id}-{volume_number}"
 
-                nodes.append({
-                    "id": volume_id,
-                    "novel_id": novel_id,
-                    "parent_id": part_id,
-                    "node_type": "volume",
-                    "number": volume_number,
-                    "title": volume_data["title"],
-                    "description": volume_data.get("description", ""),
-                    "order_index": order_index,
-                })
+                nodes.append(
+                    {
+                        "id": volume_id,
+                        "novel_id": novel_id,
+                        "parent_id": part_id,
+                        "node_type": "volume",
+                        "number": volume_number,
+                        "title": volume_data["title"],
+                        "description": volume_data.get("description", ""),
+                        "order_index": order_index,
+                    }
+                )
                 order_index += 1
 
                 for act_data in volume_data.get("acts", []):
@@ -1249,16 +1232,18 @@ class ContinuousPlanningService:
                     act_data["number"] = act_number
                     act_id = f"act-{novel_id}-{act_number}"
 
-                    nodes.append({
-                        "id": act_id,
-                        "novel_id": novel_id,
-                        "parent_id": volume_id,
-                        "node_type": "act",
-                        "number": act_number,
-                        "title": act_data["title"],
-                        "description": act_data.get("description", ""),
-                        "order_index": order_index,
-                    })
+                    nodes.append(
+                        {
+                            "id": act_id,
+                            "novel_id": novel_id,
+                            "parent_id": volume_id,
+                            "node_type": "act",
+                            "number": act_number,
+                            "title": act_data["title"],
+                            "description": act_data.get("description", ""),
+                            "order_index": order_index,
+                        }
+                    )
                     order_index += 1
 
         return nodes
@@ -1306,35 +1291,39 @@ class ContinuousPlanningService:
                 char_data = {"id": char_data}
             if not isinstance(char_data, dict) or not char_data.get("id"):
                 continue
-            elements.append(ChapterElement(
-                id=f"elem-{uuid.uuid4().hex[:8]}",
-                chapter_id=chapter_id,
-                element_type=ElementType.CHARACTER,
-                element_id=str(char_data["id"]),
-                relation_type=RelationType(char_data.get("relation", "appears")),
-                importance=Importance(char_data.get("importance", "normal")),
-            ))
+            elements.append(
+                ChapterElement(
+                    id=f"elem-{uuid.uuid4().hex[:8]}",
+                    chapter_id=chapter_id,
+                    element_type=ElementType.CHARACTER,
+                    element_id=str(char_data["id"]),
+                    relation_type=RelationType(char_data.get("relation", "appears")),
+                    importance=Importance(char_data.get("importance", "normal")),
+                )
+            )
 
         for loc_data in elements_data.get("locations", []):
             if isinstance(loc_data, str):
                 loc_data = {"id": loc_data}
             if not isinstance(loc_data, dict) or not loc_data.get("id"):
                 continue
-            elements.append(ChapterElement(
-                id=f"elem-{uuid.uuid4().hex[:8]}",
-                chapter_id=chapter_id,
-                element_type=ElementType.LOCATION,
-                element_id=str(loc_data["id"]),
-                relation_type=RelationType.SCENE,
-                importance=Importance.NORMAL,
-            ))
+            elements.append(
+                ChapterElement(
+                    id=f"elem-{uuid.uuid4().hex[:8]}",
+                    chapter_id=chapter_id,
+                    element_type=ElementType.LOCATION,
+                    element_id=str(loc_data["id"]),
+                    relation_type=RelationType.SCENE,
+                    importance=Importance.NORMAL,
+                )
+            )
 
         return elements
 
     def _parse_llm_response(self, response) -> Dict:
         """解析 LLM 响应"""
         # 如果是 GenerationResult 对象，提取 content 属性
-        if hasattr(response, 'content'):
+        if hasattr(response, "content"):
             content = response.content
         else:
             content = response
@@ -1428,7 +1417,7 @@ class ContinuousPlanningService:
         - 中长篇（<500章）：可以规划完整的部/卷/幕结构
         - 避免单次 LLM 输出过多内容导致截断
         """
-        
+
         # 根据章节数决定规划深度
         if target_chapters > 500:
             planning_depth = "framework"  # 只规划部/卷框架
@@ -1457,7 +1446,7 @@ class ContinuousPlanningService:
 - 【强制要求】每幕必须输出 estimated_chapters（预估章数）
 - 【章数约束】所有幕的 estimated_chapters 之和必须等于 {target_chapters} 章
 """
-        
+
         system_msg = f"""# 角色设定
 你是一位狂热且极具市场敏锐度的顶级网文主编，精通"退婚流"、"克苏鲁修仙"、"赛博朋克反乌托邦"等各种爆款商业节奏。你的任务是帮作者打破"白纸恐惧"，利用他给出的世界观设定，瞬间推演填补出一个完整、宏大、且充满极端冲突的长篇叙事骨架。
 
@@ -1521,13 +1510,13 @@ class ContinuousPlanningService:
 
         # 角色（带关系和弧光）
         if bible_context.get("characters"):
-            chars = bible_context['characters']
+            chars = bible_context["characters"]
             char_lines = ["【角色设定】"]
             for c in chars[:5]:  # 限制主要角色数量
-                name = c.get('name', 'Unknown')
-                desc = c.get('description', '')
-                role = c.get('role', '')
-                arc = c.get('character_arc', '')
+                name = c.get("name", "Unknown")
+                desc = c.get("description", "")
+                role = c.get("role", "")
+                arc = c.get("character_arc", "")
                 char_lines.append(f"- {name} ({role}): {desc}")
                 if arc:
                     char_lines.append(f"  人物弧光: {arc}")
@@ -1536,21 +1525,21 @@ class ContinuousPlanningService:
         # 角色关系
         if bible_context.get("relationships"):
             rel_lines = ["【角色关系】"]
-            for r in bible_context['relationships'][:5]:
-                char1 = r.get('character1', '')
-                char2 = r.get('character2', '')
-                rel_type = r.get('relationship_type', '')
-                rel_desc = r.get('description', '')
+            for r in bible_context["relationships"][:5]:
+                char1 = r.get("character1", "")
+                char2 = r.get("character2", "")
+                rel_type = r.get("relationship_type", "")
+                rel_desc = r.get("description", "")
                 rel_lines.append(f"- {char1} ↔ {char2} ({rel_type}): {rel_desc}")
             context_parts.append("\n".join(rel_lines) + "\n")
 
         # 地点（带叙事功能）
         if bible_context.get("locations"):
             loc_lines = ["【关键地点】"]
-            for l in bible_context['locations'][:5]:
-                name = l.get('name', 'Unknown')
-                desc = l.get('description', '')
-                significance = l.get('significance', '')
+            for l in bible_context["locations"][:5]:
+                name = l.get("name", "Unknown")
+                desc = l.get("description", "")
+                significance = l.get("significance", "")
                 loc_lines.append(f"- {name}: {desc}")
                 if significance:
                     loc_lines.append(f"  叙事意义: {significance}")
@@ -1559,17 +1548,19 @@ class ContinuousPlanningService:
         # 时间线事件
         if bible_context.get("timeline_notes"):
             time_lines = ["【时间线事件】"]
-            for t in bible_context['timeline_notes'][:5]:
-                event = t.get('event', '')
-                desc = t.get('description', '')
-                impact = t.get('impact', '')
+            for t in bible_context["timeline_notes"][:5]:
+                event = t.get("event", "")
+                desc = t.get("description", "")
+                impact = t.get("impact", "")
                 time_lines.append(f"- {event}: {desc}")
                 if impact:
                     time_lines.append(f"  情节影响: {impact}")
             context_parts.append("\n".join(time_lines) + "\n")
 
         if not context_parts:
-            context_parts.append("【世界观与人物】\n暂无详细设定，请基于通用的商业小说套路生成结构，但仍需保持结构灵活和冲突极致。\n")
+            context_parts.append(
+                "【世界观与人物】\n暂无详细设定，请基于通用的商业小说套路生成结构，但仍需保持结构灵活和冲突极致。\n"
+            )
 
         worldview_context = "\n".join(context_parts)
 
@@ -1623,9 +1614,9 @@ class ContinuousPlanningService:
         - 深度融合 Bible 设定进行精密推演
         - 引入叙事理论确保结构合理性
         """
-        parts = structure_preference.get('parts', 3)
-        volumes_per_part = structure_preference.get('volumes_per_part', 3)
-        acts_per_volume = structure_preference.get('acts_per_volume', 3)
+        parts = structure_preference.get("parts", 3)
+        volumes_per_part = structure_preference.get("volumes_per_part", 3)
+        acts_per_volume = structure_preference.get("acts_per_volume", 3)
         total_acts = parts * volumes_per_part * acts_per_volume
 
         # 计算章数分配
@@ -1643,11 +1634,13 @@ class ContinuousPlanningService:
             elif i == parts:
                 pacing_guide += f"- 第{i}部（决战）：分配 {chapters} 章。情节要求：收束所有主线、终极对决、情绪爆发。\n"
             else:
-                pacing_guide += f"- 第{i}部（发展/深渊）：分配 {chapters} 章。情节要求：容量极大、多线叙事、主角重大转变。\n"
-        pacing_guide += f"</PACING_GUIDE>\n\n<ACT_PACING>\n"
+                pacing_guide += (
+                    f"- 第{i}部（发展/深渊）：分配 {chapters} 章。情节要求：容量极大、多线叙事、主角重大转变。\n"
+                )
+        pacing_guide += "</PACING_GUIDE>\n\n<ACT_PACING>\n"
         pacing_guide += f"- 总幕数：{total_acts} 幕\n"
         pacing_guide += f"- 平均每幕：约 {avg_chapters_per_act} 章\n"
-        pacing_guide += f"- 节奏建议：前1/3幕数铺垫，中1/3幕数发展+小高潮，后1/3幕数爆发+收束\n"
+        pacing_guide += "- 节奏建议：前1/3幕数铺垫，中1/3幕数发展+小高潮，后1/3幕数爆发+收束\n"
         pacing_guide += "</ACT_PACING>"
 
         system_msg = f"""# 角色设定
@@ -1731,14 +1724,14 @@ class ContinuousPlanningService:
 
         # 角色（带关系和弧光）
         if bible_context.get("characters"):
-            chars = bible_context['characters']
+            chars = bible_context["characters"]
             char_lines = ["【角色设定】"]
             for c in chars[:5]:
-                name = c.get('name', 'Unknown')
-                desc = c.get('description', '')
-                role = c.get('role', '')
-                arc = c.get('character_arc', '')
-                char_id = c.get('id', 'N/A')
+                name = c.get("name", "Unknown")
+                desc = c.get("description", "")
+                role = c.get("role", "")
+                arc = c.get("character_arc", "")
+                char_id = c.get("id", "N/A")
                 char_lines.append(f"- {name} (ID: {char_id}) [{role}]: {desc}")
                 if arc:
                     char_lines.append(f"  人物弧光: {arc}")
@@ -1747,22 +1740,22 @@ class ContinuousPlanningService:
         # 角色关系
         if bible_context.get("relationships"):
             rel_lines = ["【角色关系】"]
-            for r in bible_context['relationships'][:5]:
-                char1 = r.get('character1', '')
-                char2 = r.get('character2', '')
-                rel_type = r.get('relationship_type', '')
-                rel_desc = r.get('description', '')
+            for r in bible_context["relationships"][:5]:
+                char1 = r.get("character1", "")
+                char2 = r.get("character2", "")
+                rel_type = r.get("relationship_type", "")
+                rel_desc = r.get("description", "")
                 rel_lines.append(f"- {char1} ↔ {char2} ({rel_type}): {rel_desc}")
             context_parts.append("\n".join(rel_lines) + "\n")
 
         # 地点（带叙事功能）
         if bible_context.get("locations"):
             loc_lines = ["【关键地点】"]
-            for l in bible_context['locations'][:5]:
-                name = l.get('name', 'Unknown')
-                desc = l.get('description', '')
-                significance = l.get('significance', '')
-                loc_id = l.get('id', 'N/A')
+            for l in bible_context["locations"][:5]:
+                name = l.get("name", "Unknown")
+                desc = l.get("description", "")
+                significance = l.get("significance", "")
+                loc_id = l.get("id", "N/A")
                 loc_lines.append(f"- {name} (ID: {loc_id}): {desc}")
                 if significance:
                     loc_lines.append(f"  叙事意义: {significance}")
@@ -1771,10 +1764,10 @@ class ContinuousPlanningService:
         # 时间线事件
         if bible_context.get("timeline_notes"):
             time_lines = ["【时间线事件】"]
-            for t in bible_context['timeline_notes'][:5]:
-                event = t.get('event', '')
-                desc = t.get('description', '')
-                impact = t.get('impact', '')
+            for t in bible_context["timeline_notes"][:5]:
+                event = t.get("event", "")
+                desc = t.get("description", "")
+                impact = t.get("impact", "")
                 time_lines.append(f"- {event}: {desc}")
                 if impact:
                     time_lines.append(f"  情节影响: {impact}")
@@ -1787,12 +1780,12 @@ class ContinuousPlanningService:
 
         skeleton_lines = ["【固定结构骨架】"]
         for part_index, part in enumerate(skeleton.get("parts", []), 1):
-            skeleton_lines.append(f'- {part["node_id"]}: 第{part_index}部')
+            skeleton_lines.append(f"- {part['node_id']}: 第{part_index}部")
             for volume_index, volume in enumerate(part.get("volumes", []), 1):
-                skeleton_lines.append(f'  - {volume["node_id"]}: 第{part_index}部第{volume_index}卷')
+                skeleton_lines.append(f"  - {volume['node_id']}: 第{part_index}部第{volume_index}卷")
                 for act_index, act in enumerate(volume.get("acts", []), 1):
                     skeleton_lines.append(
-                        f'    - {act["node_id"]}: 第{part_index}部第{volume_index}卷第{act_index}幕，参考 {avg_chapters_per_act} 章'
+                        f"    - {act['node_id']}: 第{part_index}部第{volume_index}卷第{act_index}幕，参考 {avg_chapters_per_act} 章"
                     )
 
         skeleton_block = "\n".join(skeleton_lines)
@@ -1850,9 +1843,9 @@ class ContinuousPlanningService:
         volume_index: int,
     ) -> Prompt:
         """按卷生成内容，缩小上下文范围以提高字段完整度。"""
-        parts = structure_preference.get('parts', 3)
-        volumes_per_part = structure_preference.get('volumes_per_part', 3)
-        acts_per_volume = structure_preference.get('acts_per_volume', 3)
+        parts = structure_preference.get("parts", 3)
+        volumes_per_part = structure_preference.get("volumes_per_part", 3)
+        acts_per_volume = structure_preference.get("acts_per_volume", 3)
         total_acts = parts * volumes_per_part * acts_per_volume
         avg_chapters_per_act = target_chapters // total_acts if total_acts > 0 else 5
 
@@ -1873,21 +1866,19 @@ class ContinuousPlanningService:
         if bible_context.get("locations"):
             loc_lines = ["【关键地点】"]
             for l in bible_context["locations"][:8]:
-                loc_lines.append(
-                    f"- {l.get('name', 'Unknown')} (ID: {l.get('id', 'N/A')}): {l.get('description', '')}"
-                )
+                loc_lines.append(f"- {l.get('name', 'Unknown')} (ID: {l.get('id', 'N/A')}): {l.get('description', '')}")
             context_parts.append("\n".join(loc_lines) + "\n")
         if not context_parts:
             context_parts.append("【世界观与人物】\n暂无详细设定，请给出通用但完整的单卷叙事设计。\n")
 
         scope_lines = [
             f"【当前生成范围】第{part_index}部 / 第{volume_index}卷",
-            f'- {current_part["node_id"]}: {current_part["title"]}',
-            f'- {current_volume["node_id"]}: {current_volume["title"]}',
+            f"- {current_part['node_id']}: {current_part['title']}",
+            f"- {current_volume['node_id']}: {current_volume['title']}",
         ]
         for act in act_scope:
             scope_lines.append(
-                f'- {act["node_id"]}: {act["title"]}，需完整填写 narrative_goal / plot_points / key_characters / key_locations / emotional_arc / setup_for / payoff_from'
+                f"- {act['node_id']}: {act['title']}，需完整填写 narrative_goal / plot_points / key_characters / key_locations / emotional_arc / setup_for / payoff_from"
             )
 
         system_msg = """你是长篇小说结构设计师。当前任务不是规划整本书，而是只完成一个卷的详细结构设计。
@@ -1909,7 +1900,7 @@ class ContinuousPlanningService:
 {{
   "node_updates": [
     {{
-      "node_id": "{current_part["node_id"]} 或 {current_volume["node_id"]} 或 {act_scope[0]["node_id"] if act_scope else 'A1_1_1'}",
+      "node_id": "{current_part["node_id"]} 或 {current_volume["node_id"]} 或 {act_scope[0]["node_id"] if act_scope else "A1_1_1"}",
       "title": "节点标题",
       "description": "节点描述",
       "estimated_chapters": 5,
@@ -1939,9 +1930,9 @@ class ContinuousPlanningService:
         incomplete_acts: List[Dict],
     ) -> Prompt:
         """只为缺字段的幕生成补丁。"""
-        parts = structure_preference.get('parts', 3)
-        volumes_per_part = structure_preference.get('volumes_per_part', 3)
-        acts_per_volume = structure_preference.get('acts_per_volume', 3)
+        parts = structure_preference.get("parts", 3)
+        volumes_per_part = structure_preference.get("volumes_per_part", 3)
+        acts_per_volume = structure_preference.get("acts_per_volume", 3)
         total_acts = max(parts * volumes_per_part * acts_per_volume, 1)
         avg_chapters_per_act = max(target_chapters // total_acts, 1)
 
@@ -1951,7 +1942,9 @@ class ContinuousPlanningService:
         if bible_context.get("characters"):
             char_lines = ["【角色设定】"]
             for c in bible_context["characters"][:8]:
-                char_lines.append(f"- {c.get('name', 'Unknown')} (ID: {c.get('id', 'N/A')}): {c.get('description', '')}")
+                char_lines.append(
+                    f"- {c.get('name', 'Unknown')} (ID: {c.get('id', 'N/A')}): {c.get('description', '')}"
+                )
             context_parts.append("\n".join(char_lines) + "\n")
         if bible_context.get("locations"):
             loc_lines = ["【关键地点】"]
@@ -1964,7 +1957,7 @@ class ContinuousPlanningService:
         act_lines = []
         for act in incomplete_acts:
             act_lines.append(
-                f'- {act["node_id"]}: 标题《{act["title"]}》；简介《{act["description"]}》；缺失字段：{", ".join(act["missing_fields"])}'
+                f"- {act['node_id']}: 标题《{act['title']}》；简介《{act['description']}》；缺失字段：{', '.join(act['missing_fields'])}"
             )
 
         system_msg = """你是小说结构补全助手。你收到的是已经生成好的幕结构，但有些关键字段为空。
@@ -2002,7 +1995,9 @@ class ContinuousPlanningService:
 3. `plot_points` 至少 2 条，`key_characters` 和 `key_locations` 至少各 1 条。"""
         return Prompt(system=system_msg, user=user_msg)
 
-    def _build_macro_planning_prompt(self, bible_context: Dict, target_chapters: int, structure_preference: Dict) -> Prompt:
+    def _build_macro_planning_prompt(
+        self, bible_context: Dict, target_chapters: int, structure_preference: Dict
+    ) -> Prompt:
         """构建宏观规划提示词（向后兼容的包装器）
 
         根据 structure_preference 是否为 None 来判断模式：
@@ -2022,7 +2017,9 @@ class ContinuousPlanningService:
                 skeleton,
             )
 
-    def _build_act_planning_prompt(self, act_node: StoryNode, bible_context: Dict, previous_summary: Optional[str], chapter_count: int) -> Prompt:
+    def _build_act_planning_prompt(
+        self, act_node: StoryNode, bible_context: Dict, previous_summary: Optional[str], chapter_count: int
+    ) -> Prompt:
         """构建幕级规划提示词"""
         system_msg = """你是一个专业的小说章节规划助手，擅长设计章节大纲和情节安排。
 你的任务是根据提供的信息生成章节规划，即使信息不完整也要生成合理的框架。
@@ -2038,12 +2035,16 @@ class ContinuousPlanningService:
 
         # 添加 Bible 信息
         if bible_context.get("characters"):
-            char_list = [f"- {c.get('name', 'Unknown')} (ID: {c.get('id', 'N/A')})" for c in bible_context["characters"][:5]]
-            context_parts.append(f"\n可用人物：\n" + "\n".join(char_list))
+            char_list = [
+                f"- {c.get('name', 'Unknown')} (ID: {c.get('id', 'N/A')})" for c in bible_context["characters"][:5]
+            ]
+            context_parts.append("\n可用人物：\n" + "\n".join(char_list))
 
         if bible_context.get("locations"):
-            loc_list = [f"- {l.get('name', 'Unknown')} (ID: {l.get('id', 'N/A')})" for l in bible_context["locations"][:5]]
-            context_parts.append(f"\n可用地点：\n" + "\n".join(loc_list))
+            loc_list = [
+                f"- {l.get('name', 'Unknown')} (ID: {l.get('id', 'N/A')})" for l in bible_context["locations"][:5]
+            ]
+            context_parts.append("\n可用地点：\n" + "\n".join(loc_list))
 
         context = "\n".join(context_parts)
 
@@ -2098,41 +2099,37 @@ class ContinuousPlanningService:
 
     async def _generate_next_act_info(self, novel_id: str, current_act: StoryNode, bible_context: Dict) -> Dict:
         """生成下一幕信息（双轨融合版）
-        
+
         轨道一：宏观摘要线
         - 注入前一卷/前一部的高浓缩摘要
         - 提供时空基石，防止时间线错乱
-        
+
         轨道二：微观高亮线
         - 强制注入待回收伏笔
         - 注入角色当前状态锚点
         """
         # 收集双轨上下文
         dual_track_context = await self._collect_dual_track_context(novel_id, current_act, bible_context)
-        
+
         # 构建增强型 Prompt
         prompt = self._build_next_act_prompt_with_dual_track(current_act, dual_track_context)
-        
+
         try:
             response = await self.llm_service.generate(prompt, GenerationConfig(max_tokens=4096, temperature=0.7))
             result = self._parse_llm_response(response)
-            
+
             # 确保返回必要的字段
             if not isinstance(result, dict):
                 result = {}
             result.setdefault("title", f"第{current_act.number + 1}幕")
             result.setdefault("description", "继续推进剧情")
             result.setdefault("suggested_chapter_count", 5)
-            
+
             return result
         except Exception as e:
             logger.warning(f"生成下一幕信息失败: {e}")
-            return {
-                "title": f"第{current_act.number + 1}幕",
-                "description": "描述",
-                "suggested_chapter_count": 5
-            }
-    
+            return {"title": f"第{current_act.number + 1}幕", "description": "描述", "suggested_chapter_count": 5}
+
     async def _collect_dual_track_context(
         self,
         novel_id: str,
@@ -2140,7 +2137,7 @@ class ContinuousPlanningService:
         bible_context: Dict,
     ) -> Dict[str, str]:
         """收集双轨上下文
-        
+
         Returns:
             {
                 "volume_summary": "前一卷的摘要",
@@ -2155,30 +2152,24 @@ class ContinuousPlanningService:
             "pending_foreshadowings": "",
             "character_states": "",
         }
-        
+
         try:
             # 获取所有节点
             all_nodes = await self.story_node_repo.get_by_novel(novel_id)
-            
+
             # 找到当前幕所属的卷
             current_volume = None
             if current_act.parent_id:
-                current_volume = next(
-                    (n for n in all_nodes if n.id == current_act.parent_id),
-                    None
-                )
-            
+                current_volume = next((n for n in all_nodes if n.id == current_act.parent_id), None)
+
             # 轨道一：获取卷摘要
             if current_volume:
                 vol_summary = current_volume.metadata.get("summary", "") if current_volume.metadata else ""
                 if vol_summary:
                     context["current_volume_summary"] = f"【当前卷进度】{current_volume.title}\n{vol_summary}"
-            
+
             # 获取前一卷的摘要
-            volume_nodes = sorted(
-                [n for n in all_nodes if n.node_type.value == "volume"],
-                key=lambda x: x.number
-            )
+            volume_nodes = sorted([n for n in all_nodes if n.node_type.value == "volume"], key=lambda x: x.number)
             if current_volume:
                 prev_volumes = [v for v in volume_nodes if v.number < (current_volume.number or 0)]
                 if prev_volumes:
@@ -2186,19 +2177,21 @@ class ContinuousPlanningService:
                     prev_summary = prev_vol.metadata.get("summary", "") if prev_vol.metadata else ""
                     if prev_summary:
                         context["volume_summary"] = f"【前一卷回顾】{prev_vol.title}\n{prev_summary}"
-            
+
             # 轨道二：获取待回收伏笔
-            if hasattr(self, 'chapter_repository') and self.chapter_repository:
+            if hasattr(self, "chapter_repository") and self.chapter_repository:
                 try:
-                    from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
                     from domain.novel.value_objects.novel_id import NovelId
-                    
+
                     # 尝试获取伏笔仓库（通过依赖注入或直接创建）
-                    if hasattr(self.story_node_repo, 'db_path'):
-                        from infrastructure.persistence.database.foreshadowing_repository import ForeshadowingRepositoryImpl
+                    if hasattr(self.story_node_repo, "db_path"):
+                        from infrastructure.persistence.database.foreshadowing_repository import (
+                            ForeshadowingRepositoryImpl,
+                        )
+
                         foreshadowing_repo = ForeshadowingRepositoryImpl(self.story_node_repo.db_path)
                         registry = foreshadowing_repo.get_by_novel_id(NovelId(novel_id))
-                        
+
                         if registry:
                             pending = registry.get_unresolved()
                             if pending:
@@ -2208,7 +2201,7 @@ class ContinuousPlanningService:
                                 context["pending_foreshadowings"] = "\n".join(lines)
                 except Exception as e:
                     logger.debug(f"获取伏笔信息时出错: {e}")
-            
+
             # 轨道二：获取角色状态
             if bible_context and bible_context.get("characters"):
                 char_lines = ["【角色当前状态】"]
@@ -2217,28 +2210,28 @@ class ContinuousPlanningService:
                     desc = char.get("description", "")
                     mental = char.get("mental_state", "")
                     tic = char.get("verbal_tic", "")
-                    
+
                     char_info = f"- {name}: {desc[:50]}"
                     if mental:
                         char_info += f" [心理: {mental}]"
                     if tic:
                         char_info += f" 口头禅: {tic}"
                     char_lines.append(char_info)
-                
+
                 context["character_states"] = "\n".join(char_lines)
-        
+
         except Exception as e:
             logger.warning(f"收集双轨上下文失败: {e}")
-        
+
         return context
-    
+
     def _build_next_act_prompt_with_dual_track(
         self,
         current_act: StoryNode,
         dual_track_context: Dict[str, str],
     ) -> Prompt:
         """构建双轨融合的下一幕生成 Prompt"""
-        
+
         system = """你是一位资深的小说结构设计师，擅长在长篇叙事中推进剧情。
 你的任务是为下一幕设计详细的内容规划，确保：
 1. 与前文保持连贯，不出现时间线或人物状态矛盾
@@ -2246,30 +2239,30 @@ class ContinuousPlanningService:
 3. 设置新的冲突和悬念
 
 请直接输出 JSON 格式，不要添加解释性文字。"""
-        
+
         # 组装双轨上下文
         context_parts = []
-        
+
         if dual_track_context.get("volume_summary"):
             context_parts.append(dual_track_context["volume_summary"])
-        
+
         if dual_track_context.get("current_volume_summary"):
             context_parts.append(dual_track_context["current_volume_summary"])
-        
+
         if dual_track_context.get("pending_foreshadowings"):
             context_parts.append(dual_track_context["pending_foreshadowings"])
-        
+
         if dual_track_context.get("character_states"):
             context_parts.append(dual_track_context["character_states"])
-        
+
         context_block = "\n\n".join(context_parts) if context_parts else "暂无前文上下文"
-        
+
         user = f"""【双轨上下文】
 {context_block}
 
 【当前幕信息】
 幕标题：{current_act.title}
-幕描述：{current_act.description or '无'}
+幕描述：{current_act.description or "无"}
 幕号：第 {current_act.number} 幕
 
 【任务】
@@ -2286,5 +2279,5 @@ class ContinuousPlanningService:
   "foreshadow_to_resolve": ["需要回收的伏笔"],
   "foreshadow_to_plant": ["需要埋下的新伏笔"]
 }}"""
-        
+
         return Prompt(system=system, user=user)

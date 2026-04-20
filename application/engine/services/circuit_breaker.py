@@ -1,6 +1,7 @@
 """熔断器：防止 API 雪崩导致所有小说同时进入 ERROR"""
-import time
+
 import logging
+import time
 from enum import Enum
 from threading import Lock
 
@@ -16,8 +17,8 @@ class BreakerState(Enum):
 class CircuitBreaker:
     def __init__(
         self,
-        failure_threshold: int = 5,    # 连续失败 5 次后断开
-        reset_timeout: int = 120,       # 断开后 120 秒尝试恢复
+        failure_threshold: int = 5,  # 连续失败 5 次后断开
+        reset_timeout: int = 120,  # 断开后 120 秒尝试恢复
         half_open_max_calls: int = 1,  # 试探阶段最多放行 1 次
     ):
         self.failure_threshold = failure_threshold
@@ -65,10 +66,7 @@ class CircuitBreaker:
                 logger.warning("[CircuitBreaker] 试探失败 → OPEN")
                 self._state = BreakerState.OPEN
             elif self._failure_count >= self.failure_threshold:
-                logger.warning(
-                    f"[CircuitBreaker] 连续失败 {self._failure_count} 次 → OPEN，"
-                    f"暂停 {self.reset_timeout}s"
-                )
+                logger.warning(f"[CircuitBreaker] 连续失败 {self._failure_count} 次 → OPEN，暂停 {self.reset_timeout}s")
                 self._state = BreakerState.OPEN
 
     @property

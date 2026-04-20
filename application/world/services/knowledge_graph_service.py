@@ -5,14 +5,13 @@
 
 import uuid
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime
 
-from domain.bible.triple import Triple, SourceType
+from domain.bible.triple import SourceType, Triple
 from domain.knowledge.triple_provenance import TripleProvenanceRecord
-from domain.structure.chapter_element import ChapterElement, ElementType, RelationType, Importance
-from infrastructure.persistence.database.triple_repository import TripleRepository
+from domain.structure.chapter_element import ChapterElement, ElementType, Importance, RelationType
 from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
 from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+from infrastructure.persistence.database.triple_repository import TripleRepository
 
 InferenceBundle = Tuple[Triple, List[TripleProvenanceRecord]]
 
@@ -24,7 +23,7 @@ class KnowledgeGraphService:
         self,
         triple_repo: TripleRepository,
         chapter_element_repo: ChapterElementRepository,
-        story_node_repo: StoryNodeRepository
+        story_node_repo: StoryNodeRepository,
     ):
         self.triple_repo = triple_repo
         self.chapter_element_repo = chapter_element_repo
@@ -76,11 +75,7 @@ class KnowledgeGraphService:
         # 获取所有章节
         chapters = await self.story_node_repo.get_chapters_by_novel(novel_id)
 
-        stats = {
-            "total_chapters": len(chapters),
-            "inferred_triples": 0,
-            "updated_triples": 0
-        }
+        stats = {"total_chapters": len(chapters), "inferred_triples": 0, "updated_triples": 0}
 
         # 逐章推断
         for chapter in chapters:
@@ -93,14 +88,11 @@ class KnowledgeGraphService:
 
         return stats
 
-    async def _infer_character_acquaintance(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_acquaintance(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物认识关系（共同出场）"""
         characters = [
-            e for e in elements
+            e
+            for e in elements
             if e.element_type == ElementType.CHARACTER
             and e.relation_type == RelationType.APPEARS
             and e.importance in [Importance.MAJOR, Importance.NORMAL]
@@ -111,7 +103,7 @@ class KnowledgeGraphService:
 
         out: List[InferenceBundle] = []
         for i, char_a in enumerate(characters):
-            for char_b in characters[i + 1:]:
+            for char_b in characters[i + 1 :]:
                 triple = Triple(
                     id=f"triple-{uuid.uuid4().hex[:8]}",
                     novel_id=chapter.novel_id,
@@ -127,28 +119,21 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "coappearance", chapter.id, char_a.id, "evidence"
-                    ),
-                    TripleProvenanceRecord(
-                        "coappearance", chapter.id, char_b.id, "evidence"
-                    ),
+                    TripleProvenanceRecord("coappearance", chapter.id, char_a.id, "evidence"),
+                    TripleProvenanceRecord("coappearance", chapter.id, char_b.id, "evidence"),
                 ]
                 out.append((triple, prov))
 
         return out
 
-    async def _infer_character_interaction(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_interaction(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物互动关系（POV 人物 + 出场人物）"""
         if not chapter.pov_character_id:
             return []
 
         other_characters = [
-            e for e in elements
+            e
+            for e in elements
             if e.element_type == ElementType.CHARACTER
             and e.relation_type == RelationType.APPEARS
             and e.importance == Importance.MAJOR
@@ -189,22 +174,14 @@ class KnowledgeGraphService:
 
         return out
 
-    async def _infer_character_location(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_location(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物-地点关系（人物在地点出场）"""
         characters = [
-            e for e in elements
-            if e.element_type == ElementType.CHARACTER
-            and e.relation_type == RelationType.APPEARS
+            e for e in elements if e.element_type == ElementType.CHARACTER and e.relation_type == RelationType.APPEARS
         ]
 
         locations = [
-            e for e in elements
-            if e.element_type == ElementType.LOCATION
-            and e.relation_type == RelationType.SCENE
+            e for e in elements if e.element_type == ElementType.LOCATION and e.relation_type == RelationType.SCENE
         ]
 
         out: List[InferenceBundle] = []
@@ -225,34 +202,20 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "character_location", chapter.id, char.id, "subject_element"
-                    ),
-                    TripleProvenanceRecord(
-                        "character_location", chapter.id, loc.id, "object_element"
-                    ),
+                    TripleProvenanceRecord("character_location", chapter.id, char.id, "subject_element"),
+                    TripleProvenanceRecord("character_location", chapter.id, loc.id, "object_element"),
                 ]
                 out.append((triple, prov))
 
         return out
 
-    async def _infer_character_item(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_item(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物-道具关系（人物使用道具）"""
         characters = [
-            e for e in elements
-            if e.element_type == ElementType.CHARACTER
-            and e.relation_type == RelationType.APPEARS
+            e for e in elements if e.element_type == ElementType.CHARACTER and e.relation_type == RelationType.APPEARS
         ]
 
-        items = [
-            e for e in elements
-            if e.element_type == ElementType.ITEM
-            and e.relation_type == RelationType.USES
-        ]
+        items = [e for e in elements if e.element_type == ElementType.ITEM and e.relation_type == RelationType.USES]
 
         out: List[InferenceBundle] = []
         for char in characters:
@@ -272,33 +235,23 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "character_item", chapter.id, char.id, "subject_element"
-                    ),
-                    TripleProvenanceRecord(
-                        "character_item", chapter.id, item.id, "object_element"
-                    ),
+                    TripleProvenanceRecord("character_item", chapter.id, char.id, "subject_element"),
+                    TripleProvenanceRecord("character_item", chapter.id, item.id, "object_element"),
                 ]
                 out.append((triple, prov))
 
         return out
 
-    async def _infer_character_organization(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_organization(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物-组织关系"""
         characters = [
-            e for e in elements
-            if e.element_type == ElementType.CHARACTER
-            and e.relation_type == RelationType.APPEARS
+            e for e in elements if e.element_type == ElementType.CHARACTER and e.relation_type == RelationType.APPEARS
         ]
 
         organizations = [
-            e for e in elements
-            if e.element_type == ElementType.ORGANIZATION
-            and e.relation_type == RelationType.INVOLVED
+            e
+            for e in elements
+            if e.element_type == ElementType.ORGANIZATION and e.relation_type == RelationType.INVOLVED
         ]
 
         out: List[InferenceBundle] = []
@@ -319,34 +272,20 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "character_organization", chapter.id, char.id, "subject_element"
-                    ),
-                    TripleProvenanceRecord(
-                        "character_organization", chapter.id, org.id, "object_element"
-                    ),
+                    TripleProvenanceRecord("character_organization", chapter.id, char.id, "subject_element"),
+                    TripleProvenanceRecord("character_organization", chapter.id, org.id, "object_element"),
                 ]
                 out.append((triple, prov))
 
         return out
 
-    async def _infer_character_event(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_character_event(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断人物参与事件"""
         characters = [
-            e for e in elements
-            if e.element_type == ElementType.CHARACTER
-            and e.relation_type == RelationType.APPEARS
+            e for e in elements if e.element_type == ElementType.CHARACTER and e.relation_type == RelationType.APPEARS
         ]
 
-        events = [
-            e for e in elements
-            if e.element_type == ElementType.EVENT
-            and e.relation_type == RelationType.OCCURS
-        ]
+        events = [e for e in elements if e.element_type == ElementType.EVENT and e.relation_type == RelationType.OCCURS]
 
         out: List[InferenceBundle] = []
         for char in characters:
@@ -366,33 +305,19 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "character_event", chapter.id, char.id, "subject_element"
-                    ),
-                    TripleProvenanceRecord(
-                        "character_event", chapter.id, event.id, "object_element"
-                    ),
+                    TripleProvenanceRecord("character_event", chapter.id, char.id, "subject_element"),
+                    TripleProvenanceRecord("character_event", chapter.id, event.id, "object_element"),
                 ]
                 out.append((triple, prov))
 
         return out
 
-    async def _infer_event_location(
-        self,
-        chapter,
-        elements: List[ChapterElement]
-    ) -> List[InferenceBundle]:
+    async def _infer_event_location(self, chapter, elements: List[ChapterElement]) -> List[InferenceBundle]:
         """推断事件发生地点"""
-        events = [
-            e for e in elements
-            if e.element_type == ElementType.EVENT
-            and e.relation_type == RelationType.OCCURS
-        ]
+        events = [e for e in elements if e.element_type == ElementType.EVENT and e.relation_type == RelationType.OCCURS]
 
         locations = [
-            e for e in elements
-            if e.element_type == ElementType.LOCATION
-            and e.relation_type == RelationType.SCENE
+            e for e in elements if e.element_type == ElementType.LOCATION and e.relation_type == RelationType.SCENE
         ]
 
         out: List[InferenceBundle] = []
@@ -413,12 +338,8 @@ class KnowledgeGraphService:
                     related_chapters=[str(chapter.number)],
                 )
                 prov = [
-                    TripleProvenanceRecord(
-                        "event_location", chapter.id, event.id, "subject_element"
-                    ),
-                    TripleProvenanceRecord(
-                        "event_location", chapter.id, loc.id, "object_element"
-                    ),
+                    TripleProvenanceRecord("event_location", chapter.id, event.id, "subject_element"),
+                    TripleProvenanceRecord("event_location", chapter.id, loc.id, "object_element"),
                 ]
                 out.append((triple, prov))
 

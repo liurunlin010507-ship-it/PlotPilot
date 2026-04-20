@@ -1,18 +1,16 @@
 """Knowledge API routes"""
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
-from application.world.services.knowledge_service import KnowledgeService
 from application.world.dtos.knowledge_dto import (
-    StoryKnowledgeDTO,
     ChapterSummaryDTO,
+    KnowledgeSearchResponseDTO,
     KnowledgeTripleDTO,
-    KnowledgeSearchResponseDTO
+    StoryKnowledgeDTO,
 )
+from application.world.services.knowledge_service import KnowledgeService
 from interfaces.api.dependencies import get_knowledge_service
-from domain.shared.exceptions import EntityNotFoundError
-
 
 router = APIRouter(prefix="/novels/{novel_id}/knowledge", tags=["knowledge"])
 
@@ -20,6 +18,7 @@ router = APIRouter(prefix="/novels/{novel_id}/knowledge", tags=["knowledge"])
 # Request Models
 class UpdateKnowledgeRequest(BaseModel):
     """更新知识图谱请求"""
+
     version: int = Field(default=1, description="数据版本")
     premise_lock: str = Field(default="", description="梗概锁定")
     chapters: list[ChapterSummaryDTO] = Field(default_factory=list, description="章节摘要列表")
@@ -28,10 +27,7 @@ class UpdateKnowledgeRequest(BaseModel):
 
 # Routes
 @router.get("", response_model=StoryKnowledgeDTO)
-async def get_knowledge(
-    novel_id: str,
-    service: KnowledgeService = Depends(get_knowledge_service)
-):
+async def get_knowledge(novel_id: str, service: KnowledgeService = Depends(get_knowledge_service)):
     """获取知识图谱
 
     Args:
@@ -54,7 +50,7 @@ async def get_knowledge(
                 open_threads=ch.open_threads,
                 consistency_note=ch.consistency_note,
                 beat_sections=ch.beat_sections,
-                sync_status=ch.sync_status
+                sync_status=ch.sync_status,
             )
             for ch in knowledge.chapters
         ],
@@ -81,15 +77,13 @@ async def get_knowledge(
                 provenance=list(getattr(fact, "provenance", []) or []),
             )
             for fact in knowledge.facts
-        ]
+        ],
     )
 
 
 @router.put("", response_model=StoryKnowledgeDTO)
 async def update_knowledge(
-    novel_id: str,
-    request: UpdateKnowledgeRequest,
-    service: KnowledgeService = Depends(get_knowledge_service)
+    novel_id: str, request: UpdateKnowledgeRequest, service: KnowledgeService = Depends(get_knowledge_service)
 ):
     """更新知识图谱
 
@@ -102,6 +96,7 @@ async def update_knowledge(
         更新后的故事知识 DTO
     """
     import sys
+
     print(f"[API] update_knowledge called for {novel_id}, facts: {len(request.facts)}", file=sys.stderr, flush=True)
 
     try:
@@ -109,15 +104,16 @@ async def update_knowledge(
             "version": request.version,
             "premise_lock": request.premise_lock,
             "chapters": [ch.model_dump() for ch in request.chapters],
-            "facts": [fact.model_dump() for fact in request.facts]
+            "facts": [fact.model_dump() for fact in request.facts],
         }
 
-        print(f"[API] Calling service.update_knowledge", file=sys.stderr, flush=True)
+        print("[API] Calling service.update_knowledge", file=sys.stderr, flush=True)
         knowledge = service.update_knowledge(novel_id, data)
-        print(f"[API] service.update_knowledge completed", file=sys.stderr, flush=True)
+        print("[API] service.update_knowledge completed", file=sys.stderr, flush=True)
     except Exception as e:
         print(f"[API] Exception: {e}", file=sys.stderr, flush=True)
         import traceback
+
         traceback.print_exc()
         raise
 
@@ -132,7 +128,7 @@ async def update_knowledge(
                 open_threads=ch.open_threads,
                 consistency_note=ch.consistency_note,
                 beat_sections=ch.beat_sections,
-                sync_status=ch.sync_status
+                sync_status=ch.sync_status,
             )
             for ch in knowledge.chapters
         ],
@@ -159,7 +155,7 @@ async def update_knowledge(
                 provenance=list(getattr(fact, "provenance", []) or []),
             )
             for fact in knowledge.facts
-        ]
+        ],
     )
 
 
@@ -168,7 +164,7 @@ async def search_knowledge(
     novel_id: str,
     q: str = Query(..., description="搜索查询"),
     k: int = Query(6, ge=1, le=50, description="返回结果数量"),
-    service: KnowledgeService = Depends(get_knowledge_service)
+    service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """搜索知识图谱
 

@@ -1,8 +1,9 @@
 """Statistics data access layer for book content analysis."""
-from pathlib import Path
-from typing import Optional, Dict, List
+
 import json
 import logging
+from pathlib import Path
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class StatsRepository:
                 logger.warning(f"Manifest not found for book: {slug}")
                 return None
 
-            with open(manifest_path, 'r', encoding='utf-8') as f:
+            with open(manifest_path, encoding="utf-8") as f:
                 data = json.load(f)
                 logger.debug(f"Successfully read manifest for book: {slug}")
                 return data
@@ -83,7 +84,7 @@ class StatsRepository:
                 logger.warning(f"Outline not found for book: {slug}")
                 return None
 
-            with open(outline_path, 'r', encoding='utf-8') as f:
+            with open(outline_path, encoding="utf-8") as f:
                 data = json.load(f)
                 logger.debug(f"Successfully read outline for book: {slug}")
                 return data
@@ -110,7 +111,7 @@ class StatsRepository:
                 logger.warning(f"Chapter content not found for book {slug}, chapter {chapter_id}")
                 return None
 
-            with open(chapter_path, 'r', encoding='utf-8') as f:
+            with open(chapter_path, encoding="utf-8") as f:
                 content = f.read()
                 logger.debug(f"Successfully read chapter {chapter_id} for book: {slug}")
                 return content
@@ -136,13 +137,13 @@ class StatsRepository:
         import re
 
         # Count Chinese characters (including CJK Unified Ideographs and Extension blocks)
-        chinese_pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]'
+        chinese_pattern = r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]"
         chinese_chars = len(re.findall(chinese_pattern, text))
 
         # Count English words (ASCII letters sequences)
         # Remove Chinese text first to avoid double-counting
-        english_text = re.sub(chinese_pattern, '', text)
-        english_words = len(re.findall(r'\b[a-zA-Z]+\b', english_text))
+        english_text = re.sub(chinese_pattern, "", text)
+        english_words = len(re.findall(r"\b[a-zA-Z]+\b", english_text))
 
         total_words = chinese_chars + english_words
         logger.debug(f"Word count: {total_words} (Chinese: {chinese_chars}, English: {english_words})")

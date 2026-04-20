@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 @dataclass(frozen=True)
@@ -8,6 +8,7 @@ class ChapterState:
 
     包含从章节内容中提取的所有结构化信息
     """
+
     new_characters: List[Dict[str, Any]]  # List[{name, description, first_appearance}]
     character_actions: List[Dict[str, Any]]  # List[{character_id, action, chapter}]
     relationship_changes: List[Dict[str, Any]]  # List[{char1, char2, old_type, new_type, chapter}]

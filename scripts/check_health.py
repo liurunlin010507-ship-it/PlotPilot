@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """健康检查脚本 - 验证后端是否正常运行"""
-import requests
+
 import sys
-import json
 from datetime import datetime
 
+import requests
+
 API_BASE = "http://localhost:8000"
+
 
 def check_health():
     """检查后端健康状态"""
@@ -19,7 +21,7 @@ def check_health():
         response = requests.get(f"{API_BASE}/health", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            print(f"   ✅ 后端运行正常")
+            print("   ✅ 后端运行正常")
             print(f"   📊 版本: {data.get('version')}")
             print(f"   ⏱️  运行时长: {data.get('uptime_seconds', 0):.2f} 秒")
         else:
@@ -40,7 +42,7 @@ def check_health():
         if response.status_code == 200:
             print(f"   ✅ API 文档可访问: {API_BASE}/docs")
         else:
-            print(f"   ⚠️  API 文档不可访问")
+            print("   ⚠️  API 文档不可访问")
 
         print("\n" + "=" * 80)
         print("✅ 健康检查完成 - 后端运行正常")
@@ -58,6 +60,7 @@ def check_health():
         print(f"\n❌ 检查失败: {e}")
         return False
 
+
 def check_autopilot_daemon():
     """检查自动驾驶守护进程状态"""
     print("\n4️⃣  检查自动驾驶守护进程...")
@@ -65,6 +68,7 @@ def check_autopilot_daemon():
     print("   💡 提示：查看日志文件确认守护进程是否运行")
     print("      - 日志位置: logs/aitext.log")
     print("      - 查找关键字: 'Autopilot Daemon Started'")
+
 
 if __name__ == "__main__":
     success = check_health()

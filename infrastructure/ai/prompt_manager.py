@@ -10,6 +10,7 @@
 数据模型：
   prompt_templates (1) ──→ (N) prompt_nodes (1) ──→ (N) prompt_versions
 """
+
 from __future__ import annotations
 
 import json
@@ -17,29 +18,57 @@ import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # 内置种子 JSON 路径
-_DEFAULT_SEED_PATH = (
-    Path(__file__).resolve().parent / "prompts" / "prompts_defaults.json"
-)
+_DEFAULT_SEED_PATH = Path(__file__).resolve().parent / "prompts" / "prompts_defaults.json"
 
 # 分类定义（与 prompts_defaults.json 的 categories 对应）
 BUILTIN_CATEGORIES = [
-    {"key": "generation", "name": "📝 内容生成", "icon": "✍️",
-     "description": "章节正文、场景、对白等创作类提示词", "color": "#4f46e5"},
-    {"key": "extraction", "name": "🔍 信息提取", "icon": "🔎",
-     "description": "从文本中提取结构化信息的分析类提示词", "color": "#0891b2"},
-    {"key": "review", "name": "✅ 审稿质检", "icon": "🔬",
-     "description": "一致性检查、质量评估等审稿类提示词", "color": "#b45309"},
-    {"key": "planning", "name": "📐 规划设计", "icon": "📋",
-     "description": "大纲拆解、节拍表、摘要、宏观规划等", "color": "#6d28d9"},
-    {"key": "world", "name": "🌍 世界设定", "icon": "🏰",
-     "description": "Bible 人物、地点、世界观、文风生成", "color": "#15803d"},
-    {"key": "creative", "name": "🎭 创意辅助", "icon": "💡",
-     "description": "对白润色、重构提案、卡文诊断等", "color": "#be185d"},
+    {
+        "key": "generation",
+        "name": "📝 内容生成",
+        "icon": "✍️",
+        "description": "章节正文、场景、对白等创作类提示词",
+        "color": "#4f46e5",
+    },
+    {
+        "key": "extraction",
+        "name": "🔍 信息提取",
+        "icon": "🔎",
+        "description": "从文本中提取结构化信息的分析类提示词",
+        "color": "#0891b2",
+    },
+    {
+        "key": "review",
+        "name": "✅ 审稿质检",
+        "icon": "🔬",
+        "description": "一致性检查、质量评估等审稿类提示词",
+        "color": "#b45309",
+    },
+    {
+        "key": "planning",
+        "name": "📐 规划设计",
+        "icon": "📋",
+        "description": "大纲拆解、节拍表、摘要、宏观规划等",
+        "color": "#6d28d9",
+    },
+    {
+        "key": "world",
+        "name": "🌍 世界设定",
+        "icon": "🏰",
+        "description": "Bible 人物、地点、世界观、文风生成",
+        "color": "#15803d",
+    },
+    {
+        "key": "creative",
+        "name": "🎭 创意辅助",
+        "icon": "💡",
+        "description": "对白润色、重构提案、卡文诊断等",
+        "color": "#be185d",
+    },
 ]
 
 
@@ -51,8 +80,7 @@ def _uid() -> str:
 class VersionInfo:
     """单个版本信息。"""
 
-    __slots__ = ("id", "version_number", "system_prompt", "user_template",
-                 "change_summary", "created_by", "created_at")
+    __slots__ = ("id", "version_number", "system_prompt", "user_template", "change_summary", "created_by", "created_at")
 
     def __init__(self, row: Optional[Dict[str, Any]] = None):
         if row:
@@ -94,17 +122,30 @@ class VersionInfo:
     def _preview(text: str, max_len: int) -> str:
         if not text or len(text) <= max_len:
             return text or ""
-        return text[:max_len] + "... (共 {} 字)".format(len(text))
+        return text[:max_len] + f"... (共 {len(text)} 字)"
 
 
 class NodeInfo:
     """提示词节点信息（含当前激活版本）。"""
 
     __slots__ = (
-        "id", "node_key", "name", "description", "category", "source",
-        "output_format", "contract_module", "contract_model",
-        "tags", "variables", "system_file", "is_builtin", "sort_order",
-        "template_id", "active_version_id", "version_count",
+        "id",
+        "node_key",
+        "name",
+        "description",
+        "category",
+        "source",
+        "output_format",
+        "contract_module",
+        "contract_model",
+        "tags",
+        "variables",
+        "system_file",
+        "is_builtin",
+        "sort_order",
+        "template_id",
+        "active_version_id",
+        "version_count",
         "_active_version",
     )
 
@@ -120,9 +161,7 @@ class NodeInfo:
             self.contract_module: Optional[str] = row.get("contract_module")
             self.contract_model: Optional[str] = row.get("contract_model")
             self.tags: List[str] = self._parse_json_list(row.get("tags"))
-            self.variables: List[Dict[str, Any]] = self._parse_json(
-                row.get("variables"), []
-            )
+            self.variables: List[Dict[str, Any]] = self._parse_json(row.get("variables"), [])
             self.system_file: Optional[str] = row.get("system_file")
             self.is_builtin: bool = bool(row.get("is_builtin", 0))
             self.sort_order: int = row.get("sort_order", 0)
@@ -201,8 +240,12 @@ class NodeInfo:
             "template_id": self.template_id,
             "version_count": self.version_count,
             # 当前激活版本的预览
-            "system_preview": av.system_prompt[:200] + "..." if av and len(av.system_prompt) > 200 else (av.system_prompt or ""),
-            "user_template_preview": av.user_template[:200] + "..." if av and len(av.user_template) > 200 else (av.user_template or ""),
+            "system_preview": av.system_prompt[:200] + "..."
+            if av and len(av.system_prompt) > 200
+            else (av.system_prompt or ""),
+            "user_template_preview": av.user_template[:200] + "..."
+            if av and len(av.user_template) > 200
+            else (av.user_template or ""),
             "has_user_edit": av.created_by == "user" if av else False,
         }
 
@@ -216,9 +259,19 @@ class NodeInfo:
 class TemplateInfo:
     """模板包信息。"""
 
-    __slots__ = ("id", "name", "description", "category", "version",
-                 "author", "icon", "color", "is_builtin", "metadata",
-                 "node_count")
+    __slots__ = (
+        "id",
+        "name",
+        "description",
+        "category",
+        "version",
+        "author",
+        "icon",
+        "color",
+        "is_builtin",
+        "metadata",
+        "node_count",
+    )
 
     def __init__(self, row: Optional[Dict[str, Any]] = None):
         if row:
@@ -308,9 +361,7 @@ class PromptManager:
         conn = db.get_connection()
 
         # 检查是否已有内置模板包
-        row = conn.execute(
-            "SELECT id FROM prompt_templates WHERE is_builtin=1 LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT id FROM prompt_templates WHERE is_builtin=1 LIMIT 1").fetchone()
         if row:
             self._seeded = True
             logger.info("PromptManager: 内置种子已存在，跳过初始化")
@@ -332,19 +383,23 @@ class PromptManager:
 
         # 创建内置模板包
         meta = seed_data.get("_meta", {})
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO prompt_templates
             (id, name, description, category, version, author, icon, color, is_builtin, metadata, created_at, updated_at)
             VALUES (?, ?, ?, 'builtin', ?, ?, '🏗️', '#4f46e5', 1, ?, ?, ?)
-        """, (
-            template_id,
-            meta.get("name", "PlotPilot 内置"),
-            meta.get("description", ""),
-            meta.get("version", "1.0.0"),
-            meta.get("author", "PlotPilot Team"),
-            json.dumps(meta, ensure_ascii=False),
-            now, now,
-        ))
+        """,
+            (
+                template_id,
+                meta.get("name", "PlotPilot 内置"),
+                meta.get("description", ""),
+                meta.get("version", "1.0.0"),
+                meta.get("author", "PlotPilot Team"),
+                json.dumps(meta, ensure_ascii=False),
+                now,
+                now,
+            ),
+        )
 
         # 批量插入节点和初始版本
         prompts = seed_data.get("prompts", [])
@@ -354,36 +409,46 @@ class PromptManager:
             tags_json = json.dumps(p.get("tags", []), ensure_ascii=False)
             vars_json = json.dumps(p.get("variables", []), ensure_ascii=False)
 
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO prompt_nodes
                 (id, template_id, node_key, name, description, category, source,
                  output_format, contract_module, contract_model, tags, variables,
                  system_file, is_builtin, sort_order, active_version_id, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
-            """, (
-                node_id, template_id,
-                p.get("id", f"node-{idx}"),
-                p.get("name", ""),
-                p.get("description", ""),
-                p.get("category", "generation"),
-                p.get("source", ""),
-                p.get("output_format", "text"),
-                p.get("contract_module"),
-                p.get("contract_model"),
-                tags_json, vars_json,
-                p.get("system_file"),
-                idx,
-                ver_id, now, now,
-            ))
+            """,
+                (
+                    node_id,
+                    template_id,
+                    p.get("id", f"node-{idx}"),
+                    p.get("name", ""),
+                    p.get("description", ""),
+                    p.get("category", "generation"),
+                    p.get("source", ""),
+                    p.get("output_format", "text"),
+                    p.get("contract_module"),
+                    p.get("contract_model"),
+                    tags_json,
+                    vars_json,
+                    p.get("system_file"),
+                    idx,
+                    ver_id,
+                    now,
+                    now,
+                ),
+            )
 
             system_content = p.get("system", "")
 
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO prompt_versions
                 (id, node_id, version_number, system_prompt, user_template,
                  change_summary, created_by, created_at)
                 VALUES (?, ?, 1, ?, ?, '初始种子', 'system', ?)
-            """, (ver_id, node_id, system_content, p.get("user_template", ""), now))
+            """,
+                (ver_id, node_id, system_content, p.get("user_template", ""), now),
+            )
 
         conn.commit()
         self._seeded = True
@@ -410,30 +475,36 @@ class PromptManager:
     def get_template(self, template_id: str) -> Optional[TemplateInfo]:
         """获取单个模板包详情。"""
         db = self._get_db()
-        row = db.execute("""
+        row = db.execute(
+            """
             SELECT t.*, COUNT(n.id) AS node_count
             FROM prompt_templates t
             LEFT JOIN prompt_nodes n ON n.template_id = t.id
             WHERE t.id = ?
             GROUP BY t.id
-        """, (template_id,)).fetchone()
+        """,
+            (template_id,),
+        ).fetchone()
         return TemplateInfo(dict(row)) if row else None
 
-    def create_template(self, name: str, description: str = "",
-                        category: str = "user", **kwargs) -> TemplateInfo:
+    def create_template(self, name: str, description: str = "", category: str = "user", **kwargs) -> TemplateInfo:
         """创建自定义模板包。"""
         db = self._get_db()
         tid = _uid()
         now = datetime.now().isoformat()
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO prompt_templates
             (id, name, description, category, version, author, icon, color,
              is_builtin, metadata, created_at, updated_at)
             VALUES (?, ?, ?, ?, '1.0.0', '', '📦', '#6b7280', 0, '{}', ?, ?)
-        """, (tid, name, description, category, now, now))
+        """,
+            (tid, name, description, category, now, now),
+        )
         db.commit()
-        return TemplateInfo({"id": tid, "name": name, "description": description,
-                             "category": category, "node_count": 0})
+        return TemplateInfo(
+            {"id": tid, "name": name, "description": description, "category": category, "node_count": 0}
+        )
 
     # ------------------------------------------------------------------
     # 节点 CRUD
@@ -459,14 +530,17 @@ class PromptManager:
 
         where_sql = " AND ".join(where_clauses)
 
-        rows = db.execute(f"""
+        rows = db.execute(
+            f"""
             SELECT n.*, COUNT(v.id) AS version_count
             FROM prompt_nodes n
             LEFT JOIN prompt_versions v ON v.node_id = n.id
             WHERE {where_sql}
             GROUP BY n.id
             ORDER BY n.sort_order ASC, n.node_key ASC
-        """, params).fetchall()
+        """,
+            params,
+        ).fetchall()
 
         nodes = [NodeInfo(dict(r)) for r in rows]
 
@@ -475,8 +549,7 @@ class PromptManager:
 
         return nodes
 
-    def get_node(self, node_key_or_id: str,
-                 by_key: bool = True) -> Optional[NodeInfo]:
+    def get_node(self, node_key_or_id: str, by_key: bool = True) -> Optional[NodeInfo]:
         """获取单个节点详情（含激活版本内容）。"""
         db = self._get_db()
         if by_key:
@@ -484,13 +557,16 @@ class PromptManager:
         else:
             col = "id"
 
-        row = db.execute(f"""
+        row = db.execute(
+            f"""
             SELECT n.*, COUNT(v.id) AS version_count
             FROM prompt_nodes n
             LEFT JOIN prompt_versions v ON v.node_id = n.id
             WHERE n.{col} = ?
             GROUP BY n.id
-        """, (node_key_or_id,)).fetchone()
+        """,
+            (node_key_or_id,),
+        ).fetchone()
 
         if not row:
             return None
@@ -507,7 +583,8 @@ class PromptManager:
 
         db = self._get_db()
         pattern = f"%{q}%"
-        rows = db.execute("""
+        rows = db.execute(
+            """
             SELECT n.*, COUNT(v.id) AS version_count
             FROM prompt_nodes n
             LEFT JOIN prompt_versions v ON v.node_id = n.id
@@ -516,15 +593,17 @@ class PromptManager:
                OR n.tags LIKE ?
             GROUP BY n.id
             ORDER BY n.sort_order ASC
-        """, (pattern, pattern, pattern, pattern, pattern)).fetchall()
+        """,
+            (pattern, pattern, pattern, pattern, pattern),
+        ).fetchall()
 
         nodes = [NodeInfo(dict(r)) for r in rows]
         self._attach_active_versions(nodes)
         return nodes
 
-    def create_node(self, template_id: str, node_key: str, name: str,
-                    system_prompt: str = "", user_template: str = "",
-                    **kwargs) -> NodeInfo:
+    def create_node(
+        self, template_id: str, node_key: str, name: str, system_prompt: str = "", user_template: str = "", **kwargs
+    ) -> NodeInfo:
         """在指定模板包下创建新节点（v1）。"""
         db = self._get_db()
         node_id = _uid()
@@ -538,25 +617,42 @@ class PromptManager:
         cm = kwargs.get("contract_module")
         cmodel = kwargs.get("contract_model")
 
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO prompt_nodes
             (id, template_id, node_key, name, description, category,
              source, output_format, contract_module, contract_model, tags, variables,
              is_builtin, sort_order, active_version_id, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
-        """, (
-            node_id, template_id, node_key, name,
-            kwargs.get("description", ""), kwargs.get("category", "generation"),
-            src, out_fmt, cm, cmodel, tags_s, vars_s,
-            ver_id, now, now,
-        ))
+        """,
+            (
+                node_id,
+                template_id,
+                node_key,
+                name,
+                kwargs.get("description", ""),
+                kwargs.get("category", "generation"),
+                src,
+                out_fmt,
+                cm,
+                cmodel,
+                tags_s,
+                vars_s,
+                ver_id,
+                now,
+                now,
+            ),
+        )
 
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO prompt_versions
             (id, node_id, version_number, system_prompt, user_template,
              change_summary, created_by, created_at)
             VALUES (?, ?, 1, ?, ?, '初始版本', 'user', ?)
-        """, (ver_id, node_id, system_prompt, user_template, now))
+        """,
+            (ver_id, node_id, system_prompt, user_template, now),
+        )
 
         db.commit()
         return self.get_node(node_id, by_key=False)
@@ -575,19 +671,20 @@ class PromptManager:
     def get_node_versions(self, node_id: str) -> List[VersionInfo]:
         """获取节点的所有版本列表（时间线）。"""
         db = self._get_db()
-        rows = db.execute("""
+        rows = db.execute(
+            """
             SELECT * FROM prompt_versions
             WHERE node_id = ?
             ORDER BY version_number DESC
-        """, (node_id,)).fetchall()
+        """,
+            (node_id,),
+        ).fetchall()
         return [VersionInfo(dict(r)) for r in rows]
 
     def get_version(self, version_id: str) -> Optional[VersionInfo]:
         """获取单个版本详情。"""
         db = self._get_db()
-        row = db.execute(
-            "SELECT * FROM prompt_versions WHERE id = ?", (version_id,)
-        ).fetchone()
+        row = db.execute("SELECT * FROM prompt_versions WHERE id = ?", (version_id,)).fetchone()
         return VersionInfo(dict(row)) if row else None
 
     def update_node(
@@ -607,8 +704,7 @@ class PromptManager:
 
         # 获取当前最新版本号
         row = db.execute(
-            "SELECT COALESCE(MAX(version_number), 0) AS max_ver "
-            "FROM prompt_versions WHERE node_id = ?",
+            "SELECT COALESCE(MAX(version_number), 0) AS max_ver FROM prompt_versions WHERE node_id = ?",
             (node_id,),
         ).fetchone()
         next_ver = (row["max_ver"] if row else 0) + 1
@@ -617,21 +713,19 @@ class PromptManager:
 
         # 获取当前版本作为基础
         current = self._get_current_version(db, node_id)
-        new_system = system_prompt if system_prompt is not None else (
-            current.system_prompt if current else ""
-        )
-        new_user = user_template if user_template is not None else (
-            current.user_template if current else ""
-        )
+        new_system = system_prompt if system_prompt is not None else (current.system_prompt if current else "")
+        new_user = user_template if user_template is not None else (current.user_template if current else "")
 
         # 创建新版本
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO prompt_versions
             (id, node_id, version_number, system_prompt, user_template,
              change_summary, created_by, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 'user', ?)
-        """, (new_ver_id, node_id, next_ver, new_system, new_user,
-              change_summary or f"v{next_ver} 编辑", now))
+        """,
+            (new_ver_id, node_id, next_ver, new_system, new_user, change_summary or f"v{next_ver} 编辑", now),
+        )
 
         # 更新节点的 active_version_id 和元字段
         set_clauses = ["active_version_id = ?", "updated_at = ?"]
@@ -672,8 +766,7 @@ class PromptManager:
 
         return self.get_node(node_id, by_key=False)
 
-    def rollback_node(self, node_id: str,
-                      target_version_id: str) -> Optional[NodeInfo]:
+    def rollback_node(self, node_id: str, target_version_id: str) -> Optional[NodeInfo]:
         """回滚节点到指定历史版本（创建一个新版本作为「回滚快照」）。
 
         这样做的好处：
@@ -689,8 +782,7 @@ class PromptManager:
 
         # 获取当前最新版本号
         row = db.execute(
-            "SELECT COALESCE(MAX(version_number), 0) AS max_ver "
-            "FROM prompt_versions WHERE node_id = ?",
+            "SELECT COALESCE(MAX(version_number), 0) AS max_ver FROM prompt_versions WHERE node_id = ?",
             (node_id,),
         ).fetchone()
         next_ver = (row["max_ver"] if row else 0) + 1
@@ -698,17 +790,23 @@ class PromptManager:
         now = datetime.now().isoformat()
 
         # 以目标版本的内容创建新版本（标记为回滚）
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO prompt_versions
             (id, node_id, version_number, system_prompt, user_template,
              change_summary, created_by, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 'user', ?)
-        """, (
-            new_ver_id, node_id, next_ver,
-            target.system_prompt, target.user_template,
-            f"回滚到 v{target.version_number}",
-            now,
-        ))
+        """,
+            (
+                new_ver_id,
+                node_id,
+                next_ver,
+                target.system_prompt,
+                target.user_template,
+                f"回滚到 v{target.version_number}",
+                now,
+            ),
+        )
 
         db.execute(
             "UPDATE prompt_nodes SET active_version_id=?, updated_at=? WHERE id=?",
@@ -718,8 +816,7 @@ class PromptManager:
 
         return self.get_node(node_id, by_key=False)
 
-    def compare_versions(self, version_id_1: str,
-                         version_id_2: str) -> Dict[str, Any]:
+    def compare_versions(self, version_id_1: str, version_id_2: str) -> Dict[str, Any]:
         """对比两个版本的差异。"""
         v1 = self.get_version(version_id_1)
         v2 = self.get_version(version_id_2)
@@ -739,8 +836,7 @@ class PromptManager:
     # 渲染
     # ------------------------------------------------------------------
 
-    def render(self, node_key: str,
-               variables: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, str]]:
+    def render(self, node_key: str, variables: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, str]]:
         """渲染指定节点的提示词。
 
         Args:
@@ -785,15 +881,11 @@ class PromptManager:
         total_nodes = db.execute("SELECT COUNT(*) AS c FROM prompt_nodes").fetchone()["c"]
         total_templates = db.execute("SELECT COUNT(*) AS c FROM prompt_templates").fetchone()["c"]
         total_versions = db.execute("SELECT COUNT(*) AS c FROM prompt_versions").fetchone()["c"]
-        builtin_count = db.execute(
-            "SELECT COUNT(*) AS c FROM prompt_nodes WHERE is_builtin=1"
-        ).fetchone()["c"]
+        builtin_count = db.execute("SELECT COUNT(*) AS c FROM prompt_nodes WHERE is_builtin=1").fetchone()["c"]
         custom_count = total_nodes - builtin_count
 
         # 各分类数量
-        cat_rows = db.execute(
-            "SELECT category, COUNT(*) AS c FROM prompt_nodes GROUP BY category"
-        ).fetchall()
+        cat_rows = db.execute("SELECT category, COUNT(*) AS c FROM prompt_nodes GROUP BY category").fetchall()
         categories = {r["category"]: r["c"] for r in cat_rows}
 
         return {
@@ -837,9 +929,7 @@ class PromptManager:
         if not ids:
             return
         placeholders = ",".join("?" * len(ids))
-        rows = db.execute(
-            f"SELECT * FROM prompt_versions WHERE id IN ({placeholders})", ids
-        ).fetchall()
+        rows = db.execute(f"SELECT * FROM prompt_versions WHERE id IN ({placeholders})", ids).fetchall()
         ver_map = {r["id"]: VersionInfo(dict(r)) for r in rows}
         for node in nodes:
             if node.active_version_id and node.active_version_id in ver_map:
@@ -848,11 +938,14 @@ class PromptManager:
     @staticmethod
     def _get_current_version(db, node_id: str) -> Optional[VersionInfo]:
         """获取节点当前激活版本。"""
-        row = db.execute("""
+        row = db.execute(
+            """
             SELECT v.* FROM prompt_versions v
             INNER JOIN prompt_nodes n ON n.active_version_id = v.id
             WHERE n.id = ?
-        """, (node_id,)).fetchone()
+        """,
+            (node_id,),
+        ).fetchone()
         return VersionInfo(dict(row)) if row else None
 
 

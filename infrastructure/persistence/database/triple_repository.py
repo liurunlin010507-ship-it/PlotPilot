@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Optional, Union
 
-from domain.bible.triple import Triple, SourceType
+from domain.bible.triple import SourceType, Triple
 from domain.knowledge.triple_provenance import TripleProvenanceRecord
 from infrastructure.persistence.database.connection import DatabaseConnection
 from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
@@ -222,9 +223,7 @@ class TripleRepository:
         more, tags, attrs = self._kr.get_triple_side_data_for_novel(novel_id)
         return [self._row_to_triple(r, more, tags, attrs) for r in rows]
 
-    def get_containment_meta_by_bible_location_id(
-        self, novel_id: str, bible_location_id: str
-    ) -> Optional[dict]:
+    def get_containment_meta_by_bible_location_id(self, novel_id: str, bible_location_id: str) -> Optional[dict]:
         row = self._db.fetch_one(
             """
             SELECT t.id, t.source_type
@@ -238,7 +237,8 @@ class TripleRepository:
         return dict(row) if row else None
 
     def list_bible_generated_containment_with_location_ids(
-        self, novel_id: str,
+        self,
+        novel_id: str,
     ) -> List[dict]:
         rows = self._db.fetch_all(
             """
@@ -252,7 +252,8 @@ class TripleRepository:
         return [dict(r) for r in rows]
 
     def list_bible_generated_anchor_with_location_ids(
-        self, novel_id: str,
+        self,
+        novel_id: str,
     ) -> List[dict]:
         rows = self._db.fetch_all(
             """
@@ -323,13 +324,8 @@ class TripleRepository:
         self._kr.save_triple(triple.novel_id, _triple_to_fact_dict(triple))
         return triple
 
-    async def save_with_provenance(
-        self, triple: Triple, records: List[TripleProvenanceRecord]
-    ) -> Triple:
-        rows = [
-            p.to_row_dict(triple.novel_id, triple.id, f"tp-{uuid.uuid4().hex}")
-            for p in records
-        ]
+    async def save_with_provenance(self, triple: Triple, records: List[TripleProvenanceRecord]) -> Triple:
+        rows = [p.to_row_dict(triple.novel_id, triple.id, f"tp-{uuid.uuid4().hex}") for p in records]
         self._kr.save_triple(
             triple.novel_id,
             _triple_to_fact_dict(triple),
@@ -338,13 +334,8 @@ class TripleRepository:
         )
         return triple
 
-    async def append_provenance_for_triple(
-        self, triple: Triple, records: List[TripleProvenanceRecord]
-    ) -> None:
-        rows = [
-            p.to_row_dict(triple.novel_id, triple.id, f"tp-{uuid.uuid4().hex}")
-            for p in records
-        ]
+    async def append_provenance_for_triple(self, triple: Triple, records: List[TripleProvenanceRecord]) -> None:
+        rows = [p.to_row_dict(triple.novel_id, triple.id, f"tp-{uuid.uuid4().hex}") for p in records]
         self._kr.append_triple_provenance_only(triple.novel_id, triple.id, rows)
 
     async def update(self, triple: Triple) -> Triple:

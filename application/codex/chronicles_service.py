@@ -1,8 +1,9 @@
 """双螺旋编年史：按 chapter_index 拉链聚合剧情时间线与语义快照（BFF 聚合，底层表物理隔离）。"""
+
 from __future__ import annotations
 
-import re
 import logging
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)

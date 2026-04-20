@@ -1,11 +1,11 @@
 """Unified error handling middleware for FastAPI applications."""
+
 import logging
 from typing import Any, Dict, List
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
 
 from ..responses import ErrorResponse
 
@@ -58,15 +58,9 @@ async def http_exception_handler(request: Request, exc) -> JSONResponse:
     else:
         logger.info(f"HTTP {status_code} - {detail}")
 
-    error_response = ErrorResponse(
-        message=detail,
-        code=error_code
-    )
+    error_response = ErrorResponse(message=detail, code=error_code)
 
-    return JSONResponse(
-        status_code=status_code,
-        content=error_response.model_dump()
-    )
+    return JSONResponse(status_code=status_code, content=error_response.model_dump())
 
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -83,26 +77,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     field_errors: List[Dict[str, Any]] = []
 
     for error in exc.errors():
-        field_errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"]
-        })
+        field_errors.append(
+            {"field": ".".join(str(loc) for loc in error["loc"]), "message": error["msg"], "type": error["type"]}
+        )
 
-    error_response = ErrorResponse(
-        message="Validation failed",
-        code="UNPROCESSABLE_ENTITY",
-        details=field_errors
-    )
+    error_response = ErrorResponse(message="Validation failed", code="UNPROCESSABLE_ENTITY", details=field_errors)
 
     logger.warning(f"Validation error: {len(field_errors)} field(s)")
     for field_error in field_errors:
         logger.debug(f"  - {field_error['field']}: {field_error['message']}")
 
-    return JSONResponse(
-        status_code=HTTP_422_STATUS,
-        content=error_response.model_dump()
-    )
+    return JSONResponse(status_code=HTTP_422_STATUS, content=error_response.model_dump())
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -120,15 +105,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     # Log the error at error level
     logger.exception(f"Unhandled exception: {error_message}")
 
-    error_response = ErrorResponse(
-        message=error_message,
-        code="INTERNAL_ERROR"
-    )
+    error_response = ErrorResponse(message=error_message, code="INTERNAL_ERROR")
 
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=error_response.model_dump()
-    )
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response.model_dump())
 
 
 def add_error_handlers(app: FastAPI) -> None:

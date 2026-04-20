@@ -20,7 +20,7 @@ _NOVEL_ID_LOOSE = re.compile(r"(novel-[a-zA-Z0-9]+)")
 
 _MAX_ENTRIES = 4000
 
-_ring: Deque["AutopilotLogEntry"] = deque(maxlen=_MAX_ENTRIES)
+_ring: Deque[AutopilotLogEntry] = deque(maxlen=_MAX_ENTRIES)
 _lock = threading.Lock()
 _seq = 0
 

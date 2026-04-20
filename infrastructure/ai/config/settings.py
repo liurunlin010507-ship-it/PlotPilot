@@ -1,4 +1,5 @@
 """AI 配置设置"""
+
 from dataclasses import dataclass, field
 from typing import Any, Optional
 

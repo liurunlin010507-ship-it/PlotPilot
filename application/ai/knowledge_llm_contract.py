@@ -6,6 +6,7 @@
   `initial_knowledge_openai_function_tool()` 交给网关，参数形状保持一致。
 - **禁止多余字段**：`extra='forbid'`，丢弃模型捏造的 `provenance`、`source_type`（写入时由服务端统一标为 ai_generated）等。
 """
+
 from __future__ import annotations
 
 import json
@@ -13,8 +14,6 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
-
-from application.ai.llm_json_extract import parse_llm_json_to_dict
 
 # ---------------------------------------------------------------------------
 # 与 LLM 约定的形状（字段越少越好，其余由持久化层补全）
@@ -138,8 +137,7 @@ def parse_initial_knowledge_llm_response(
     except ValidationError as e:
         err_list = e.errors()
         msg = "; ".join(
-            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in err_list[:12]
+            f"{'/'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', '')}" for err in err_list[:12]
         )
         return None, [msg or str(e)]
 
@@ -155,7 +153,7 @@ def to_knowledge_service_update_dict(
     for i, f in enumerate(payload.facts):
         facts.append(
             {
-                "id": f.id or f"fact-{i+1:03d}",
+                "id": f.id or f"fact-{i + 1:03d}",
                 "subject": f.subject,
                 "predicate": f.predicate,
                 "object": f.obj,

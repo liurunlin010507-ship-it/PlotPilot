@@ -10,6 +10,7 @@ from typing import Optional
 
 class ElementType(str, Enum):
     """元素类型"""
+
     CHARACTER = "character"
     LOCATION = "location"
     ITEM = "item"
@@ -19,24 +20,27 @@ class ElementType(str, Enum):
 
 class RelationType(str, Enum):
     """关联类型"""
-    APPEARS = "appears"      # 出场
+
+    APPEARS = "appears"  # 出场
     MENTIONED = "mentioned"  # 提及
-    SCENE = "scene"          # 场景
-    USES = "uses"            # 使用（道具）
-    INVOLVED = "involved"    # 涉及（组织）
-    OCCURS = "occurs"        # 发生（事件）
+    SCENE = "scene"  # 场景
+    USES = "uses"  # 使用（道具）
+    INVOLVED = "involved"  # 涉及（组织）
+    OCCURS = "occurs"  # 发生（事件）
 
 
 class Importance(str, Enum):
     """重要性"""
-    MAJOR = "major"    # 主要
+
+    MAJOR = "major"  # 主要
     NORMAL = "normal"  # 普通
-    MINOR = "minor"    # 次要
+    MINOR = "minor"  # 次要
 
 
 @dataclass
 class ChapterElement:
     """章节元素关联"""
+
     id: str
     chapter_id: str
     element_type: ElementType
@@ -82,5 +86,7 @@ class ChapterElement:
             importance=Importance(data.get("importance", "normal")),
             appearance_order=data.get("appearance_order"),
             notes=data.get("notes"),
-            created_at=datetime.fromisoformat(data["created_at"]) if isinstance(data.get("created_at"), str) else data.get("created_at", datetime.now()),
+            created_at=datetime.fromisoformat(data["created_at"])
+            if isinstance(data.get("created_at"), str)
+            else data.get("created_at", datetime.now()),
         )

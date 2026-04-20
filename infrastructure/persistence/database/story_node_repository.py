@@ -2,12 +2,12 @@
 故事结构节点 Repository
 """
 
-import sqlite3
 import json
-from typing import List, Optional
+import sqlite3
 from datetime import datetime
+from typing import List, Optional
 
-from domain.structure.story_node import StoryNode, NodeType, StoryTree, PlanningStatus, PlanningSource
+from domain.structure.story_node import NodeType, PlanningSource, PlanningStatus, StoryNode, StoryTree
 
 
 class StoryNodeRepository:
@@ -27,7 +27,8 @@ class StoryNodeRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO story_nodes (
                     id, novel_id, parent_id, node_type, number, title, description, order_index,
                     planning_status, planning_source,
@@ -37,129 +38,8 @@ class StoryNodeRepository:
                     pov_character_id, timeline_start, timeline_end,
                     metadata, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                node.id,
-                node.novel_id,
-                node.parent_id,
-                node.node_type.value,
-                node.number,
-                node.title,
-                node.description,
-                node.order_index,
-                node.planning_status.value,
-                node.planning_source.value,
-                node.chapter_start,
-                node.chapter_end,
-                node.chapter_count,
-                node.suggested_chapter_count,
-                node.content,
-                node.outline,
-                node.word_count,
-                node.status,
-                json.dumps(node.themes),
-                json.dumps(node.key_events),
-                node.narrative_arc,
-                json.dumps(node.conflicts),
-                node.pov_character_id,
-                node.timeline_start,
-                node.timeline_end,
-                json.dumps(node.metadata),
-                node.created_at.isoformat(),
-                node.updated_at.isoformat(),
-            ))
-            conn.commit()
-            return node
-        finally:
-            conn.close()
-
-    async def save(self, node: StoryNode) -> StoryNode:
-        """保存节点"""
-        return self.save_sync(node)
-
-    async def update(self, node: StoryNode) -> StoryNode:
-        """更新节点"""
-        node.updated_at = datetime.now()
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE story_nodes SET
-                    parent_id = ?,
-                    node_type = ?,
-                    number = ?,
-                    title = ?,
-                    description = ?,
-                    order_index = ?,
-                    planning_status = ?,
-                    planning_source = ?,
-                    chapter_start = ?,
-                    chapter_end = ?,
-                    chapter_count = ?,
-                    suggested_chapter_count = ?,
-                    content = ?,
-                    outline = ?,
-                    word_count = ?,
-                    status = ?,
-                    themes = ?,
-                    key_events = ?,
-                    narrative_arc = ?,
-                    conflicts = ?,
-                    pov_character_id = ?,
-                    timeline_start = ?,
-                    timeline_end = ?,
-                    metadata = ?,
-                    updated_at = ?
-                WHERE id = ?
-            """, (
-                node.parent_id,
-                node.node_type.value,
-                node.number,
-                node.title,
-                node.description,
-                node.order_index,
-                node.planning_status.value,
-                node.planning_source.value,
-                node.chapter_start,
-                node.chapter_end,
-                node.chapter_count,
-                node.suggested_chapter_count,
-                node.content,
-                node.outline,
-                node.word_count,
-                node.status,
-                json.dumps(node.themes),
-                json.dumps(node.key_events),
-                node.narrative_arc,
-                json.dumps(node.conflicts),
-                node.pov_character_id,
-                node.timeline_start,
-                node.timeline_end,
-                json.dumps(node.metadata),
-                node.updated_at.isoformat(),
-                node.id,
-            ))
-            conn.commit()
-            return node
-        finally:
-            conn.close()
-
-    async def save_batch(self, nodes: List[StoryNode]) -> List[StoryNode]:
-        """批量保存节点"""
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            for node in nodes:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO story_nodes (
-                        id, novel_id, parent_id, node_type, number, title, description, order_index,
-                        planning_status, planning_source,
-                        chapter_start, chapter_end, chapter_count, suggested_chapter_count,
-                        content, outline, word_count, status,
-                        themes, key_events, narrative_arc, conflicts,
-                        pov_character_id, timeline_start, timeline_end,
-                        metadata, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+            """,
+                (
                     node.id,
                     node.novel_id,
                     node.parent_id,
@@ -188,7 +68,136 @@ class StoryNodeRepository:
                     json.dumps(node.metadata),
                     node.created_at.isoformat(),
                     node.updated_at.isoformat(),
-                ))
+                ),
+            )
+            conn.commit()
+            return node
+        finally:
+            conn.close()
+
+    async def save(self, node: StoryNode) -> StoryNode:
+        """保存节点"""
+        return self.save_sync(node)
+
+    async def update(self, node: StoryNode) -> StoryNode:
+        """更新节点"""
+        node.updated_at = datetime.now()
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE story_nodes SET
+                    parent_id = ?,
+                    node_type = ?,
+                    number = ?,
+                    title = ?,
+                    description = ?,
+                    order_index = ?,
+                    planning_status = ?,
+                    planning_source = ?,
+                    chapter_start = ?,
+                    chapter_end = ?,
+                    chapter_count = ?,
+                    suggested_chapter_count = ?,
+                    content = ?,
+                    outline = ?,
+                    word_count = ?,
+                    status = ?,
+                    themes = ?,
+                    key_events = ?,
+                    narrative_arc = ?,
+                    conflicts = ?,
+                    pov_character_id = ?,
+                    timeline_start = ?,
+                    timeline_end = ?,
+                    metadata = ?,
+                    updated_at = ?
+                WHERE id = ?
+            """,
+                (
+                    node.parent_id,
+                    node.node_type.value,
+                    node.number,
+                    node.title,
+                    node.description,
+                    node.order_index,
+                    node.planning_status.value,
+                    node.planning_source.value,
+                    node.chapter_start,
+                    node.chapter_end,
+                    node.chapter_count,
+                    node.suggested_chapter_count,
+                    node.content,
+                    node.outline,
+                    node.word_count,
+                    node.status,
+                    json.dumps(node.themes),
+                    json.dumps(node.key_events),
+                    node.narrative_arc,
+                    json.dumps(node.conflicts),
+                    node.pov_character_id,
+                    node.timeline_start,
+                    node.timeline_end,
+                    json.dumps(node.metadata),
+                    node.updated_at.isoformat(),
+                    node.id,
+                ),
+            )
+            conn.commit()
+            return node
+        finally:
+            conn.close()
+
+    async def save_batch(self, nodes: List[StoryNode]) -> List[StoryNode]:
+        """批量保存节点"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            for node in nodes:
+                cursor.execute(
+                    """
+                    INSERT OR REPLACE INTO story_nodes (
+                        id, novel_id, parent_id, node_type, number, title, description, order_index,
+                        planning_status, planning_source,
+                        chapter_start, chapter_end, chapter_count, suggested_chapter_count,
+                        content, outline, word_count, status,
+                        themes, key_events, narrative_arc, conflicts,
+                        pov_character_id, timeline_start, timeline_end,
+                        metadata, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        node.id,
+                        node.novel_id,
+                        node.parent_id,
+                        node.node_type.value,
+                        node.number,
+                        node.title,
+                        node.description,
+                        node.order_index,
+                        node.planning_status.value,
+                        node.planning_source.value,
+                        node.chapter_start,
+                        node.chapter_end,
+                        node.chapter_count,
+                        node.suggested_chapter_count,
+                        node.content,
+                        node.outline,
+                        node.word_count,
+                        node.status,
+                        json.dumps(node.themes),
+                        json.dumps(node.key_events),
+                        node.narrative_arc,
+                        json.dumps(node.conflicts),
+                        node.pov_character_id,
+                        node.timeline_start,
+                        node.timeline_end,
+                        json.dumps(node.metadata),
+                        node.created_at.isoformat(),
+                        node.updated_at.isoformat(),
+                    ),
+                )
             conn.commit()
             return nodes
         finally:
@@ -210,11 +219,14 @@ class StoryNodeRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM story_nodes
                 WHERE novel_id = ?
                 ORDER BY order_index
-            """, (novel_id,))
+            """,
+                (novel_id,),
+            )
             rows = cursor.fetchall()
             return [self._row_to_entity(row) for row in rows]
         finally:
@@ -237,11 +249,14 @@ class StoryNodeRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM story_nodes
                 WHERE parent_id = ?
                 ORDER BY order_index
-            """, (parent_id,))
+            """,
+                (parent_id,),
+            )
             rows = cursor.fetchall()
             return [self._row_to_entity(row) for row in rows]
         finally:
@@ -256,11 +271,14 @@ class StoryNodeRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM story_nodes
                 WHERE novel_id = ? AND node_type = 'chapter'
                 ORDER BY order_index
-            """, (novel_id,))
+            """,
+                (novel_id,),
+            )
             rows = cursor.fetchall()
             return [self._row_to_entity(row) for row in rows]
         finally:
@@ -309,24 +327,24 @@ class StoryNodeRepository:
             # 2. 批量更新（只更新 title, description, order_index）
             if updates:
                 for u in updates:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         UPDATE story_nodes
                         SET title=?, description=?, order_index=?, updated_at=?
                         WHERE id=?
-                    """, (
-                        u['title'],
-                        u.get('description', ''),
-                        u['order_index'],
-                        datetime.now().isoformat(),
-                        u['id']
-                    ))
+                    """,
+                        (u["title"], u.get("description", ""), u["order_index"], datetime.now().isoformat(), u["id"]),
+                    )
 
             # 3. 批量插入
             if creates:
                 for c in creates:
                     # 调试日志
-                    print(f"[DEBUG] Inserting node: id={c['id']}, planning_status={c.get('planning_status', 'ai_generated')!r}, planning_source={c.get('planning_source', 'ai_macro')!r}")
-                    cursor.execute("""
+                    print(
+                        f"[DEBUG] Inserting node: id={c['id']}, planning_status={c.get('planning_status', 'ai_generated')!r}, planning_source={c.get('planning_source', 'ai_macro')!r}"
+                    )
+                    cursor.execute(
+                        """
                         INSERT INTO story_nodes (
                             id, novel_id, parent_id, node_type, number, title, description, order_index,
                             planning_status, planning_source,
@@ -336,36 +354,38 @@ class StoryNodeRepository:
                             pov_character_id, timeline_start, timeline_end,
                             metadata, created_at, updated_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        c['id'],
-                        c['novel_id'],
-                        c.get('parent_id'),
-                        c['node_type'],
-                        c.get('number', 0),
-                        c['title'],
-                        c.get('description', ''),
-                        c['order_index'],
-                        c.get('planning_status', 'ai_generated'),
-                        c.get('planning_source', 'ai_macro'),
-                        c.get('chapter_start'),
-                        c.get('chapter_end'),
-                        c.get('chapter_count'),
-                        c.get('suggested_chapter_count'),
-                        c.get('content'),
-                        c.get('outline'),
-                        c.get('word_count', 0),
-                        c.get('status', 'draft'),
-                        json.dumps(c.get('themes', [])),
-                        json.dumps(c.get('key_events', [])),
-                        c.get('narrative_arc'),
-                        json.dumps(c.get('conflicts', [])),
-                        c.get('pov_character_id'),
-                        c.get('timeline_start'),
-                        c.get('timeline_end'),
-                        json.dumps(c.get('metadata', {})),
-                        datetime.now().isoformat(),
-                        datetime.now().isoformat(),
-                    ))
+                    """,
+                        (
+                            c["id"],
+                            c["novel_id"],
+                            c.get("parent_id"),
+                            c["node_type"],
+                            c.get("number", 0),
+                            c["title"],
+                            c.get("description", ""),
+                            c["order_index"],
+                            c.get("planning_status", "ai_generated"),
+                            c.get("planning_source", "ai_macro"),
+                            c.get("chapter_start"),
+                            c.get("chapter_end"),
+                            c.get("chapter_count"),
+                            c.get("suggested_chapter_count"),
+                            c.get("content"),
+                            c.get("outline"),
+                            c.get("word_count", 0),
+                            c.get("status", "draft"),
+                            json.dumps(c.get("themes", [])),
+                            json.dumps(c.get("key_events", [])),
+                            c.get("narrative_arc"),
+                            json.dumps(c.get("conflicts", [])),
+                            c.get("pov_character_id"),
+                            c.get("timeline_start"),
+                            c.get("timeline_end"),
+                            json.dumps(c.get("metadata", {})),
+                            datetime.now().isoformat(),
+                            datetime.now().isoformat(),
+                        ),
+                    )
 
             conn.commit()
         except Exception as e:
@@ -388,31 +408,24 @@ class StoryNodeRepository:
             title=row_dict["title"],
             description=row_dict["description"],
             order_index=row_dict["order_index"],
-
             planning_status=PlanningStatus(row_dict.get("planning_status", "draft")),
             planning_source=PlanningSource(row_dict.get("planning_source", "manual")),
-
             chapter_start=row_dict["chapter_start"],
             chapter_end=row_dict["chapter_end"],
             chapter_count=row_dict["chapter_count"],
             suggested_chapter_count=row_dict.get("suggested_chapter_count"),
-
             content=row_dict["content"],
             outline=row_dict.get("outline"),
             word_count=row_dict["word_count"],
             status=row_dict["status"],
-
             themes=row_dict.get("themes", "[]"),
             key_events=row_dict.get("key_events", "[]"),
             narrative_arc=row_dict.get("narrative_arc"),
             conflicts=row_dict.get("conflicts", "[]"),
-
             pov_character_id=row_dict.get("pov_character_id"),
             timeline_start=row_dict.get("timeline_start"),
             timeline_end=row_dict.get("timeline_end"),
-
             metadata=row_dict.get("metadata", "{}"),
-
             created_at=datetime.fromisoformat(row_dict["created_at"]),
             updated_at=datetime.fromisoformat(row_dict["updated_at"]),
         )

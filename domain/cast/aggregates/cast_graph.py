@@ -1,6 +1,8 @@
 """Cast Graph aggregate root"""
+
 from dataclasses import dataclass, field
 from typing import List, Optional
+
 from domain.cast.entities.character import Character
 from domain.cast.entities.relationship import Relationship
 from domain.cast.value_objects.character_id import CharacterId
@@ -46,8 +48,7 @@ class CastGraph:
         self.characters = [c for c in self.characters if c.id != character_id]
         # Remove relationships involving this character
         self.relationships = [
-            r for r in self.relationships
-            if r.source_id != character_id and r.target_id != character_id
+            r for r in self.relationships if r.source_id != character_id and r.target_id != character_id
         ]
 
     def get_character(self, character_id: CharacterId) -> Optional[Character]:
@@ -123,13 +124,7 @@ class CastGraph:
 
         for character in self.characters:
             # Search in name, aliases, role, traits, note
-            searchable = [
-                character.name,
-                *character.aliases,
-                character.role,
-                character.traits,
-                character.note
-            ]
+            searchable = [character.name, *character.aliases, character.role, character.traits, character.note]
 
             if any(query_lower in field.lower() for field in searchable if field):
                 results.append(character)

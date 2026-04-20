@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 统一 GUI 中心（Hub）— 模块化重构版
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -19,10 +18,10 @@ aitex 统一 GUI 中心（Hub）— 模块化重构版
   packer.py    = 项目打包分享
 """
 
-import sys
 import os
-import time
+import sys
 import threading
+import time
 import traceback
 
 # ══════════════════════════════════════════════
@@ -35,7 +34,7 @@ _HUB_FILE = os.path.abspath(__file__)
 _HUB_DIR = os.path.dirname(_HUB_FILE)
 
 # 检测是否在 PyInstaller 打包环境中
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # PyInstaller: __file__ 在 _internal/scripts/install/hub.py
     # 同伴模块也在 _internal/scripts/install/ 下
     # 需要把 _internal/scripts/install 加入 sys.path 最前面
@@ -59,9 +58,12 @@ if _INSTALL_DIR not in _sys_path_set:
 # ══════════════════════════════════════════════
 _import_errors = []
 _base_modules = {
-    "time": "time", "threading": "threading",
-    "subprocess": "subprocess", "socket": "socket",
-    "shutil": "shutil", "webbrowser": "webbrowser",
+    "time": "time",
+    "threading": "threading",
+    "subprocess": "subprocess",
+    "socket": "socket",
+    "shutil": "shutil",
+    "webbrowser": "webbrowser",
     "re": "re",
 }
 for _mod_name, _var_name in list(_base_modules.items()):
@@ -73,60 +75,90 @@ for _mod_name, _var_name in list(_base_modules.items()):
 _tk_ok = False
 try:
     import tkinter as tk
-    from tkinter import ttk
+
     _tk_ok = True
 except Exception as e:
     _import_errors.append(f"导入 tkinter 失败: {e} (GUI 不可用)")
 
 # 导入自身模块（使用非相对导入，兼容直接 python hub.py 运行）
-from theme import (
-    BG, BG2, BG3, ACCENT, ACCENT2, OK_C, WARN_C, ERR_C,
-    TEXT, TEXT_DIM, BORDER,
-    FONT_TITLE, FONT_BODY, FONT_SMALL, FONT_MONO,
-    FONT_LOGO, FONT_ICON, FONT_BTN,
-    WINDOW_W, WINDOW_H, TITLE_BAR_H, LOGO_H, FOOT_H, CARD_PADX,
-)
-from utils import (
-    get_proj_dir, get_log_dir, NO_WIN, _TK_OK,
-    read_lock, write_lock, remove_lock,
-    is_process_alive, port_in_use, find_free_port,
-    save_crash_log, kill_process, DEFAULT_PORT,
-)
-from ui_base import (
-    BaseWindow, LogPanel, StatusCard, StepIndicator, FootBar,
-    show_popup, show_fatal_console, start_dot_animation,
-)
 from env_check import EnvChecker, build_frontend
 from installer import PipInstaller
 from launcher import BackendLauncher
 from packer import ProjectPacker
-
+from theme import (
+    ACCENT,
+    ACCENT2,
+    BG,
+    BG3,
+    BORDER,
+    CARD_PADX,
+    ERR_C,
+    FONT_BTN,
+    FONT_LOGO,
+    FONT_SMALL,
+    LOGO_H,
+    OK_C,
+    TEXT_DIM,
+    WARN_C,
+    WINDOW_H,
+    WINDOW_W,
+)
+from ui_base import (
+    BaseWindow,
+    FootBar,
+    LogPanel,
+    StatusCard,
+    StepIndicator,
+    show_fatal_console,
+    show_popup,
+    start_dot_animation,
+)
+from utils import (
+    _TK_OK,
+    DEFAULT_PORT,
+    NO_WIN,
+    get_proj_dir,
+    is_process_alive,
+    kill_process,
+    port_in_use,
+    read_lock,
+    remove_lock,
+    save_crash_log,
+    write_lock,
+)
 
 # ══════════════════════════════════════════════
 # 主窗口 — 组装所有模块
 # ══════════════════════════════════════════════
 
+
 class HubWindow(BaseWindow):
     """aitex 统一 GUI 中心窗口"""
 
     STEP_NAMES = [
-        "实例检测", "环境检查", "虚拟环境",
-        "安装依赖", "构建前端", "配置文件", "启动服务",
+        "实例检测",
+        "环境检查",
+        "虚拟环境",
+        "安装依赖",
+        "构建前端",
+        "配置文件",
+        "启动服务",
     ]
 
     def __init__(self, mode="auto"):
         self.mode = mode
         self.proj_dir = get_proj_dir()
         self._port = DEFAULT_PORT
-        self._backend = None          # BackendLauncher 实例
-        self._running_list = [True]   # 动画运行标志（引用语义供闭包用）
-        self._venv_py = None         # 安装了依赖的 Python 路径
+        self._backend = None  # BackendLauncher 实例
+        self._running_list = [True]  # 动画运行标志（引用语义供闭包用）
+        self._venv_py = None  # 安装了依赖的 Python 路径
 
         # 初始化基类（内部会依次调用 _build_title_bar → _build_logo_area
         #                              → _build_separator → _build_body）
         super().__init__(
             title="PlotPilot（墨枢）· AI 小说创作平台",
-            width=WINDOW_W, height=WINDOW_H,
+            width=WINDOW_W,
+            height=WINDOW_H,
             show_minimize=True,
             on_close=self._handle_close,
         )
@@ -146,13 +178,15 @@ class HubWindow(BaseWindow):
         logo_f.pack(fill="x")
         logo_f.pack_propagate(False)
 
-        tk.Label(logo_f, text="PlotPilot",
-                 bg=BG, fg=ACCENT, font=FONT_LOGO).pack(expand=True)
+        tk.Label(logo_f, text="PlotPilot", bg=BG, fg=ACCENT, font=FONT_LOGO).pack(expand=True)
 
         # 点点动画标签
         self.dot_label = tk.Label(
-            logo_f, text="● ● ●",
-            bg=BG, fg=ACCENT2, font=("Arial", 10),
+            logo_f,
+            text="● ● ●",
+            bg=BG,
+            fg=ACCENT2,
+            font=("Arial", 10),
         )
         self.dot_label.place(relx=0.5, rely=0.82, anchor="center")
 
@@ -161,8 +195,7 @@ class HubWindow(BaseWindow):
         root = self.root
 
         # 副标题
-        tk.Label(root, text="AI 小说创作平台  ·  智能写作引擎",
-                 bg=BG, fg=TEXT_DIM, font=FONT_SMALL).pack()
+        tk.Label(root, text="AI 小说创作平台  ·  智能写作引擎", bg=BG, fg=TEXT_DIM, font=FONT_SMALL).pack()
 
         tk.Frame(root, bg=BORDER, height=1).pack(fill="x", padx=CARD_PADX, pady=(8, 0))
 
@@ -177,20 +210,29 @@ class HubWindow(BaseWindow):
         # ── 日志面板 ──
         log_head = tk.Frame(root, bg=BG)
         log_head.pack(fill="x", padx=CARD_PADX, pady=(6, 2))
-        tk.Label(log_head, text="▸ 运行日志", bg=BG, fg=TEXT_DIM,
-                 font=FONT_SMALL).pack(side="left")
+        tk.Label(log_head, text="▸ 运行日志", bg=BG, fg=TEXT_DIM, font=FONT_SMALL).pack(side="left")
 
         self.log_panel = LogPanel(root)
 
         # ── 底部栏 ──
-        self.foot_bar = FootBar(root, buttons=[
-            ("打开浏览器", self._open_browser, {
-                "bg": ACCENT, "fg": "#fff", "font": FONT_BTN,
-                "activebackground": "#5b52e0", "state": "disabled",
-            }),
-            ("📦 打包分享", self._start_pack, {}),
-            ("最小化", self._minimize, {}),
-        ])
+        self.foot_bar = FootBar(
+            root,
+            buttons=[
+                (
+                    "打开浏览器",
+                    self._open_browser,
+                    {
+                        "bg": ACCENT,
+                        "fg": "#fff",
+                        "font": FONT_BTN,
+                        "activebackground": "#5b52e0",
+                        "state": "disabled",
+                    },
+                ),
+                ("📦 打包分享", self._start_pack, {}),
+                ("最小化", self._minimize, {}),
+            ],
+        )
         self.open_btn = self.foot_bar.buttons.get("打开浏览器")
         self.pack_btn = self.foot_bar.buttons.get("📦 打包分享")
 
@@ -215,6 +257,7 @@ class HubWindow(BaseWindow):
 
     def _open_browser(self):
         import webbrowser
+
         webbrowser.open(f"http://127.0.0.1:{self._port}")
 
     # ═══════════════════════════════════════
@@ -319,11 +362,14 @@ class HubWindow(BaseWindow):
     def _kill_orphan_processes(self, port):
         """清理占用指定端口的孤儿 python/uvicorn 进程"""
         import subprocess as _sp
+
         try:
             # Windows: 用 netstat 找到占用端口的 PID
             r = _sp.run(
                 ["netstat", "-ano"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 creationflags=NO_WIN,
             )
             for line in r.stdout.splitlines():
@@ -360,22 +406,22 @@ class HubWindow(BaseWindow):
                 threading.Thread(target=self._main_flow, daemon=True).start()
 
             btns = [
-                ("✓ 打开浏览器", _open_and_close,
-                 {"bg": OK_C, "fg": "#fff", "activebackground": "#22c55e"}),
-                ("✕ 杀掉并重启", _kill_and_restart,
-                 {"bg": ERR_C, "fg": "#fff", "activebackground": "#dc2626"}),
+                ("✓ 打开浏览器", _open_and_close, {"bg": OK_C, "fg": "#fff", "activebackground": "#22c55e"}),
+                ("✕ 杀掉并重启", _kill_and_restart, {"bg": ERR_C, "fg": "#fff", "activebackground": "#dc2626"}),
                 ("取消", lambda: self.root.destroy(), {}),
             ]
-            content = (
-                f"检测到 PlotPilot 正在运行中：\n\n"
-                f"  PID: {old_pid}    端口: {old_port}\n\n"
-                f"请选择操作："
-            )
+            content = f"检测到 PlotPilot 正在运行中：\n\n  PID: {old_pid}    端口: {old_port}\n\n请选择操作："
             show_popup(
-                self.root, "PlotPilot 已在运行", content,
-                width=480, height=300, color=WARN_C, icon="⚠",
+                self.root,
+                "PlotPilot 已在运行",
+                content,
+                width=480,
+                height=300,
+                color=WARN_C,
+                icon="⚠",
                 buttons=btns,
             )
+
         self.root.after(0, _do)
 
     # ────────────────────────────────────────
@@ -413,8 +459,7 @@ class HubWindow(BaseWindow):
             venv_py,
             on_log=lambda msg, tag: self.log(msg, tag),
             on_progress=lambda p, l, i, s: self.set_progress(p, l, i, s),
-            on_heartbeat=lambda pkg, t: self.foot_bar.set_text(
-                f"正在下载 {pkg} · 已等待 {t}", fg=ACCENT2),
+            on_heartbeat=lambda pkg, t: self.foot_bar.set_text(f"正在下载 {pkg} · 已等待 {t}", fg=ACCENT2),
         )
         self._venv_py = venv_py
 
@@ -424,8 +469,7 @@ class HubWindow(BaseWindow):
             if not self._installer.install():
                 self._show_fatal_simple(
                     "核心依赖安装失败",
-                    "请检查网络连接后重新双击启动\n"
-                    "如使用代理，请确保终端能访问外网",
+                    "请检查网络连接后重新双击启动\n如使用代理，请确保终端能访问外网",
                 )
                 return False
             self.log("核心依赖安装完成 ✓", "ok")
@@ -435,7 +479,8 @@ class HubWindow(BaseWindow):
         if needs_build and npm_exe:
             self.log("前端未构建，开始 npm install + build...", "title")
             build_frontend(
-                self.proj_dir, npm_exe,
+                self.proj_dir,
+                npm_exe,
                 on_log=lambda msg, tag: self.log(msg, tag),
             )
         elif needs_build and not npm_exe:
@@ -463,19 +508,20 @@ class HubWindow(BaseWindow):
 
         # 在后台线程中执行完整启动流程
         threading.Thread(
-            target=self._backend.launch, args=(self._port,),
+            target=self._backend.launch,
+            args=(self._port,),
             daemon=True,
         ).start()
 
     def _on_backend_ready(self, port):
         """后端就绪回调"""
         self._port = port
+
         def _do():
             try:
                 self.root.title("PlotPilot（墨枢）· 运行中")
                 self.status_card.update(100, "服务运行中", "✔")
-                self.status_card.port_badge.config(
-                    text=f"http://127.0.0.1:{port}", bg=OK_C)
+                self.status_card.port_badge.config(text=f"http://127.0.0.1:{port}", bg=OK_C)
                 if self.open_btn:
                     self.open_btn.config(state="normal")
                 self.foot_bar.set_text(
@@ -489,10 +535,12 @@ class HubWindow(BaseWindow):
                 self.root.after(1500, self._show_ready_popup)
             except Exception:
                 pass
+
         self.root.after(0, _do)
 
     def _show_ready_popup(self):
         """服务就绪弹窗 — 包含扩展包安装引导"""
+
         def _do():
             content = (
                 "🎉 后端服务已成功启动！\n\n"
@@ -533,17 +581,20 @@ class HubWindow(BaseWindow):
 
             # 创建弹窗
             popup_ref[0] = show_popup(
-                self.root, "✨ PlotPilot 已就绪！", content,
-                width=520, height=400, color=OK_C, icon="✓",
+                self.root,
+                "✨ PlotPilot 已就绪！",
+                content,
+                width=520,
+                height=400,
+                color=OK_C,
+                icon="✓",
                 buttons=[
-                    ("🚀 安装本地 AI 引擎", _install_ext,
-                     {"bg": "#f59e0b", "fg": "#fff"}),
-                    ("最小化到任务栏", _on_minimize,
-                     {"bg": ACCENT}),
-                    ("继续使用", _on_continue,
-                     {"bg": BG3, "fg": TEXT_DIM}),
+                    ("🚀 安装本地 AI 引擎", _install_ext, {"bg": "#f59e0b", "fg": "#fff"}),
+                    ("最小化到任务栏", _on_minimize, {"bg": ACCENT}),
+                    ("继续使用", _on_continue, {"bg": BG3, "fg": TEXT_DIM}),
                 ],
             )
+
         self.root.after(0, _do)
 
     def _start_install_extension(self):
@@ -556,7 +607,7 @@ class HubWindow(BaseWindow):
         self.log("=" * 52, "title")
         self.set_progress(56, "正在下载本地 AI 引擎...", "🧠", 2)
 
-        installer = getattr(self, '_installer', None)
+        installer = getattr(self, "_installer", None)
         if not installer:
             self.log("安装器未初始化，跳过扩展安装", "warn")
             return
@@ -571,18 +622,22 @@ class HubWindow(BaseWindow):
                 # 弹窗提示
                 def _show_done():
                     show_popup(
-                        self.root, "🎉 扩展包安装完成！",
+                        self.root,
+                        "🎉 扩展包安装完成！",
                         "本地 AI 引擎已安装完毕。\n\n"
                         "你现在可以：\n"
                         "  • 在设置页面切换到「本地嵌入模式」\n"
                         "  • 无需联网即可使用向量检索功能\n\n"
                         "重启服务后生效。",
-                        width=460, height=320, color=OK_C, icon="✓",
+                        width=460,
+                        height=320,
+                        color=OK_C,
+                        icon="✓",
                         buttons=[
-                            ("好的", lambda: None,
-                             {"bg": OK_C, "fg": "#fff"}),
+                            ("好的", lambda: None, {"bg": OK_C, "fg": "#fff"}),
                         ],
                     )
+
                 self.root.after(1000, _show_done)
             else:
                 self.set_progress(56, "扩展包安装失败", "✘", 2)
@@ -590,7 +645,8 @@ class HubWindow(BaseWindow):
 
                 def _show_fail():
                     show_popup(
-                        self.root, "⚠ 扩展包安装失败",
+                        self.root,
+                        "⚠ 扩展包安装失败",
                         "本地 AI 引擎安装未成功。\n\n"
                         "可能的原因：\n"
                         "  • 网络不稳定（建议切换热点重试）\n"
@@ -598,12 +654,15 @@ class HubWindow(BaseWindow):
                         "你可以：\n"
                         "  • 继续使用 OpenAI API 模式（无需扩展包）\n"
                         "  • 稍后重新启动 PlotPilot 再试",
-                        width=460, height=360, color=WARN_C, icon="⚠",
+                        width=460,
+                        height=360,
+                        color=WARN_C,
+                        icon="⚠",
                         buttons=[
-                            ("知道了", lambda: None,
-                             {"bg": ACCENT}),
+                            ("知道了", lambda: None, {"bg": ACCENT}),
                         ],
                     )
+
                 self.root.after(1000, _show_fail)
 
         threading.Thread(target=_do_install, daemon=True).start()
@@ -613,11 +672,11 @@ class HubWindow(BaseWindow):
             try:
                 self.status_card.label.config(text="启动失败", fg=ERR_C)
                 self.status_card.icon.config(text="✘", fg=ERR_C)
-                self.foot_bar.set_text(
-                    f"启动失败：{reason}  请查看日志", fg=ERR_C)
+                self.foot_bar.set_text(f"启动失败：{reason}  请查看日志", fg=ERR_C)
                 self.dot_label.config(text="✘  失败", fg=ERR_C)
             except Exception:
                 pass
+
         self.root.after(0, _do)
 
     # ────────────────────────────────────────
@@ -635,9 +694,9 @@ class HubWindow(BaseWindow):
         )
         success, zip_path = packer.pack()
         if success and self.pack_btn:
-            self.root.after(0, lambda: self.pack_btn.config(
-                state="normal", text="📦 再次打包",
-                bg=OK_C, activebackground="#22c55e"))
+            self.root.after(
+                0, lambda: self.pack_btn.config(state="normal", text="📦 再次打包", bg=OK_C, activebackground="#22c55e")
+            )
         elif not success and self.pack_btn:
             self.root.after(0, lambda: self.pack_btn.config(state="normal"))
 
@@ -646,44 +705,59 @@ class HubWindow(BaseWindow):
     # ────────────────────────────────────────
     def _show_fatal_error(self, exc, tb_text):
         """致命错误弹窗——显示 traceback"""
+
         def _do():
             show_popup(
-                self.root, "PlotPilot 发生异常",
+                self.root,
+                "PlotPilot 发生异常",
                 f"异常类型: {type(exc).__name__}\n\n{str(exc)[:200]}",
-                width=520, height=400, color=ERR_C, icon="✘",
+                width=520,
+                height=400,
+                color=ERR_C,
+                icon="✘",
                 buttons=[
-                    ("关闭程序", lambda: [
-                        self._handle_close(),
-                        self.root.destroy() if self.root else None,
-                    ], {"bg": ERR_C, "activebackground": "#dc2626"}),
-                    ("查看完整日志", self._open_crash_log,
-                     {"bg": BG3, "fg": TEXT_DIM}),
+                    (
+                        "关闭程序",
+                        lambda: [
+                            self._handle_close(),
+                            self.root.destroy() if self.root else None,
+                        ],
+                        {"bg": ERR_C, "activebackground": "#dc2626"},
+                    ),
+                    ("查看完整日志", self._open_crash_log, {"bg": BG3, "fg": TEXT_DIM}),
                 ],
             )
             # 追加可滚动的 traceback
             tf = tk.Frame(popup, bg=BG3)
             tf.pack(fill="both", expand=True, padx=24, pady=(0, 8))
-            tb_widget = tk.Text(tf, bg=BG3, fg=TEXT_DIM, font=("Consolas", 8),
-                                height=6, relief="flat", bd=0, wrap="word")
+            tb_widget = tk.Text(
+                tf, bg=BG3, fg=TEXT_DIM, font=("Consolas", 8), height=6, relief="flat", bd=0, wrap="word"
+            )
             tb_srl = tk.Scrollbar(tf, command=tb_widget.yview, bg=BG3)
             tb_widget.configure(yscrollcommand=tb_srl.set)
             tb_srl.pack(side="right", fill="y")
             tb_widget.pack(side="left", fill="both", expand=True, padx=4, pady=4)
             tb_widget.insert("end", tb_text[-1500:] if len(tb_text) > 1500 else tb_text)
             tb_widget.configure(state="disabled")
+
         self.root.after(0, _do)
 
     def _show_fatal_simple(self, title, detail):
         """简单致命错误弹窗"""
+
         def _do():
             show_popup(
-                self.root, f"✘  {title}", detail,
-                width=420, height=260, color=ERR_C,
+                self.root,
+                f"✘  {title}",
+                detail,
+                width=420,
+                height=260,
+                color=ERR_C,
                 buttons=[
-                    ("关闭", lambda: self.root.destroy(),
-                     {"bg": ERR_C, "activebackground": "#dc2626"}),
+                    ("关闭", lambda: self.root.destroy(), {"bg": ERR_C, "activebackground": "#dc2626"}),
                 ],
             )
+
         self.root.after(0, _do)
 
     def _open_crash_log(self):
@@ -696,9 +770,10 @@ class HubWindow(BaseWindow):
 # 入口 — 最终兜底
 # ══════════════════════════════════════════════
 
+
 def main():
     # 启动日志：记录每次启动，方便排查闪退
-    _startup_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    _startup_time = time.strftime("%Y-%m-%d %H:%M:%S")
     try:
         _log_path = os.path.join(get_proj_dir(), "logs", "hub_startup.log")
         with open(_log_path, "a", encoding="utf-8") as _f:
@@ -745,6 +820,7 @@ def main():
                 root.withdraw()
                 root.attributes("-topmost", True)
                 from tkinter import messagebox
+
                 messagebox.showerror(
                     "PlotPilot 启动失败",
                     f"发生未预期的错误:\n\n{e}\n\n"

@@ -1,4 +1,5 @@
 """SQLite 数据库连接"""
+
 import logging
 import sqlite3
 import sys
@@ -49,9 +50,7 @@ def _migrate_triples_columns(conn: sqlite3.Connection) -> None:
 
 def _migrate_novels_columns_before_schema_script(conn: sqlite3.Connection) -> None:
     """旧库在 executescript 之前补齐 novels 列，避免 IF NOT EXISTS 跳过建表后索引引用缺列失败。"""
-    cur = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='novels' LIMIT 1"
-    )
+    cur = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='novels' LIMIT 1")
     if cur.fetchone() is None:
         return
     cur = conn.execute("PRAGMA table_info(novels)")
@@ -60,37 +59,17 @@ def _migrate_novels_columns_before_schema_script(conn: sqlite3.Connection) -> No
         "author": "ALTER TABLE novels ADD COLUMN author TEXT DEFAULT '未知作者'",
         "premise": "ALTER TABLE novels ADD COLUMN premise TEXT DEFAULT ''",
         "target_chapters": "ALTER TABLE novels ADD COLUMN target_chapters INTEGER DEFAULT 0",
-        "created_at": (
-            "ALTER TABLE novels ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-        ),
-        "updated_at": (
-            "ALTER TABLE novels ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-        ),
-        "autopilot_status": (
-            "ALTER TABLE novels ADD COLUMN autopilot_status TEXT DEFAULT 'stopped'"
-        ),
-        "current_stage": (
-            "ALTER TABLE novels ADD COLUMN current_stage TEXT DEFAULT 'planning'"
-        ),
+        "created_at": ("ALTER TABLE novels ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        "updated_at": ("ALTER TABLE novels ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        "autopilot_status": ("ALTER TABLE novels ADD COLUMN autopilot_status TEXT DEFAULT 'stopped'"),
+        "current_stage": ("ALTER TABLE novels ADD COLUMN current_stage TEXT DEFAULT 'planning'"),
         "current_act": "ALTER TABLE novels ADD COLUMN current_act INTEGER DEFAULT 0",
-        "current_chapter_in_act": (
-            "ALTER TABLE novels ADD COLUMN current_chapter_in_act INTEGER DEFAULT 0"
-        ),
-        "max_auto_chapters": (
-            "ALTER TABLE novels ADD COLUMN max_auto_chapters INTEGER DEFAULT 9999"
-        ),
-        "current_auto_chapters": (
-            "ALTER TABLE novels ADD COLUMN current_auto_chapters INTEGER DEFAULT 0"
-        ),
-        "last_chapter_tension": (
-            "ALTER TABLE novels ADD COLUMN last_chapter_tension INTEGER DEFAULT 0"
-        ),
-        "consecutive_error_count": (
-            "ALTER TABLE novels ADD COLUMN consecutive_error_count INTEGER DEFAULT 0"
-        ),
-        "current_beat_index": (
-            "ALTER TABLE novels ADD COLUMN current_beat_index INTEGER DEFAULT 0"
-        ),
+        "current_chapter_in_act": ("ALTER TABLE novels ADD COLUMN current_chapter_in_act INTEGER DEFAULT 0"),
+        "max_auto_chapters": ("ALTER TABLE novels ADD COLUMN max_auto_chapters INTEGER DEFAULT 9999"),
+        "current_auto_chapters": ("ALTER TABLE novels ADD COLUMN current_auto_chapters INTEGER DEFAULT 0"),
+        "last_chapter_tension": ("ALTER TABLE novels ADD COLUMN last_chapter_tension INTEGER DEFAULT 0"),
+        "consecutive_error_count": ("ALTER TABLE novels ADD COLUMN consecutive_error_count INTEGER DEFAULT 0"),
+        "current_beat_index": ("ALTER TABLE novels ADD COLUMN current_beat_index INTEGER DEFAULT 0"),
     }
     for col, sql in migrations.items():
         if col not in cols:
@@ -108,9 +87,7 @@ def _migrate_novels_columns_before_schema_script(conn: sqlite3.Connection) -> No
         except sqlite3.OperationalError as e:
             logger.warning("novels pre-schema migration skip slug: %s", e)
     try:
-        conn.execute(
-            "UPDATE novels SET slug = id WHERE slug IS NULL OR trim(COALESCE(slug, '')) = ''"
-        )
+        conn.execute("UPDATE novels SET slug = id WHERE slug IS NULL OR trim(COALESCE(slug, '')) = ''")
     except sqlite3.OperationalError as e:
         logger.warning("novels slug backfill skip: %s", e)
     conn.commit()
@@ -142,36 +119,22 @@ def _apply_last_chapter_audit_columns(conn: sqlite3.Connection) -> None:
     cur = conn.execute("PRAGMA table_info(novels)")
     cols = {row[1] for row in cur.fetchall()}
     migrations = {
-        "last_audit_chapter_number": (
-            "ALTER TABLE novels ADD COLUMN last_audit_chapter_number INTEGER"
-        ),
+        "last_audit_chapter_number": ("ALTER TABLE novels ADD COLUMN last_audit_chapter_number INTEGER"),
         "last_audit_similarity": "ALTER TABLE novels ADD COLUMN last_audit_similarity REAL",
-        "last_audit_drift_alert": (
-            "ALTER TABLE novels ADD COLUMN last_audit_drift_alert INTEGER DEFAULT 0"
-        ),
-        "last_audit_narrative_ok": (
-            "ALTER TABLE novels ADD COLUMN last_audit_narrative_ok INTEGER DEFAULT 1"
-        ),
+        "last_audit_drift_alert": ("ALTER TABLE novels ADD COLUMN last_audit_drift_alert INTEGER DEFAULT 0"),
+        "last_audit_narrative_ok": ("ALTER TABLE novels ADD COLUMN last_audit_narrative_ok INTEGER DEFAULT 1"),
         "last_audit_at": "ALTER TABLE novels ADD COLUMN last_audit_at TEXT",
         # 章后管线状态
-        "last_audit_vector_stored": (
-            "ALTER TABLE novels ADD COLUMN last_audit_vector_stored INTEGER DEFAULT 0"
-        ),
+        "last_audit_vector_stored": ("ALTER TABLE novels ADD COLUMN last_audit_vector_stored INTEGER DEFAULT 0"),
         "last_audit_foreshadow_stored": (
             "ALTER TABLE novels ADD COLUMN last_audit_foreshadow_stored INTEGER DEFAULT 0"
         ),
         "last_audit_triples_extracted": (
             "ALTER TABLE novels ADD COLUMN last_audit_triples_extracted INTEGER DEFAULT 0"
         ),
-        "last_audit_quality_scores": (
-            "ALTER TABLE novels ADD COLUMN last_audit_quality_scores TEXT"
-        ),
-        "last_audit_issues": (
-            "ALTER TABLE novels ADD COLUMN last_audit_issues TEXT"
-        ),
-        "target_words_per_chapter": (
-            "ALTER TABLE novels ADD COLUMN target_words_per_chapter INTEGER DEFAULT 2500"
-        ),
+        "last_audit_quality_scores": ("ALTER TABLE novels ADD COLUMN last_audit_quality_scores TEXT"),
+        "last_audit_issues": ("ALTER TABLE novels ADD COLUMN last_audit_issues TEXT"),
+        "target_words_per_chapter": ("ALTER TABLE novels ADD COLUMN target_words_per_chapter INTEGER DEFAULT 2500"),
     }
     for col, sql in migrations.items():
         if col not in cols:
@@ -225,7 +188,6 @@ def _apply_chapter_summaries_enhancements(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-
 def _apply_migration_files(conn: sqlite3.Connection) -> None:
     """应用 migrations 目录下全部 .sql（幂等执行，顺序按文件名稳定排序）。"""
     migrations_dir = _database_asset_dir() / "migrations"
@@ -269,15 +231,9 @@ def _ensure_triple_provenance_table(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_triple_provenance_triple ON triple_provenance(triple_id)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_triple_provenance_novel ON triple_provenance(novel_id)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_triple_provenance_story_node ON triple_provenance(story_node_id)"
-    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_triple_provenance_triple ON triple_provenance(triple_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_triple_provenance_novel ON triple_provenance(novel_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_triple_provenance_story_node ON triple_provenance(story_node_id)")
     conn.execute(
         """
         CREATE UNIQUE INDEX IF NOT EXISTS ux_triple_provenance_with_element
@@ -313,7 +269,7 @@ class DatabaseConnection:
         schema_path = _database_asset_dir() / "schema.sql"
         if schema_path.exists():
             _migrate_novels_columns_before_schema_script(conn)
-            with open(schema_path, 'r', encoding='utf-8') as f:
+            with open(schema_path, encoding="utf-8") as f:
                 schema_sql = f.read()
                 conn.executescript(schema_sql)
                 conn.commit()
@@ -331,10 +287,8 @@ class DatabaseConnection:
         conn.close()
 
     def get_connection(self) -> sqlite3.Connection:
-        if not hasattr(self._local, 'connection') or self._local.connection is None:
-            self._local.connection = sqlite3.connect(
-                self.db_path, check_same_thread=False, timeout=30.0
-            )
+        if not hasattr(self._local, "connection") or self._local.connection is None:
+            self._local.connection = sqlite3.connect(self.db_path, check_same_thread=False, timeout=30.0)
             self._local.connection.row_factory = sqlite3.Row
             self._local.connection.execute("PRAGMA foreign_keys = ON")
             self._local.connection.execute("PRAGMA journal_mode=WAL")
@@ -417,7 +371,7 @@ class DatabaseConnection:
         return [dict(row) for row in rows]
 
     def close(self) -> None:
-        if hasattr(self._local, 'connection') and self._local.connection is not None:
+        if hasattr(self._local, "connection") and self._local.connection is not None:
             self._local.connection.close()
             self._local.connection = None
             logger.info("Database connection closed (thread-local)")

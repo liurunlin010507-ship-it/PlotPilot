@@ -8,8 +8,10 @@ Collection 命名约定：
   * kind: str - "chapter_summary" | "bible_snippet"
   * novel_id: str - 小说 ID（冗余但便于跨 collection 查询）
 """
+
 import uuid
 from typing import Optional
+
 from domain.ai.services.embedding_service import EmbeddingService
 from domain.ai.services.vector_store import VectorStore
 
@@ -21,11 +23,7 @@ class ChapterIndexingService:
     使用 novel_id 隔离不同小说的 collection。
     """
 
-    def __init__(
-        self,
-        vector_store: VectorStore,
-        embedding_service: EmbeddingService
-    ):
+    def __init__(self, vector_store: VectorStore, embedding_service: EmbeddingService):
         """初始化章节索引服务
 
         Args:
@@ -61,17 +59,9 @@ class ChapterIndexingService:
 
         # 始终调用 create_collection：内部会检查维度是否匹配，
         # 匹配则跳过，不匹配则自动重建（嵌入模型切换时必要）
-        await self._vector_store.create_collection(
-            collection=collection_name,
-            dimension=self._embedding_dimension
-        )
+        await self._vector_store.create_collection(collection=collection_name, dimension=self._embedding_dimension)
 
-    async def index_chapter_summary(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        summary: str
-    ) -> None:
+    async def index_chapter_summary(self, novel_id: str, chapter_number: int, summary: str) -> None:
         """索引章节摘要到向量存储
 
         Args:
@@ -97,31 +87,17 @@ class ChapterIndexingService:
         vector = await self._embedding_service.embed(summary)
 
         # 构造 payload
-        payload = {
-            "chapter_number": chapter_number,
-            "text": summary,
-            "kind": "chapter_summary",
-            "novel_id": novel_id
-        }
+        payload = {"chapter_number": chapter_number, "text": summary, "kind": "chapter_summary", "novel_id": novel_id}
 
         # 构造唯一 ID（Qdrant 要求 UUID 或 uint64，用 uuid5 生成确定性 UUID）
         point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{novel_id}_ch{chapter_number}_summary"))
 
         # 写入向量存储
         collection_name = self._get_collection_name(novel_id)
-        await self._vector_store.insert(
-            collection=collection_name,
-            id=point_id,
-            vector=vector,
-            payload=payload
-        )
+        await self._vector_store.insert(collection=collection_name, id=point_id, vector=vector, payload=payload)
 
     async def index_bible_snippet(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        snippet: str,
-        snippet_id: Optional[str] = None
+        self, novel_id: str, chapter_number: int, snippet: str, snippet_id: Optional[str] = None
     ) -> None:
         """索引 Bible 片段到向量存储
 
@@ -149,22 +125,16 @@ class ChapterIndexingService:
         vector = await self._embedding_service.embed(snippet)
 
         # 构造 payload
-        payload = {
-            "chapter_number": chapter_number,
-            "text": snippet,
-            "kind": "bible_snippet",
-            "novel_id": novel_id
-        }
+        payload = {"chapter_number": chapter_number, "text": snippet, "kind": "bible_snippet", "novel_id": novel_id}
 
         # 构造唯一 ID（Qdrant 要求 UUID 或 uint64，用 uuid5 生成确定性 UUID）
-        raw_id = f"{novel_id}_ch{chapter_number}_bible_{snippet_id}" if snippet_id else f"{novel_id}_ch{chapter_number}_bible"
+        raw_id = (
+            f"{novel_id}_ch{chapter_number}_bible_{snippet_id}"
+            if snippet_id
+            else f"{novel_id}_ch{chapter_number}_bible"
+        )
         point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, raw_id))
 
         # 写入向量存储
         collection_name = self._get_collection_name(novel_id)
-        await self._vector_store.insert(
-            collection=collection_name,
-            id=point_id,
-            vector=vector,
-            payload=payload
-        )
+        await self._vector_store.insert(collection=collection_name, id=point_id, vector=vector, payload=payload)

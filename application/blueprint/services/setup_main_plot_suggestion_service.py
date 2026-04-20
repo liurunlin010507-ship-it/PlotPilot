@@ -1,16 +1,16 @@
 """向导 Step 4：基于 Bible 与小说元数据，由 LLM 推演三条主线候选。"""
+
 from __future__ import annotations
 
 import json
 import logging
-import re
 from typing import Any, Dict, List, Optional
 
+from application.ai.knowledge_llm_contract import parse_json_from_response
+from application.core.services.novel_service import NovelService
+from application.world.services.bible_service import BibleService
 from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
-from application.world.services.bible_service import BibleService
-from application.core.services.novel_service import NovelService
-from application.ai.knowledge_llm_contract import parse_json_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +96,7 @@ class SetupMainPlotSuggestionService:
 
             notes = bible_dto.style_notes or []
             if notes:
-                style_hint = "；".join(
-                    (f"{n.category}: {n.content}"[:200] for n in notes[:5] if n.content)
-                )
+                style_hint = "；".join(f"{n.category}: {n.content}"[:200] for n in notes[:5] if n.content)
 
         return {
             "novel_title": title,

@@ -1,4 +1,5 @@
 """SceneDirectorService - 场景导演服务，基于 LLM 的大纲分析"""
+
 from __future__ import annotations
 
 import logging

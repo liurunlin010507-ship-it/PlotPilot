@@ -4,10 +4,11 @@
 这是正式功能，被核心生成流程调用。
 """
 
+import logging
+from typing import List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,10 @@ router = APIRouter(prefix="/character-scheduler", tags=["character-scheduler"])
 
 # ========== 请求/响应模型 ==========
 
+
 class CharacterInput(BaseModel):
     """角色输入模型"""
+
     id: str = Field(..., description="角色ID")
     name: str = Field(..., description="角色名称")
     importance: str = Field(..., description="重要性: protagonist/major/minor/background")
@@ -31,6 +34,7 @@ class CharacterInput(BaseModel):
 
 class ScheduleRequest(BaseModel):
     """调度请求"""
+
     outline: str = Field(..., description="章节大纲")
     characters: List[CharacterInput] = Field(..., description="可用角色列表")
     max_characters: int = Field(default=7, ge=1, le=15, description="最大角色数")
@@ -41,6 +45,7 @@ class ScheduleRequest(BaseModel):
 
 class CharacterOutput(BaseModel):
     """角色输出模型"""
+
     id: str
     name: str
     importance: str
@@ -56,6 +61,7 @@ class CharacterOutput(BaseModel):
 
 class ScheduleResponse(BaseModel):
     """调度响应"""
+
     selected_characters: List[CharacterOutput]
     rejected_characters: List[CharacterOutput]
     generated_context: str = Field(..., description="生成的上下文Prompt")
@@ -65,11 +71,9 @@ class ScheduleResponse(BaseModel):
 
 # ========== 核心调度算法 ==========
 
+
 def _schedule_characters(
-    outline: str,
-    characters: List[CharacterInput],
-    max_characters: int,
-    mentioned_names: List[str]
+    outline: str, characters: List[CharacterInput], max_characters: int, mentioned_names: List[str]
 ) -> tuple:
     """智能角色调度算法
 
@@ -79,12 +83,7 @@ def _schedule_characters(
     3. 最大限制截断
     """
     # 重要性优先级映射
-    importance_priority = {
-        "protagonist": 0,
-        "major": 1,
-        "minor": 2,
-        "background": 3
-    }
+    importance_priority = {"protagonist": 0, "major": 1, "minor": 2, "background": 3}
 
     # 分类：提及的 vs 未提及的
     mentioned_chars = []
@@ -102,10 +101,12 @@ def _schedule_characters(
             unmentioned_chars.append((char, is_recent, priority))
 
     # 排序未提及角色：重要性 > 活动度
-    unmentioned_chars.sort(key=lambda x: (
-        x[2],  # 重要性优先级
-        -x[0].activity_count  # 活动度降序
-    ))
+    unmentioned_chars.sort(
+        key=lambda x: (
+            x[2],  # 重要性优先级
+            -x[0].activity_count,  # 活动度降序
+        )
+    )
 
     # 合并队列
     queue = mentioned_chars + unmentioned_chars
@@ -142,6 +143,7 @@ def _generate_context(selected: List[tuple]) -> str:
 
 # ========== API 端点 ==========
 
+
 @router.post("/schedule", response_model=ScheduleResponse)
 async def schedule_characters(request: ScheduleRequest):
     """智能角色调度
@@ -166,7 +168,7 @@ async def schedule_characters(request: ScheduleRequest):
             outline=request.outline,
             characters=request.characters,
             max_characters=request.max_characters,
-            mentioned_names=request.mentioned_names
+            mentioned_names=request.mentioned_names,
         )
 
         # 生成上下文
@@ -175,34 +177,38 @@ async def schedule_characters(request: ScheduleRequest):
         # 构建输出
         selected_outputs = []
         for char, is_recent, _ in selected:
-            selected_outputs.append(CharacterOutput(
-                id=char.id,
-                name=char.name,
-                importance=char.importance,
-                activity_count=char.activity_count,
-                mental_state=char.mental_state,
-                verbal_tic=char.verbal_tic,
-                idle_behavior=char.idle_behavior,
-                is_mentioned=char.name in request.mentioned_names or char.name in request.outline,
-                is_selected=True,
-                is_recently_appeared=is_recent
-            ))
+            selected_outputs.append(
+                CharacterOutput(
+                    id=char.id,
+                    name=char.name,
+                    importance=char.importance,
+                    activity_count=char.activity_count,
+                    mental_state=char.mental_state,
+                    verbal_tic=char.verbal_tic,
+                    idle_behavior=char.idle_behavior,
+                    is_mentioned=char.name in request.mentioned_names or char.name in request.outline,
+                    is_selected=True,
+                    is_recently_appeared=is_recent,
+                )
+            )
 
         rejected_outputs = []
         for char, is_recent, _ in rejected:
-            rejected_outputs.append(CharacterOutput(
-                id=char.id,
-                name=char.name,
-                importance=char.importance,
-                activity_count=char.activity_count,
-                mental_state=char.mental_state,
-                verbal_tic=char.verbal_tic,
-                idle_behavior=char.idle_behavior,
-                is_mentioned=char.name in request.mentioned_names or char.name in request.outline,
-                is_selected=False,
-                is_recently_appeared=is_recent,
-                reject_reason=f"超出最大角色数限制({request.max_characters})"
-            ))
+            rejected_outputs.append(
+                CharacterOutput(
+                    id=char.id,
+                    name=char.name,
+                    importance=char.importance,
+                    activity_count=char.activity_count,
+                    mental_state=char.mental_state,
+                    verbal_tic=char.verbal_tic,
+                    idle_behavior=char.idle_behavior,
+                    is_mentioned=char.name in request.mentioned_names or char.name in request.outline,
+                    is_selected=False,
+                    is_recently_appeared=is_recent,
+                    reject_reason=f"超出最大角色数限制({request.max_characters})",
+                )
+            )
 
         # 估算 Token
         estimated_tokens = len(context) // 4  # 粗略估算
@@ -212,7 +218,7 @@ async def schedule_characters(request: ScheduleRequest):
             f"大纲提及: {len(request.mentioned_names)}",
             f"选中角色: {len(selected)}",
             f"拒绝角色: {len(rejected)}",
-            f"估算Token: {estimated_tokens}"
+            f"估算Token: {estimated_tokens}",
         ]
 
         logger.info(f"角色调度完成: 选中{len(selected)}个, 拒绝{len(rejected)}个")
@@ -222,7 +228,7 @@ async def schedule_characters(request: ScheduleRequest):
             rejected_characters=rejected_outputs,
             generated_context=context,
             total_tokens=estimated_tokens,
-            scheduling_log=scheduling_log
+            scheduling_log=scheduling_log,
         )
 
     except Exception as e:
@@ -246,7 +252,7 @@ async def quick_test():
                 activity_count=50,
                 last_appearance_chapter=10,
                 mental_state="NORMAL",
-                idle_behavior="摸剑柄"
+                idle_behavior="摸剑柄",
             ),
             CharacterInput(
                 id="char-002",
@@ -256,7 +262,7 @@ async def quick_test():
                 last_appearance_chapter=10,
                 mental_state="冷漠",
                 mental_state_reason="刚失去同伴",
-                idle_behavior="擦拭机械臂"
+                idle_behavior="擦拭机械臂",
             ),
             CharacterInput(
                 id="char-003",
@@ -265,13 +271,13 @@ async def quick_test():
                 activity_count=30,
                 last_appearance_chapter=8,
                 mental_state="担忧",
-                idle_behavior="咬嘴唇"
+                idle_behavior="咬嘴唇",
             ),
         ],
         max_characters=2,
         current_chapter=11,
         max_tokens=5000,
-        mentioned_names=["艾达"]
+        mentioned_names=["艾达"],
     )
 
     return await schedule_characters(preset_request)

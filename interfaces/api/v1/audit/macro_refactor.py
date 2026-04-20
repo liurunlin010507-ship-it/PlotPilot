@@ -1,24 +1,26 @@
 """Macro Refactor API endpoints."""
 
 import logging
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from application.audit.services.macro_refactor_scanner import MacroRefactorScanner
-from application.audit.services.macro_refactor_proposal_service import MacroRefactorProposalService
-from application.audit.services.mutation_applier import MutationApplier
-from application.audit.services.macro_diagnosis_service import MacroDiagnosisService
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+
 from application.audit.dtos.macro_refactor_dto import (
-    LogicBreakpoint,
-    RefactorProposalRequest,
-    RefactorProposal,
     ApplyMutationRequest,
-    ApplyMutationResponse
+    ApplyMutationResponse,
+    LogicBreakpoint,
+    RefactorProposal,
+    RefactorProposalRequest,
 )
+from application.audit.services.macro_diagnosis_service import MacroDiagnosisService
+from application.audit.services.macro_refactor_proposal_service import MacroRefactorProposalService
+from application.audit.services.macro_refactor_scanner import MacroRefactorScanner
+from application.audit.services.mutation_applier import MutationApplier
 from interfaces.api.dependencies import (
-    get_macro_refactor_scanner,
+    get_macro_diagnosis_service,
     get_macro_refactor_proposal_service,
+    get_macro_refactor_scanner,
     get_mutation_applier,
-    get_macro_diagnosis_service
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ async def scan_breakpoints(
     novel_id: str,
     trait: str = Query(..., description="Target character trait (e.g., '冷酷')"),
     conflict_tags: Optional[str] = Query(None, description="Custom conflict tags (comma-separated)"),
-    scanner: MacroRefactorScanner = Depends(get_macro_refactor_scanner)
+    scanner: MacroRefactorScanner = Depends(get_macro_refactor_scanner),
 ) -> List[LogicBreakpoint]:
     """
     Scan for logic breakpoints where events conflict with character traits.
@@ -58,11 +60,7 @@ async def scan_breakpoints(
             parsed_conflict_tags = [tag.strip() for tag in conflict_tags.split(",") if tag.strip()]
 
         # Scan for breakpoints
-        breakpoints = scanner.scan_breakpoints(
-            novel_id=novel_id,
-            trait=trait,
-            conflict_tags=parsed_conflict_tags
-        )
+        breakpoints = scanner.scan_breakpoints(novel_id=novel_id, trait=trait, conflict_tags=parsed_conflict_tags)
 
         logger.info(f"Scanned novel {novel_id} for trait '{trait}', found {len(breakpoints)} breakpoints")
         return breakpoints
@@ -76,7 +74,7 @@ async def scan_breakpoints(
 async def generate_proposal(
     novel_id: str,
     request: RefactorProposalRequest = Body(...),
-    proposal_service: MacroRefactorProposalService = Depends(get_macro_refactor_proposal_service)
+    proposal_service: MacroRefactorProposalService = Depends(get_macro_refactor_proposal_service),
 ) -> RefactorProposal:
     """
     Generate refactor proposal using LLM.
@@ -114,7 +112,7 @@ async def generate_proposal(
 async def apply_mutations(
     novel_id: str,
     request: ApplyMutationRequest = Body(...),
-    mutation_applier: MutationApplier = Depends(get_mutation_applier)
+    mutation_applier: MutationApplier = Depends(get_mutation_applier),
 ) -> ApplyMutationResponse:
     """
     Apply mutations to a narrative event.
@@ -136,21 +134,17 @@ async def apply_mutations(
     try:
         # Apply mutations
         result = mutation_applier.apply_mutations(
-            novel_id=novel_id,
-            event_id=request.event_id,
-            mutations=request.mutations,
-            reason=request.reason
+            novel_id=novel_id, event_id=request.event_id, mutations=request.mutations, reason=request.reason
         )
 
         logger.info(
-            f"Applied {len(result['applied_mutations'])} mutations to event {request.event_id} "
-            f"in novel {novel_id}"
+            f"Applied {len(result['applied_mutations'])} mutations to event {request.event_id} in novel {novel_id}"
         )
 
         return ApplyMutationResponse(
             success=result["success"],
             updated_event=result["updated_event"],
-            applied_mutations=result["applied_mutations"]
+            applied_mutations=result["applied_mutations"],
         )
 
     except ValueError as e:
@@ -163,10 +157,10 @@ async def apply_mutations(
 
 # ========== 宏观诊断结果 API ==========
 
+
 @router.get("/{novel_id}/macro-refactor/diagnosis/latest")
 async def get_latest_diagnosis(
-    novel_id: str,
-    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
+    novel_id: str, diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
 ) -> Optional[Dict[str, Any]]:
     """
     获取最新的宏观诊断结果。
@@ -199,7 +193,7 @@ async def get_latest_diagnosis(
 async def list_diagnosis_history(
     novel_id: str,
     limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
-    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
+    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service),
 ) -> List[Dict[str, Any]]:
     """
     获取宏观诊断历史列表。
@@ -229,7 +223,7 @@ async def list_diagnosis_history(
 async def run_manual_diagnosis(
     novel_id: str,
     traits: Optional[str] = Query(None, description="Comma-separated traits to scan (optional, defaults to built-in)"),
-    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
+    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service),
 ) -> Dict[str, Any]:
     """
     手动触发宏观诊断。
@@ -253,11 +247,7 @@ async def run_manual_diagnosis(
         if traits:
             scan_traits = [t.strip() for t in traits.split(",") if t.strip()]
 
-        result = diagnosis_service.run_full_diagnosis(
-            novel_id=novel_id,
-            trigger_reason="手动触发",
-            traits=scan_traits
-        )
+        result = diagnosis_service.run_full_diagnosis(novel_id=novel_id, trigger_reason="手动触发", traits=scan_traits)
 
         return result.to_dict()
     except Exception as e:
@@ -267,9 +257,7 @@ async def run_manual_diagnosis(
 
 @router.post("/{novel_id}/macro-refactor/diagnosis/{diagnosis_id}/resolve")
 async def mark_diagnosis_resolved(
-    novel_id: str,
-    diagnosis_id: str,
-    diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
+    novel_id: str, diagnosis_id: str, diagnosis_service: MacroDiagnosisService = Depends(get_macro_diagnosis_service)
 ) -> Dict[str, Any]:
     """
     标记诊断结果为已解决。
@@ -290,13 +278,12 @@ async def mark_diagnosis_resolved(
     """
     try:
         success = diagnosis_service.mark_resolved(novel_id, diagnosis_id, resolved_by="manual")
-        
+
         if success:
             return {"success": True, "message": "诊断结果已标记为已解决，不会再注入提示词"}
         else:
             return {"success": False, "message": "标记失败，请检查诊断结果 ID"}
-            
+
     except Exception as e:
         logger.error(f"Error marking diagnosis as resolved: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-

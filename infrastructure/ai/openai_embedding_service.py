@@ -1,9 +1,11 @@
 """OpenAI 嵌入服务实现"""
+
 import os
 from typing import List, Optional
 
 import httpx
 from openai import AsyncOpenAI
+
 from domain.ai.services.embedding_service import EmbeddingService
 
 
@@ -87,10 +89,7 @@ class OpenAIEmbeddingService(EmbeddingService):
             raise ValueError("Text cannot be empty")
 
         try:
-            response = await self.client.embeddings.create(
-                model=self.model,
-                input=text
-            )
+            response = await self.client.embeddings.create(model=self.model, input=text)
             vec = response.data[0].embedding
             if self._dimension == 0:
                 self._dimension = len(vec)
@@ -118,10 +117,7 @@ class OpenAIEmbeddingService(EmbeddingService):
             raise ValueError("All texts must be non-empty")
 
         try:
-            response = await self.client.embeddings.create(
-                model=self.model,
-                input=texts
-            )
+            response = await self.client.embeddings.create(model=self.model, input=texts)
             result = [item.embedding for item in response.data]
             if self._dimension == 0 and result:
                 self._dimension = len(result[0])

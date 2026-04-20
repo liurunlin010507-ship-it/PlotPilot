@@ -1,13 +1,15 @@
 """AI 生成应用服务"""
+
 import logging
 from typing import Optional
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
-from domain.novel.repositories.novel_repository import NovelRepository
-from domain.bible.repositories.bible_repository import BibleRepository
-from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.entities.novel import Novel
 from domain.bible.entities.bible import Bible
+from domain.bible.repositories.bible_repository import BibleRepository
+from domain.novel.entities.novel import Novel
+from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -19,12 +21,7 @@ class AIGenerationService:
     协调 LLM、Novel 和 Bible 领域服务，实现 AI 内容生成功能。
     """
 
-    def __init__(
-        self,
-        llm_service: LLMService,
-        novel_repository: NovelRepository,
-        bible_repository: BibleRepository
-    ):
+    def __init__(self, llm_service: LLMService, novel_repository: NovelRepository, bible_repository: BibleRepository):
         """初始化服务
 
         Args:
@@ -40,12 +37,7 @@ class AIGenerationService:
         self.novel_repository = novel_repository
         self.bible_repository = bible_repository
 
-    async def generate_chapter(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        outline: str
-    ) -> str:
+    async def generate_chapter(self, novel_id: str, chapter_number: int, outline: str) -> str:
         """生成章节内容
 
         Args:
@@ -86,13 +78,7 @@ class AIGenerationService:
             logger.error(f"LLM generation failed for novel {novel_id}, chapter {chapter_number}: {str(e)}")
             raise RuntimeError(f"Failed to generate chapter: {str(e)}") from e
 
-    def _build_chapter_prompt(
-        self,
-        novel: Novel,
-        bible: Optional[Bible],
-        chapter_number: int,
-        outline: str
-    ) -> Prompt:
+    def _build_chapter_prompt(self, novel: Novel, bible: Optional[Bible], chapter_number: int, outline: str) -> Prompt:
         """构建章节生成提示词
 
         Args:
@@ -108,18 +94,12 @@ class AIGenerationService:
 
         # 添加人物信息
         if bible and bible.characters:
-            char_info = "\n".join([
-                f"- {char.name}: {char.description}"
-                for char in bible.characters
-            ])
+            char_info = "\n".join([f"- {char.name}: {char.description}" for char in bible.characters])
             system_message += f"\n\n主要人物：\n{char_info}"
 
         # 添加世界设定
         if bible and bible.world_settings:
-            setting_info = "\n".join([
-                f"- {setting.name}: {setting.description}"
-                for setting in bible.world_settings
-            ])
+            setting_info = "\n".join([f"- {setting.name}: {setting.description}" for setting in bible.world_settings])
             system_message += f"\n\n世界设定：\n{setting_info}"
 
         user_message = f"请根据以下大纲创作第{chapter_number}章：\n\n{outline}"

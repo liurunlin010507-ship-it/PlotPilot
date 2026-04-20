@@ -10,23 +10,24 @@
 与 AutoNovelGenerationWorkflow 拼接时：Layer1≈T0+T1，Layer2 段名为 RECENT CHAPTERS（T2），
 Layer3 段名为 VECTOR RECALL（T3）；见 assemble_chapter_bundle_context_text。
 """
-import logging
-from typing import List, Optional, TYPE_CHECKING, Dict, Any
-from dataclasses import dataclass
 
-from application.world.services.bible_service import BibleService
-from domain.bible.services.relationship_engine import RelationshipEngine
-from domain.novel.services.storyline_manager import StorylineManager
-from domain.novel.repositories.novel_repository import NovelRepository
-from domain.novel.repositories.chapter_repository import ChapterRepository
-from domain.novel.repositories.plot_arc_repository import PlotArcRepository
-from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
-from domain.ai.services.vector_store import VectorStore
-from domain.ai.services.embedding_service import EmbeddingService
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
 from application.engine.services.context_budget_allocator import ContextBudgetAllocator
+from application.world.services.bible_service import BibleService
+from domain.ai.services.embedding_service import EmbeddingService
+from domain.ai.services.vector_store import VectorStore
+from domain.bible.services.relationship_engine import RelationshipEngine
+from domain.novel.repositories.chapter_repository import ChapterRepository
+from domain.novel.repositories.foreshadowing_repository import ForeshadowingRepository
+from domain.novel.repositories.novel_repository import NovelRepository
+from domain.novel.repositories.plot_arc_repository import PlotArcRepository
+from domain.novel.services.storyline_manager import StorylineManager
 
 if TYPE_CHECKING:
-    from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +35,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Beat:
     """微观节拍（Beat）
-    
+
     将章节大纲拆分为多个微观节拍，强制 AI 放慢节奏，增加感官细节。
     """
+
     description: str  # 节拍描述
     target_words: int  # 目标字数
     focus: str  # 聚焦点：sensory（感官）、dialogue（对话）、action（动作）、emotion（情绪）
@@ -44,7 +46,7 @@ class Beat:
 
 class ContextBuilder:
     """上下文构建器（双轨融合版）
-    
+
     智能组装章节生成所需的上下文，使用洋葱模型优先级挤压。
     """
 
@@ -103,14 +105,14 @@ class ContextBuilder:
         scene_director: Optional[Dict[str, Any]] = None,
     ) -> str:
         """构建上下文（使用预算分配器）
-        
+
         Args:
             novel_id: 小说 ID
             chapter_number: 章节号
             outline: 章节大纲
             max_tokens: 最大 token 数
             scene_director: 场记分析结果（可选）
-        
+
         Returns:
             组装好的上下文字符串
         """
@@ -121,7 +123,7 @@ class ContextBuilder:
             total_budget=max_tokens,
             scene_director=scene_director,
         )
-        
+
         return allocation.get_final_context()
 
     def build_structured_context(
@@ -133,7 +135,7 @@ class ContextBuilder:
         scene_director: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """构建结构化上下文，返回详细信息
-        
+
         Returns:
             {
                 "layer1_text": "核心上下文（T0+T1）",
@@ -154,20 +156,20 @@ class ContextBuilder:
             total_budget=max_tokens,
             scene_director=scene_director,
         )
-        
+
         # 从 BudgetAllocation 中提取三层内容
         layer1_parts = []
         layer2_parts = []
         layer3_parts = []
-        
+
         layer1_tokens = 0
         layer2_tokens = 0
         layer3_tokens = 0
-        
+
         for name, slot in allocation.slots.items():
             if not slot.content.strip():
                 continue
-            
+
             if slot.tier.value in ["t0_critical", "t1_compressible"]:
                 layer1_parts.append(f"=== {slot.name.upper()} ===\n{slot.content}")
                 layer1_tokens += slot.tokens
@@ -177,7 +179,7 @@ class ContextBuilder:
             elif slot.tier.value == "t3_sacrificial":
                 layer3_parts.append(f"=== {slot.name.upper()} ===\n{slot.content}")
                 layer3_tokens += slot.tokens
-        
+
         return {
             "layer1_text": "\n\n".join(layer1_parts),
             "layer2_text": "\n\n".join(layer2_parts),
@@ -190,9 +192,11 @@ class ContextBuilder:
             },
         }
 
-    def magnify_outline_to_beats(self, chapter_number: int, outline: str, target_chapter_words: int = 2500) -> List[Beat]:
+    def magnify_outline_to_beats(
+        self, chapter_number: int, outline: str, target_chapter_words: int = 2500
+    ) -> List[Beat]:
         """节拍放大器：将章节大纲拆分为微观节拍
-        
+
         核心策略：
         1. 识别大纲中的关键动作/事件
         2. 为每个动作分配节拍，强制增加感官细节
@@ -203,9 +207,21 @@ class ContextBuilder:
         # 开篇黄金法则前三章特殊拦截
         if chapter_number == 1:
             beats = [
-                Beat(description="开篇黄金法则：展现核心冲突，介绍主角出场，建立情感冲击（前300字内必须抓住读者）", target_words=500, focus="hook"),
-                Beat(description="剧情引入及人物初步互动：展现主角特质并暗示即将发生的事件", target_words=1000, focus="character_intro"),
-                Beat(description="世界观或当前场景细节：通过具体行动展现，不用抽象叙述", target_words=800, focus="sensory"),
+                Beat(
+                    description="开篇黄金法则：展现核心冲突，介绍主角出场，建立情感冲击（前300字内必须抓住读者）",
+                    target_words=500,
+                    focus="hook",
+                ),
+                Beat(
+                    description="剧情引入及人物初步互动：展现主角特质并暗示即将发生的事件",
+                    target_words=1000,
+                    focus="character_intro",
+                ),
+                Beat(
+                    description="世界观或当前场景细节：通过具体行动展现，不用抽象叙述",
+                    target_words=800,
+                    focus="sensory",
+                ),
                 Beat(description="埋下后续剧情伏笔或抛出首个悬念：铺垫第二章", target_words=700, focus="suspense"),
             ]
         elif chapter_number == 2:
@@ -225,7 +241,9 @@ class ContextBuilder:
         # 根据常规关键词回退
         elif "争吵" in outline or "冲突" in outline or "质问" in outline:
             beats = [
-                Beat(description="场景氛围描写：压抑的环境、紧张的气氛、人物的微表情", target_words=500, focus="sensory"),
+                Beat(
+                    description="场景氛围描写：压抑的环境、紧张的气氛、人物的微表情", target_words=500, focus="sensory"
+                ),
                 Beat(description="冲突爆发：主角的质问、对方的反应、情绪的升级", target_words=800, focus="dialogue"),
                 Beat(description="情绪细节：内心独白、回忆闪回、痛苦的挣扎", target_words=700, focus="emotion"),
                 Beat(description="冲突结果：决裂、离开、或暂时妥协（不要轻易和好）", target_words=500, focus="action"),
@@ -309,10 +327,7 @@ class ContextBuilder:
         elif beat.focus == "suspense":
             obligation = "叙事义务：必须留下可追踪的悬念点（人/物/约定/时间之一），不要空喊「事情不对劲」。"
         else:
-            obligation = (
-                "叙事义务：至少包含「目标→阻碍→反应」中的一步可观察描写；"
-                "或至少 2 轮短对话推动信息。"
-            )
+            obligation = "叙事义务：至少包含「目标→阻碍→反应」中的一步可观察描写；或至少 2 轮短对话推动信息。"
 
         return f"""
 【节拍 {beat_index + 1}/{total_beats}】

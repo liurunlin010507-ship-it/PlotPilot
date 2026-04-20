@@ -4,8 +4,9 @@
 """
 
 from typing import List
-from domain.shared.base_entity import BaseEntity
+
 from domain.novel.value_objects.scene import Scene
+from domain.shared.base_entity import BaseEntity
 
 
 class BeatSheet(BaseEntity):
@@ -14,12 +15,7 @@ class BeatSheet(BaseEntity):
     包含章节的所有场景，按顺序排列
     """
 
-    def __init__(
-        self,
-        id: str,
-        chapter_id: str,
-        scenes: List[Scene]
-    ):
+    def __init__(self, id: str, chapter_id: str, scenes: List[Scene]):
         super().__init__(id)
         self.chapter_id = chapter_id
         self.scenes = scenes

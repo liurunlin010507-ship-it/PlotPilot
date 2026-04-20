@@ -3,52 +3,51 @@
 日志：默认与 API 共用 ``logs/aitext.log``（环境变量 LOG_FILE），便于在「主日志」里查看
 规划/写作/节拍；另可设 LOG_FILE 仅写文件。
 """
-import os
-os.environ['HF_HUB_OFFLINE'] = '1'
-os.environ['TRANSFORMERS_OFFLINE'] = '1'
-os.environ['HF_DATASETS_OFFLINE'] = '1'
-if os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true':
-    os.environ['CURL_CA_BUNDLE'] = ''
-    os.environ['REQUESTS_CA_BUNDLE'] = ''
 
-import sys
+import os
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+if os.getenv("DISABLE_SSL_VERIFY", "false").lower() == "true":
+    os.environ["CURL_CA_BUNDLE"] = ""
+    os.environ["REQUESTS_CA_BUNDLE"] = ""
+
 import logging
-import time
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from application.paths import AITEXT_ROOT, get_db_path, DATA_DIR
-from infrastructure.persistence.database.connection import get_database
-from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
-from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
-from infrastructure.persistence.database.sqlite_foreshadowing_repository import SqliteForeshadowingRepository
-from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
-from infrastructure.persistence.database.sqlite_plot_arc_repository import SqlitePlotArcRepository
-from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
-
+from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
 from application.engine.services.autopilot_daemon import AutopilotDaemon
 from application.engine.services.background_task_service import BackgroundTaskService
 from application.engine.services.chapter_aftermath_pipeline import ChapterAftermathPipeline
 from application.engine.services.circuit_breaker import CircuitBreaker
-from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
+from application.paths import AITEXT_ROOT, DATA_DIR, get_db_path
+from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+from infrastructure.persistence.database.connection import get_database
+from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+from infrastructure.persistence.database.sqlite_foreshadowing_repository import SqliteForeshadowingRepository
+from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
+from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
+from infrastructure.persistence.database.sqlite_plot_arc_repository import SqlitePlotArcRepository
+from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
 
 # 复用 API 层的工厂函数，保证与 FastAPI 层使用同一套配置
 from interfaces.api.dependencies import (
-    get_llm_service,
     build_auto_workflow,
-    get_context_builder,
     get_bible_service,
-    get_foreshadowing_repository,
-    get_novel_repository,
-    get_chapter_repository,
-    get_voice_drift_service,
-    get_knowledge_service,
     get_chapter_indexing_service,
+    get_chapter_repository,
+    get_context_builder,
+    get_knowledge_service,
+    get_llm_service,
+    get_voice_drift_service,
 )
 from interfaces.api.middleware.logging_config import setup_logging
 
@@ -95,6 +94,7 @@ def build_daemon() -> AutopilotDaemon:
     triple_repo = None
     try:
         from infrastructure.persistence.database.triple_repository import TripleRepository
+
         triple_repo = TripleRepository(db)
         logger.info("TripleRepository 已启用")
     except Exception as e:
@@ -127,7 +127,9 @@ def build_daemon() -> AutopilotDaemon:
             plot_arc_repository=SqlitePlotArcRepository(get_database()),
             narrative_event_repository=SqliteNarrativeEventRepository(get_database()),
         )
-        logger.info("ChapterAftermathPipeline 已注入（叙事/向量/文风/KG；三元组与伏笔、故事线、张力、对话、剧情点单次 LLM）")
+        logger.info(
+            "ChapterAftermathPipeline 已注入（叙事/向量/文风/KG；三元组与伏笔、故事线、张力、对话、剧情点单次 LLM）"
+        )
     except Exception as e:
         logger.warning("ChapterAftermathPipeline 初始化失败，审计将降级：%s", e)
 
@@ -136,7 +138,7 @@ def build_daemon() -> AutopilotDaemon:
     # - reset_timeout: 熔断后等待恢复的时间（秒）
     circuit_breaker = CircuitBreaker(
         failure_threshold=10,  # 从 5 增加到 10，更宽容临时限流
-        reset_timeout=180,     # 从 120 增加到 180 秒，给 API 更多恢复时间
+        reset_timeout=180,  # 从 120 增加到 180 秒，给 API 更多恢复时间
     )
 
     return AutopilotDaemon(

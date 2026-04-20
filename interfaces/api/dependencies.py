@@ -2,9 +2,9 @@
 
 提供 FastAPI 依赖注入函数，用于创建服务和仓储实例。
 """
+
 import logging
 import os
-from pathlib import Path
 from functools import lru_cache
 from typing import TYPE_CHECKING, Optional
 
@@ -13,44 +13,43 @@ from domain.ai.services.llm_service import LLMService
 if TYPE_CHECKING:
     from application.engine.services.scene_director_service import SceneDirectorService
 
-from application.paths import DATA_DIR
-from infrastructure.persistence.storage.file_storage import FileStorage
-from infrastructure.persistence.database.connection import get_database
-from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
-from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
-from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
-from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
-from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
-from infrastructure.persistence.database.sqlite_plot_arc_repository import SqlitePlotArcRepository
-from infrastructure.persistence.database.sqlite_voice_vault_repository import SqliteVoiceVaultRepository
-from infrastructure.persistence.database.sqlite_voice_fingerprint_repository import SQLiteVoiceFingerprintRepository
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
-from infrastructure.persistence.database.sqlite_foreshadowing_repository import SqliteForeshadowingRepository
-from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
-from infrastructure.ai.config.settings import Settings
-from infrastructure.ai.provider_factory import DynamicLLMService, LLMProviderFactory
 from application.ai.llm_control_service import LLMControlService
-
-from application.core.services.novel_service import NovelService
+from application.analyst.services.state_extractor import StateExtractor
+from application.analyst.services.state_updater import StateUpdater
+from application.analyst.services.voice_drift_service import VoiceDriftService
+from application.analyst.services.voice_fingerprint_service import VoiceFingerprintService
+from application.analyst.services.voice_sample_service import VoiceSampleService
 from application.core.services.chapter_service import ChapterService
+from application.core.services.novel_service import NovelService
+from application.engine.services.context_builder import ContextBuilder
+from application.engine.services.hosted_write_service import HostedWriteService
+from application.paths import DATA_DIR
+from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
+from application.world.services.auto_bible_generator import AutoBibleGenerator
+from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
 from application.world.services.bible_service import BibleService
 from application.world.services.cast_service import CastService
 from application.world.services.knowledge_service import KnowledgeService
-from application.analyst.services.voice_sample_service import VoiceSampleService
-from application.analyst.services.voice_fingerprint_service import VoiceFingerprintService
-from application.analyst.services.voice_drift_service import VoiceDriftService
-from application.engine.services.context_builder import ContextBuilder
-from application.world.services.auto_bible_generator import AutoBibleGenerator
-from application.world.services.auto_knowledge_generator import AutoKnowledgeGenerator
-from application.analyst.services.state_extractor import StateExtractor
-from application.analyst.services.state_updater import StateUpdater
-from application.workflows.auto_novel_generation_workflow import AutoNovelGenerationWorkflow
-from application.engine.services.hosted_write_service import HostedWriteService
+from domain.ai.services.vector_store import VectorStore
+from domain.bible.services.relationship_engine import RelationshipEngine
 from domain.novel.services.consistency_checker import ConsistencyChecker
 from domain.novel.services.storyline_manager import StorylineManager
-from domain.bible.services.relationship_engine import RelationshipEngine
-from domain.ai.services.vector_store import VectorStore
+from infrastructure.ai.config.settings import Settings
+from infrastructure.ai.provider_factory import DynamicLLMService, LLMProviderFactory
+from infrastructure.persistence.database.connection import get_database
+from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
+from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
+from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+from infrastructure.persistence.database.sqlite_foreshadowing_repository import SqliteForeshadowingRepository
+from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
+from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
+from infrastructure.persistence.database.sqlite_plot_arc_repository import SqlitePlotArcRepository
+from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
+from infrastructure.persistence.database.sqlite_voice_fingerprint_repository import SQLiteVoiceFingerprintRepository
+from infrastructure.persistence.database.sqlite_voice_vault_repository import SqliteVoiceVaultRepository
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+from infrastructure.persistence.storage.file_storage import FileStorage
 
 if TYPE_CHECKING:
     from application.analyst.services.narrative_entity_state_service import NarrativeEntityStateService
@@ -81,9 +80,7 @@ def _anthropic_settings(require_key: bool = True) -> Optional[Settings]:
     key = _anthropic_api_key()
     if not key:
         if require_key:
-            raise ValueError(
-                "Set ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN (optional: ANTHROPIC_BASE_URL)"
-            )
+            raise ValueError("Set ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN (optional: ANTHROPIC_BASE_URL)")
         return None
     return Settings(
         api_key=key,
@@ -110,9 +107,7 @@ def _openai_settings(require_key: bool = True) -> Optional[Settings]:
     key = _openai_api_key()
     if not key:
         if require_key:
-            raise ValueError(
-                "Set OPENAI_API_KEY (optional: OPENAI_BASE_URL)"
-            )
+            raise ValueError("Set OPENAI_API_KEY (optional: OPENAI_BASE_URL)")
         return None
     return Settings(
         api_key=key,
@@ -173,8 +168,9 @@ def get_chapter_element_repository():
     Returns:
         ChapterElementRepository 实例
     """
-    from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
     from application.paths import get_db_path
+    from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
+
     return ChapterElementRepository(get_db_path())
 
 
@@ -235,6 +231,7 @@ def get_timeline_repository() -> SqliteTimelineRepository:
 def get_beat_sheet_repository():
     """获取节拍表仓储"""
     from infrastructure.persistence.database.sqlite_beat_sheet_repository import SqliteBeatSheetRepository
+
     return SqliteBeatSheetRepository(get_database())
 
 
@@ -255,11 +252,7 @@ def get_novel_service() -> NovelService:
     Returns:
         NovelService 实例
     """
-    return NovelService(
-        get_novel_repository(),
-        get_chapter_repository(),
-        get_story_node_repository()
-    )
+    return NovelService(get_novel_repository(), get_chapter_repository(), get_story_node_repository())
 
 
 def get_chapter_renumber_coordinator():
@@ -282,10 +275,10 @@ def get_chapter_service() -> ChapterService:
         ChapterService 实例
     """
     from infrastructure.persistence.database.sqlite_chapter_review_repository import SqliteChapterReviewRepository
-    
+
     review_repo = SqliteChapterReviewRepository(get_database())
     return ChapterService(
-        get_chapter_repository(), 
+        get_chapter_repository(),
         get_novel_repository(),
         review_repo,
         chapter_renumber_coordinator=get_chapter_renumber_coordinator(),
@@ -296,10 +289,10 @@ def get_chapter_service() -> ChapterService:
 def get_background_task_service():
     """单例后台任务队列（API 进程内）：文风；章末 bundle（叙事+三元组+伏笔+故事线+张力+对话+剧情点）与管线同源单次 LLM。"""
     from application.engine.services.background_task_service import BackgroundTaskService
-    from infrastructure.persistence.database.triple_repository import TripleRepository
-    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
-    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
     from infrastructure.persistence.database.connection import get_database
+    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
+    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+    from infrastructure.persistence.database.triple_repository import TripleRepository
 
     return BackgroundTaskService(
         voice_drift_service=get_voice_drift_service(),
@@ -318,10 +311,10 @@ def get_background_task_service():
 def get_chapter_aftermath_pipeline():
     """章节保存后统一管线：叙事/向量、文风、KG 推断；三元组与伏笔、故事线、张力、对话、剧情点在叙事同步中一次 LLM 落库。"""
     from application.engine.services.chapter_aftermath_pipeline import ChapterAftermathPipeline
-    from infrastructure.persistence.database.triple_repository import TripleRepository
-    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
-    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
     from infrastructure.persistence.database.connection import get_database
+    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
+    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+    from infrastructure.persistence.database.triple_repository import TripleRepository
 
     return ChapterAftermathPipeline(
         knowledge_service=get_knowledge_service(),
@@ -376,7 +369,6 @@ def get_bible_service() -> BibleService:
     Returns:
         BibleService 实例
     """
-    from application.paths import get_db_path
     from application.world.services.bible_location_triple_sync import BibleLocationTripleSyncService
     from infrastructure.persistence.database.triple_repository import TripleRepository
 
@@ -450,6 +442,7 @@ def get_embedding_service():
 
     try:
         from application.ai.embedding_config_service import get_embedding_config_service
+
         cfg_svc = get_embedding_config_service()
         cfg = cfg_svc.get_config()
         _mode = cfg.mode
@@ -460,7 +453,9 @@ def get_embedding_service():
         _use_gpu = cfg.use_gpu
         logger.info(
             "Embedding 配置来源: 数据库 | mode=%s, model=%s, path=%s",
-            _mode, _model, _model_path,
+            _mode,
+            _model,
+            _model_path,
         )
     except Exception as exc:
         # 数据库不可用时回退到环境变量
@@ -482,6 +477,7 @@ def get_embedding_service():
                 logger.warning("embedding mode=openai 但未配置模型 ID（model / EMBEDDING_MODEL），向量检索已禁用")
                 return None
             from infrastructure.ai.openai_embedding_service import OpenAIEmbeddingService
+
             logger.info("使用 OpenAI 嵌入服务 (DB配置): base_url=%s, model=%s", _base_url, _model)
             return OpenAIEmbeddingService(
                 api_key=key,
@@ -494,6 +490,7 @@ def get_embedding_service():
                 logger.warning("embedding mode=local 但未配置 model_path，向量检索已禁用")
                 return None
             from infrastructure.ai.local_embedding_service import LocalEmbeddingService
+
             logger.info("使用本地嵌入服务 (DB配置): path=%s, gpu=%s", _model_path, _use_gpu)
             return LocalEmbeddingService(model_name=_model_path, use_gpu=_use_gpu)
     except Exception as e:
@@ -508,12 +505,13 @@ def get_chapter_indexing_service():
     if vs is None or es is None:
         return None
     from application.analyst.services.chapter_indexing_service import ChapterIndexingService
+
     return ChapterIndexingService(vs, es)
 
 
 def get_triple_indexing_service():
     """获取三元组索引服务（依赖 VectorStore + Embedding，任一不可用则返回 None）。
-    
+
     用于将三元组向量化并支持语义检索。
     """
     vs = get_vector_store()
@@ -521,6 +519,7 @@ def get_triple_indexing_service():
     if vs is None or es is None:
         return None
     from application.analyst.services.triple_indexing_service import TripleIndexingService
+
     return TripleIndexingService(vs, es)
 
 
@@ -549,6 +548,7 @@ def get_vector_store() -> Optional[VectorStore]:
 
     try:
         from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
+
         persist_dir = os.getenv("VECTOR_STORE_PATH", "./data/chromadb")
         _vector_store_singleton = ChromaDBVectorStore(persist_directory=persist_dir)
         return _vector_store_singleton
@@ -564,6 +564,7 @@ def get_relationship_engine() -> RelationshipEngine:
         RelationshipEngine 实例
     """
     from domain.bible.value_objects.relationship_graph import RelationshipGraph
+
     return RelationshipEngine(RelationshipGraph())
 
 
@@ -574,6 +575,7 @@ def get_context_builder() -> ContextBuilder:
         ContextBuilder 实例
     """
     from infrastructure.persistence.database.triple_repository import TripleRepository
+
     return ContextBuilder(
         bible_service=get_bible_service(),
         storyline_manager=get_storyline_manager(),
@@ -591,8 +593,8 @@ def get_context_builder() -> ContextBuilder:
 
 def build_auto_workflow(llm_service: LLMService) -> AutoNovelGenerationWorkflow:
     """用指定 LLM 实例构造章节工作流（与守护进程、API 共用同一 provider 时注入同一实例）。"""
-    from application.audit.services.conflict_detection_service import ConflictDetectionService
     from application.audit.services.cliche_scanner import ClicheScanner
+    from application.audit.services.conflict_detection_service import ConflictDetectionService
 
     return AutoNovelGenerationWorkflow(
         context_builder=get_context_builder(),
@@ -638,10 +640,10 @@ def get_auto_bible_generator() -> AutoBibleGenerator:
         logger.info(f"Using {llm_service.__class__.__name__} for Bible generation")
 
     # 导入 WorldbuildingService 和 TripleRepository
-    from application.world.services.worldbuilding_service import WorldbuildingService
-    from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
-    from infrastructure.persistence.database.triple_repository import TripleRepository
     from application.paths import get_db_path
+    from application.world.services.worldbuilding_service import WorldbuildingService
+    from infrastructure.persistence.database.triple_repository import TripleRepository
+    from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
 
     db_path = get_db_path()
     worldbuilding_repo = WorldbuildingRepository(db_path)
@@ -652,7 +654,7 @@ def get_auto_bible_generator() -> AutoBibleGenerator:
         llm_service=llm_service,
         bible_service=get_bible_service(),
         worldbuilding_service=worldbuilding_service,
-        triple_repository=triple_repo
+        triple_repository=triple_repo,
     )
 
 
@@ -671,10 +673,7 @@ def get_auto_knowledge_generator() -> AutoKnowledgeGenerator:
     Returns:
         AutoKnowledgeGenerator 实例
     """
-    return AutoKnowledgeGenerator(
-        llm_service=get_llm_service(),
-        knowledge_service=get_knowledge_service()
-    )
+    return AutoKnowledgeGenerator(llm_service=get_llm_service(), knowledge_service=get_knowledge_service())
 
 
 def get_state_updater() -> StateUpdater:
@@ -688,7 +687,7 @@ def get_state_updater() -> StateUpdater:
         foreshadowing_repository=get_foreshadowing_repository(),
         timeline_repository=get_timeline_repository(),
         storyline_repository=get_storyline_repository(),
-        knowledge_service=get_knowledge_service()
+        knowledge_service=get_knowledge_service(),
     )
 
 
@@ -712,7 +711,7 @@ def get_beat_sheet_service():
         storyline_repo=get_storyline_repository(),
         llm_service=llm_service,
         vector_store=get_vector_store(),
-        bible_service=get_bible_service()
+        bible_service=get_bible_service(),
     )
 
 
@@ -734,7 +733,7 @@ def get_scene_generation_service():
         llm_service=llm_service,
         scene_director=get_scene_director_service(),
         vector_store=get_vector_store(),
-        embedding_service=get_embedding_service()
+        embedding_service=get_embedding_service(),
     )
 
 
@@ -751,7 +750,7 @@ def get_scene_director_service() -> "SceneDirectorService":
         logger.warning("No API key found, using MockProvider for scene director")
     else:
         logger.info(f"Using {llm_service.__class__.__name__} for scene director")
-        
+
     return SceneDirectorService(llm_service=llm_service)
 
 
@@ -795,10 +794,7 @@ def get_voice_sample_service() -> VoiceSampleService:
     Returns:
         VoiceSampleService 实例
     """
-    return VoiceSampleService(
-        get_voice_vault_repository(),
-        fingerprint_service=get_voice_fingerprint_service()
-    )
+    return VoiceSampleService(get_voice_vault_repository(), fingerprint_service=get_voice_fingerprint_service())
 
 
 def get_voice_fingerprint_service() -> VoiceFingerprintService:
@@ -807,10 +803,7 @@ def get_voice_fingerprint_service() -> VoiceFingerprintService:
     Returns:
         VoiceFingerprintService 实例
     """
-    return VoiceFingerprintService(
-        get_voice_fingerprint_repository(),
-        get_voice_vault_repository()
-    )
+    return VoiceFingerprintService(get_voice_fingerprint_repository(), get_voice_vault_repository())
 
 
 def get_voice_drift_service() -> VoiceDriftService:
@@ -818,6 +811,7 @@ def get_voice_drift_service() -> VoiceDriftService:
     from infrastructure.persistence.database.sqlite_chapter_style_score_repository import (
         SqliteChapterStyleScoreRepository,
     )
+
     score_repo = SqliteChapterStyleScoreRepository(get_database())
     return VoiceDriftService(score_repo, get_voice_fingerprint_repository())
 
@@ -888,8 +882,8 @@ def get_tension_analyzer():
         TensionAnalyzer 实例
     """
     from application.analyst.services.tension_analyzer import TensionAnalyzer
-    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
     from infrastructure.ai.llm_client import LLMClient
+    from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
 
     llm_provider = get_llm_service()
     if llm_runtime_is_mock(llm_provider):
@@ -927,11 +921,11 @@ def get_chapter_review_service():
         ChapterReviewService 实例
     """
     from application.audit.services.chapter_review_service import ChapterReviewService
-    from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
     from infrastructure.persistence.database.sqlite_cast_repository import SqliteCastRepository
-    from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
-    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+    from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
     from infrastructure.persistence.database.sqlite_foreshadowing_repository import SqliteForeshadowingRepository
+    from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+    from infrastructure.persistence.database.sqlite_timeline_repository import SqliteTimelineRepository
 
     db = get_database()
     chapter_repo = SqliteChapterRepository(db)
@@ -949,7 +943,7 @@ def get_chapter_review_service():
         storyline_repo=storyline_repo,
         foreshadowing_repo=foreshadowing_repo,
         vector_store=vector_store,
-        llm_service=llm_service
+        llm_service=llm_service,
     )
 
 
@@ -960,5 +954,5 @@ def get_foreshadow_ledger_service():
         伏笔台账服务实例
     """
     from application.analyst.services.foreshadow_ledger_service import ForeshadowLedgerService
-    return ForeshadowLedgerService(get_foreshadowing_repository())
 
+    return ForeshadowLedgerService(get_foreshadowing_repository())

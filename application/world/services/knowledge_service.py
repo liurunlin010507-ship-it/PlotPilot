@@ -1,11 +1,12 @@
 """Knowledge application service"""
+
 import logging
-from typing import Optional, List, Dict, Any
-from domain.knowledge.story_knowledge import StoryKnowledge
+from typing import Any, Dict, List, Optional
+
 from domain.knowledge.chapter_summary import ChapterSummary
 from domain.knowledge.knowledge_triple import KnowledgeTriple
 from domain.knowledge.repositories.knowledge_repository import KnowledgeRepository
-from domain.shared.exceptions import EntityNotFoundError
+from domain.knowledge.story_knowledge import StoryKnowledge
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class KnowledgeService:
                 consistency_note=ch.get("consistency_note", ""),
                 beat_sections=ch.get("beat_sections", []),
                 micro_beats=ch.get("micro_beats", []),
-                sync_status=ch.get("sync_status", "draft")
+                sync_status=ch.get("sync_status", "draft"),
             )
             for ch in data.get("chapters", [])
         ]
@@ -99,7 +100,7 @@ class KnowledgeService:
             version=data.get("version", 1),
             premise_lock=data.get("premise_lock", ""),
             chapters=chapters,
-            facts=facts
+            facts=facts,
         )
 
         # 使用 save_all 方法保存
@@ -130,11 +131,10 @@ class KnowledgeService:
         # ========== 方案1：向量语义搜索（优先）==========
         try:
             from interfaces.api.dependencies import get_triple_indexing_service
+
             indexing_service = get_triple_indexing_service()
 
             if indexing_service is not None:
-                import concurrent.futures
-
                 # 使用同步接口
                 results = indexing_service.sync_search(
                     novel_id=novel_id,
@@ -180,21 +180,25 @@ class KnowledgeService:
                             text_parts.append(description)
                         display_text = "".join(text_parts)
 
-                        hits.append({
-                            "id": triple_id,
-                            "text": display_text,
-                            "meta": {
-                                "subject": subject,
-                                "predicate": predicate,
-                                "object": obj,
-                                "description": description,
-                                "chapter_id": payload.get("chapter_number"),
-                                "score": round(r.get("score", 0), 4),
-                                "match_type": "semantic",
-                            },
-                        })
+                        hits.append(
+                            {
+                                "id": triple_id,
+                                "text": display_text,
+                                "meta": {
+                                    "subject": subject,
+                                    "predicate": predicate,
+                                    "object": obj,
+                                    "description": description,
+                                    "chapter_id": payload.get("chapter_number"),
+                                    "score": round(r.get("score", 0), 4),
+                                    "match_type": "semantic",
+                                },
+                            }
+                        )
 
-                    logger.info(f"Knowledge search (vector-first): {len(hits)} semantic hits for '{query}' in {novel_id}")
+                    logger.info(
+                        f"Knowledge search (vector-first): {len(hits)} semantic hits for '{query}' in {novel_id}"
+                    )
 
                     # 如果向量结果足够，直接返回
                     if len(hits) >= k:
@@ -222,7 +226,7 @@ class KnowledgeService:
                     subject = (fact.subject or "").lower()
                     predicate = (fact.predicate or "").lower()
                     obj = (fact.object or "").lower()
-                    description = getattr(fact, 'description', "") or ""
+                    description = getattr(fact, "description", "") or ""
                     description = description.lower() if description else ""
 
                     # 计算匹配分数
@@ -241,21 +245,23 @@ class KnowledgeService:
                         text_parts = [fact.subject or "", fact.predicate or "", fact.object or ""]
                         display_text = "".join([p for p in text_parts if p])
 
-                        text_hits.append({
-                            "id": fact.id,
-                            "text": display_text,
-                            "meta": {
-                                "subject": fact.subject,
-                                "predicate": fact.predicate,
-                                "object": fact.object,
-                                "description": description,
-                                "chapter_id": fact.chapter_id,
-                                "entity_type": getattr(fact, 'entity_type', None),
-                                "importance": getattr(fact, 'importance', None),
-                                "score": score,
-                                "match_type": "text",
-                            },
-                        })
+                        text_hits.append(
+                            {
+                                "id": fact.id,
+                                "text": display_text,
+                                "meta": {
+                                    "subject": fact.subject,
+                                    "predicate": fact.predicate,
+                                    "object": fact.object,
+                                    "description": description,
+                                    "chapter_id": fact.chapter_id,
+                                    "entity_type": getattr(fact, "entity_type", None),
+                                    "importance": getattr(fact, "importance", None),
+                                    "score": score,
+                                    "match_type": "text",
+                                },
+                            }
+                        )
 
                 # 按分数排序
                 text_hits.sort(key=lambda x: x.get("score", 0), reverse=True)
@@ -284,13 +290,13 @@ class KnowledgeService:
         Returns:
             成功索引的三元组数量
         """
-        import concurrent.futures
         import asyncio
+        import concurrent.futures
 
         # 从数据库获取三元组（异步方法）
         try:
-            from infrastructure.persistence.database.triple_repository import TripleRepository
             from application.paths import get_db_path
+            from infrastructure.persistence.database.triple_repository import TripleRepository
 
             db_path = get_db_path()
             triple_repo = TripleRepository(db_path)
@@ -309,17 +315,19 @@ class KnowledgeService:
             # 转换为字典格式
             triple_dicts = []
             for t in triples:
-                triple_dicts.append({
-                    "id": t.id,
-                    "subject": t.subject_id,
-                    "predicate": t.predicate,
-                    "object": t.object_id,
-                    "subject_type": getattr(t, 'subject_type', None),
-                    "object_type": getattr(t, 'object_type', None),
-                    "description": getattr(t, 'description', "") or "",
-                    "chapter_number": getattr(t, 'first_appearance', None),
-                    "confidence": getattr(t, 'confidence', 1.0),
-                })
+                triple_dicts.append(
+                    {
+                        "id": t.id,
+                        "subject": t.subject_id,
+                        "predicate": t.predicate,
+                        "object": t.object_id,
+                        "subject_type": getattr(t, "subject_type", None),
+                        "object_type": getattr(t, "object_type", None),
+                        "description": getattr(t, "description", "") or "",
+                        "chapter_number": getattr(t, "first_appearance", None),
+                        "confidence": getattr(t, "confidence", 1.0),
+                    }
+                )
 
             logger.info(f"Auto-indexing {len(triple_dicts)} triples for {novel_id}...")
 
@@ -347,7 +355,7 @@ class KnowledgeService:
         consistency_note: str = "",
         beat_sections: List[str] = None,
         micro_beats: List[Dict[str, Any]] = None,
-        sync_status: str = "draft"
+        sync_status: str = "draft",
     ) -> StoryKnowledge:
         """添加或更新章节摘要
 
@@ -375,7 +383,7 @@ class KnowledgeService:
             consistency_note=consistency_note,
             beat_sections=beat_sections or [],
             micro_beats=micro_beats or [],
-            sync_status=sync_status
+            sync_status=sync_status,
         )
 
         knowledge.add_or_update_chapter(chapter)
@@ -391,7 +399,7 @@ class KnowledgeService:
         predicate: str,
         object: str,
         chapter_id: Optional[int] = None,
-        note: str = ""
+        note: str = "",
     ) -> StoryKnowledge:
         """添加或更新知识三元组
 
@@ -410,12 +418,7 @@ class KnowledgeService:
         knowledge = self.get_knowledge(novel_id)
 
         fact = KnowledgeTriple(
-            id=fact_id,
-            subject=subject,
-            predicate=predicate,
-            object=object,
-            chapter_id=chapter_id,
-            note=note
+            id=fact_id, subject=subject, predicate=predicate, object=object, chapter_id=chapter_id, note=note
         )
 
         knowledge.add_or_update_fact(fact)

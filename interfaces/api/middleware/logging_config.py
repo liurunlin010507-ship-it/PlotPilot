@@ -5,13 +5,7 @@ import os
 from typing import Optional
 
 # Valid logging levels for validation
-VALID_LOGGING_LEVELS = [
-    logging.DEBUG,
-    logging.INFO,
-    logging.WARNING,
-    logging.ERROR,
-    logging.CRITICAL
-]
+VALID_LOGGING_LEVELS = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
 
 class SafeConsoleHandler(logging.StreamHandler):
@@ -57,10 +51,7 @@ def _validate_logging_level(level: int) -> None:
         ValueError: If the logging level is not valid
     """
     if level not in VALID_LOGGING_LEVELS:
-        raise ValueError(
-            f"Invalid logging level: {level}. "
-            f"Valid levels are: {VALID_LOGGING_LEVELS}"
-        )
+        raise ValueError(f"Invalid logging level: {level}. Valid levels are: {VALID_LOGGING_LEVELS}")
 
 
 def _validate_log_file(log_file: str) -> None:
@@ -83,20 +74,20 @@ def _validate_log_file(log_file: str) -> None:
         log_dir = os.path.dirname(log_file)
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
-    except (OSError, IOError) as e:
+    except OSError as e:
         raise ValueError(f"Cannot create log directory: {e}")
 
     try:
-        test_handle = open(log_file, 'a')
+        test_handle = open(log_file, "a")
         test_handle.close()
-    except (OSError, IOError, PermissionError) as e:
+    except (OSError, PermissionError) as e:
         raise ValueError(f"Cannot write to log file '{log_file}': {e}")
 
 
 def setup_logging(
     level: int = logging.INFO,
     log_file: Optional[str] = None,
-    format_string: str = "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    format_string: str = "%(asctime)s [%(levelname)s] %(name)s - %(message)s",
 ) -> None:
     """Configure logging with console and optional file output.
 
@@ -117,10 +108,7 @@ def setup_logging(
 
     root_logger.setLevel(level)
 
-    console_formatter = logging.Formatter(
-        format_string,
-        datefmt="%H:%M:%S"
-    )
+    console_formatter = logging.Formatter(format_string, datefmt="%H:%M:%S")
 
     console_handler = SafeConsoleHandler()
     console_handler.setLevel(level)
@@ -131,16 +119,13 @@ def setup_logging(
         _validate_log_file(log_file)
 
         try:
-            file_formatter = logging.Formatter(
-                format_string,
-                datefmt="%Y-%m-%d %H:%M:%S"
-            )
+            file_formatter = logging.Formatter(format_string, datefmt="%Y-%m-%d %H:%M:%S")
             file_handler = logging.FileHandler(log_file, encoding="utf-8")
             file_handler.setLevel(level)
             file_handler.setFormatter(file_formatter)
             root_logger.addHandler(file_handler)
 
-        except (OSError, IOError, PermissionError) as e:
+        except (OSError, PermissionError) as e:
             print(f"WARNING: Failed to setup file logging: {e}")
             print("Logging will continue with console output only.")
 

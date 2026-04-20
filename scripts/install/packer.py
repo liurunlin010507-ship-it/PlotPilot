@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 项目打包器
 ━━━━━━━━━━━━━━━━
@@ -16,8 +15,7 @@ import os
 import subprocess
 import time
 
-from theme import OK_C, ERR_C, ACCENT, TEXT_DIM
-from utils import get_proj_dir, NO_WIN
+from utils import NO_WIN, get_proj_dir
 
 
 class ProjectPacker:
@@ -31,15 +29,29 @@ class ProjectPacker:
 
     # 排除的目录
     EXCLUDE_DIRS = [
-        '.venv', 'venv', '__pycache__', '.git', 'node_modules',
-        'logs', '.models', '.qoder', 'PlotPilot-master',
-        '.playwright-mcp', '.pytest_cache', '.claude',
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".git",
+        "node_modules",
+        "logs",
+        ".models",
+        ".qoder",
+        "PlotPilot-master",
+        ".playwright-mcp",
+        ".pytest_cache",
+        ".claude",
     ]
 
     # 排除的文件
     EXCLUDE_FILES = [
-        'startup_err.log', 'startup_out.log', 'aitext.db',
-        'aitext.db-shm', 'aitext.db-wal', '.env', 'aitext.lock',
+        "startup_err.log",
+        "startup_out.log",
+        "aitext.db",
+        "aitext.db-shm",
+        "aitext.db-wal",
+        ".env",
+        "aitext.lock",
     ]
 
     def __init__(self, on_log=None, on_progress=None):
@@ -56,7 +68,7 @@ class ProjectPacker:
     def pack(self):
         """执行打包。返回 (success, zip_path)"""
         parent = os.path.dirname(self.proj_dir)
-        timestamp = time.strftime('%Y%m%d-%H%M')
+        timestamp = time.strftime("%Y%m%d-%H%M")
         default_zip = os.path.join(parent, f"aitext-{timestamp}.zip")
 
         self._prog(0, "准备打包项目...", "📦")
@@ -67,10 +79,13 @@ class ProjectPacker:
 
         try:
             proc = subprocess.Popen(
-                ["powershell", "-NoProfile", "-NonInteractive",
-                 "-WindowStyle", "Hidden", "-Command", ps_script],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, encoding="gbk", errors="replace", bufsize=1,
+                ["powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", ps_script],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="gbk",
+                errors="replace",
+                bufsize=1,
                 creationflags=NO_WIN,
             )
 
@@ -127,11 +142,9 @@ class ProjectPacker:
             "$tempDir = Join-Path $env:TEMP ('aitext_pack_' + [guid]::NewGuid().ToString('N').Substring(0,8));\n"
             "$folderName = Split-Path $src -Leaf;\n"
             "$destDir = Join-Path $tempDir $folderName;\n"
-
             "Write-Host '[1/3] 复制文件...';\n"
             f"$excludeDirs = @({dirs_str});\n"
             f"$excludeFiles = @({files_str});\n"
-
             # 递归过滤复制函数
             "function Copy-Filtered($srcPath, $dstPath) {\n"
             "  if (!(Test-Path $dstPath)) { New-Item -ItemType Directory -Path $dstPath -Force | Out-Null }\n"
@@ -165,18 +178,14 @@ class ProjectPacker:
             "    }\n"
             "  }\n"
             "}\n"
-
             "Copy-Filtered $src $destDir;\n"
             "New-Item -ItemType Directory -Path (Join-Path $destDir 'logs') -Force | Out-Null;\n"
-
             "Write-Host '[2/3] 压缩文件...';\n"
             "if (Test-Path $zipPath) { Remove-Item $zipPath -Force }\n"
             "Add-Type -AssemblyName System.IO.Compression.FileSystem;\n"
             "[System.IO.Compression.ZipFile]::CreateFromDirectory($tempDir, $zipPath, 'Optimal', $false);\n"
-
             "Write-Host '[3/3] 清理临时文件...';\n"
             "Remove-Item $tempDir -Recurse -Force;\n"
-
             "$sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1);\n"
             "Write-Host ('SIZE_MB=' + $sizeMB);\n"
         )

@@ -1,4 +1,5 @@
 """Bible 地点 parent_id 森林校验（无环、无悬空父）。"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Set

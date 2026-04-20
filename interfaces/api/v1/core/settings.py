@@ -1,8 +1,9 @@
 """LLM 配置管理 API（兼容旧路由，底层委托给 LLMControlService）。"""
+
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -17,6 +18,7 @@ _service = LLMControlService()
 
 
 # ── schemas (兼容旧接口) ──────────────────────────────
+
 
 class ConfigCreate(BaseModel):
     name: str
@@ -59,6 +61,7 @@ def _profile_to_dict(p: LLMProfile) -> dict:
 
 
 # ── endpoints ──────────────────────────────────────────
+
 
 @router.get("/")
 def list_configs():
@@ -124,8 +127,7 @@ def activate_config(config_id: str):
 @router.post("/fetch-models")
 async def fetch_models(body: FetchModelsRequest):
     """复用 llm-control/models 端点的逻辑。"""
-    from interfaces.api.v1.workbench.llm_control import list_models
-    from interfaces.api.v1.workbench.llm_control import ModelListRequest
+    from interfaces.api.v1.workbench.llm_control import ModelListRequest, list_models
 
     payload = ModelListRequest(
         protocol=body.provider,
@@ -155,6 +157,7 @@ class EmbeddingConfigUpdate(BaseModel):
 def get_embedding_config():
     """获取当前嵌入模型配置（从数据库读取）。"""
     from application.ai.embedding_config_service import get_embedding_config_service
+
     svc = get_embedding_config_service()
     return svc.to_api_dict()
 
@@ -163,6 +166,7 @@ def get_embedding_config():
 def update_embedding_config(body: EmbeddingConfigUpdate):
     """更新嵌入模型配置（持久化到数据库）。"""
     from application.ai.embedding_config_service import get_embedding_config_service
+
     svc = get_embedding_config_service()
     updated = svc.update_config(
         mode=body.mode,
@@ -179,8 +183,7 @@ def update_embedding_config(body: EmbeddingConfigUpdate):
 async def fetch_embedding_models(body: FetchModelsRequest):
     if not body.base_url:
         return []
-    from interfaces.api.v1.workbench.llm_control import list_models
-    from interfaces.api.v1.workbench.llm_control import ModelListRequest
+    from interfaces.api.v1.workbench.llm_control import ModelListRequest, list_models
 
     payload = ModelListRequest(
         protocol=body.provider,

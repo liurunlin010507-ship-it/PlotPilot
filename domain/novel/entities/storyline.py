@@ -1,9 +1,10 @@
 from typing import List, Optional
-from domain.shared.base_entity import BaseEntity
+
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
+from domain.shared.base_entity import BaseEntity
 
 
 class Storyline(BaseEntity):
@@ -22,7 +23,7 @@ class Storyline(BaseEntity):
         name: str = "",
         description: str = "",
         last_active_chapter: int = 0,
-        progress_summary: str = ""
+        progress_summary: str = "",
     ):
         super().__init__(id)
         self.novel_id = novel_id
@@ -55,7 +56,7 @@ class Storyline(BaseEntity):
 
     def get_pending_milestones(self) -> List[StorylineMilestone]:
         """获取待完成的里程碑"""
-        return self.milestones[self.current_milestone_index:]
+        return self.milestones[self.current_milestone_index :]
 
     def complete_milestone(self, order: int) -> None:
         """完成指定顺序的里程碑

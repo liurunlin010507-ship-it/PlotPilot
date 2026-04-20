@@ -1,4 +1,5 @@
 """语义快照：回滚等到位后的 HTTP 接口。"""
+
 import logging
 from typing import List
 

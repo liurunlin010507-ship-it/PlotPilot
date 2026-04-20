@@ -1,4 +1,5 @@
 """在任意 JSON 子树中按「键名约定」改写章号整数，避免为每种快照结构写死解析代码。"""
+
 from __future__ import annotations
 
 from typing import Any, FrozenSet

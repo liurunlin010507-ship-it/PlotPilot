@@ -3,6 +3,7 @@
 将嵌入模型配置持久化到 SQLite embedding_config 表；
 默认模型 ID / 本地路径由环境变量或用户在设置中填写，不在代码中写死。
 """
+
 from __future__ import annotations
 
 import logging
@@ -10,13 +11,14 @@ import os
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingConfigModel(BaseModel):
     """嵌入配置数据模型。"""
+
     model_config = {"protected_namespaces": ()}
     id: str = "default"
     mode: str = "openai"  # local | openai（默认云端，轻量）
@@ -39,7 +41,7 @@ class EmbeddingConfigModel(BaseModel):
         }
 
     @classmethod
-    def from_row(cls, row: Dict[str, Any]) -> "EmbeddingConfigModel":
+    def from_row(cls, row: Dict[str, Any]) -> EmbeddingConfigModel:
         return cls(
             id=row["id"],
             mode=row.get("mode", "openai"),
@@ -93,21 +95,24 @@ class EmbeddingConfigService:
         if row:
             return
         now = datetime.now().isoformat()
-        db.execute("""
+        db.execute(
+            """
             INSERT OR IGNORE INTO embedding_config
             (id, mode, api_key, base_url, model, use_gpu, model_path, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            "default",
-            "openai",
-            "",
-            "",
-            (os.getenv("EMBEDDING_MODEL") or "").strip(),
-            1,
-            (os.getenv("LOCAL_EMBEDDING_MODEL_PATH") or "").strip(),
-            now,
-            now,
-        ))
+        """,
+            (
+                "default",
+                "openai",
+                "",
+                "",
+                (os.getenv("EMBEDDING_MODEL") or "").strip(),
+                1,
+                (os.getenv("LOCAL_EMBEDDING_MODEL_PATH") or "").strip(),
+                now,
+                now,
+            ),
+        )
         db.get_connection().commit()
         logger.info("EmbeddingConfigService: 已初始化默认嵌入配置")
 

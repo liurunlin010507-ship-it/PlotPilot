@@ -4,6 +4,7 @@ from enum import Enum
 
 class RelationType(Enum):
     """关系类型枚举"""
+
     STRANGER = "stranger"
     ACQUAINTANCE = "acquaintance"
     FRIEND = "friend"
@@ -17,6 +18,7 @@ class RelationType(Enum):
 @dataclass(frozen=True)
 class Relationship:
     """角色关系值对象"""
+
     relation_type: RelationType
     established_in_chapter: int
     description: str

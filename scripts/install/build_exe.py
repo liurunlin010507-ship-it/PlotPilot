@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 aitex 启动器打包脚本
 ━━━━━━━━━━━━━━━━
@@ -15,9 +14,9 @@ aitex 启动器打包脚本
 """
 
 import os
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 
 # ══════════════════════════════════════════════
 # 路径配置
@@ -53,10 +52,11 @@ def build():
 
     # ═══ 检查内嵌 Python zip（运行时自动解压） ═══
     import re as _re
+
     zip_found = False
     tools_dir = EMBED_PYTHON_ZIP
     for f in os.listdir(tools_dir) if os.path.isdir(tools_dir) else []:
-        if _re.match(r'python-\d+\.\d+\.\d+-embed-amd64\.zip$', f):
+        if _re.match(r"python-\d+\.\d+\.\d+-embed-amd64\.zip$", f):
             zip_found = True
             zip_path = os.path.join(tools_dir, f)
             break
@@ -77,60 +77,85 @@ def build():
     optional_bundles: list[str] = []
     frontend_dist = os.path.join(PROJ_DIR, "frontend", "dist")
     if os.path.isdir(frontend_dist):
-        optional_bundles.extend(
-            ["--add-data", f"{frontend_dist}{os.pathsep}dist"]
-        )
+        optional_bundles.extend(["--add-data", f"{frontend_dist}{os.pathsep}dist"])
     else:
         print(f"  [SKIP] 未找到前端构建目录，跳过: {frontend_dist}")
 
     frontend_tauri = os.path.join(PROJ_DIR, "frontend", "src-tauri")
     if os.path.isdir(frontend_tauri):
-        optional_bundles.extend(
-            ["--add-data", f"{frontend_tauri}{os.pathsep}src-tauri"]
-        )
+        optional_bundles.extend(["--add-data", f"{frontend_tauri}{os.pathsep}src-tauri"])
     else:
         print(f"  [SKIP] 未找到 Tauri 工程目录，跳过: {frontend_tauri}")
 
     # PyInstaller 命令
     cmd = [
-        sys.executable, "-m", "PyInstaller",
-        "--name", EXE_NAME,
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--name",
+        EXE_NAME,
         "--onedir",
-        "--windowed",          # 隐藏控制台黑框（GUI 模式）
+        "--windowed",  # 隐藏控制台黑框（GUI 模式）
         "--noconfirm",
         "--clean",
         # 把整个 install 目录作为数据文件打包进去
-        "--add-data", f"{INSTALL_DIR}{os.pathsep}scripts/install",
+        "--add-data",
+        f"{INSTALL_DIR}{os.pathsep}scripts/install",
         # requirements 文件（核心 + 扩展）
         *req_files,
         *optional_bundles,
         # tkinter + 常用标准库（PyInstaller 可能遗漏的）
-        "--hidden-import", "tkinter",
-        "--hidden-import", "tkinter.ttk",
-        "--hidden-import", "tkinter.font",
-        "--hidden-import", "tkinter.messagebox",
-        "--hidden-import", "webbrowser",
-        "--hidden-import", "threading",
-        "--hidden-import", "subprocess",
-        "--hidden-import", "shutil",
-        "--hidden-import", "socket",
-        "--hidden-import", "json",
-        "--hidden-import", "re",
-        "--hidden-import", "time",
-        "--hidden-import", "os",
-        "--hidden-import", "sys",
-        "--hidden-import", "traceback",
-        "--hidden-import", "pathlib",
-        "--hidden-import", "urllib.parse",
-        "--hidden-import", "urllib.request",
-        "--hidden-import", "html",
-        "--hidden-import", "http.client",
-        "--hidden-import", "email",
-        "--hidden-import", "email.mime",
-        "--hidden-import", "email.mime.text",
+        "--hidden-import",
+        "tkinter",
+        "--hidden-import",
+        "tkinter.ttk",
+        "--hidden-import",
+        "tkinter.font",
+        "--hidden-import",
+        "tkinter.messagebox",
+        "--hidden-import",
+        "webbrowser",
+        "--hidden-import",
+        "threading",
+        "--hidden-import",
+        "subprocess",
+        "--hidden-import",
+        "shutil",
+        "--hidden-import",
+        "socket",
+        "--hidden-import",
+        "json",
+        "--hidden-import",
+        "re",
+        "--hidden-import",
+        "time",
+        "--hidden-import",
+        "os",
+        "--hidden-import",
+        "sys",
+        "--hidden-import",
+        "traceback",
+        "--hidden-import",
+        "pathlib",
+        "--hidden-import",
+        "urllib.parse",
+        "--hidden-import",
+        "urllib.request",
+        "--hidden-import",
+        "html",
+        "--hidden-import",
+        "http.client",
+        "--hidden-import",
+        "email",
+        "--hidden-import",
+        "email.mime",
+        "--hidden-import",
+        "email.mime.text",
         # 搜索路径
-        "--paths", PROJ_DIR,
-        "--paths", INSTALL_DIR,
+        "--paths",
+        PROJ_DIR,
+        "--paths",
+        INSTALL_DIR,
         # 用 __main__.py 作为入口（它用 exec 加载 hub.py，
         # 避免 PyInstaller 静态分析 import 冲突）
         ENTRY_FILE,
@@ -138,16 +163,19 @@ def build():
 
     # ═══ 把 Python embed zip 打入 exe（运行时自动解压到 python_embed/） ═══
     if zip_found:
-        cmd.extend([
-            "--add-data", f"{zip_path}{os.pathsep}tools",
-        ])
-        print(f"  [EMBED] Packing python embed zip into exe...")
+        cmd.extend(
+            [
+                "--add-data",
+                f"{zip_path}{os.pathsep}tools",
+            ]
+        )
+        print("  [EMBED] Packing python embed zip into exe...")
 
     if os.path.exists(ICON_PATH):
         cmd.extend(["--icon", ICON_PATH])
         print(f"  [ICON] Using: {ICON_PATH}")
     else:
-        print(f"  [ICON] No icon found, skipping.")
+        print("  [ICON] No icon found, skipping.")
 
     print("=" * 56)
     print("  Building aitex launcher...")
@@ -181,7 +209,7 @@ def build():
 
             # 同时确保 Python embed zip 也在 tools/ 下（运行时自动解压）
             # python_embed/ 不需要复制，首次启动时 ensure_embedded_python() 会自动从 zip 解压
-            print(f"  (python_embed 将在首次启动时自动解压)")
+            print("  (python_embed 将在首次启动时自动解压)")
     else:
         print("\n  BUILD FAILED!")
         sys.exit(1)

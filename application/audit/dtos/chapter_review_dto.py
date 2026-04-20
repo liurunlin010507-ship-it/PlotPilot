@@ -1,12 +1,13 @@
 """Chapter Review 数据传输对象"""
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
 class ChapterReviewDTO:
     """章节审阅 DTO"""
+
     status: str  # "draft", "reviewed", "approved"
     memo: str
     created_at: datetime
@@ -18,15 +19,15 @@ class ChapterReviewDTO:
             "status": self.status,
             "memo": self.memo,
             "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
+            "updated_at": self.updated_at.isoformat(),
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'ChapterReviewDTO':
+    def from_dict(cls, data: dict) -> "ChapterReviewDTO":
         """从字典创建 DTO"""
         return cls(
             status=data.get("status", "draft"),
             memo=data.get("memo", ""),
             created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.utcnow(),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.utcnow()
+            updated_at=datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.utcnow(),
         )

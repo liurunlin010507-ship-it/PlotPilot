@@ -1,5 +1,7 @@
 """Knowledge Triple entity"""
-from typing import Optional, Literal, List, Dict, Any
+
+from typing import Any, Dict, List, Literal, Optional
+
 from domain.shared.base_entity import BaseEntity
 
 
@@ -18,9 +20,9 @@ class KnowledgeTriple(BaseEntity):
         object: str,
         chapter_id: Optional[int] = None,
         note: str = "",
-        entity_type: Optional[Literal['character', 'location']] = None,
+        entity_type: Optional[Literal["character", "location"]] = None,
         importance: Optional[str] = None,
-        location_type: Optional[Literal['city', 'region', 'building', 'faction', 'realm']] = None,
+        location_type: Optional[Literal["city", "region", "building", "faction", "realm"]] = None,
         description: Optional[str] = None,
         first_appearance: Optional[int] = None,
         related_chapters: Optional[List[int]] = None,

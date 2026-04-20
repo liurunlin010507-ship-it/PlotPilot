@@ -1,4 +1,5 @@
 """Entity Base Repository 抽象接口"""
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -20,13 +21,7 @@ class EntityBaseRepository(ABC):
         pass
 
     @abstractmethod
-    def create(
-        self,
-        novel_id: str,
-        entity_type: str,
-        name: str,
-        core_attributes: dict
-    ) -> str:
+    def create(self, novel_id: str, entity_type: str, name: str, core_attributes: dict) -> str:
         """创建新实体基座
 
         Args:

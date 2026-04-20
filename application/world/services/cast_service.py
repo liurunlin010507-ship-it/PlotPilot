@@ -1,45 +1,71 @@
 """Cast application service - 从三元组自动生成关系图"""
+
+import json
 import logging
 import re
-import json
-from typing import Optional, List, Dict, Set, Any, TYPE_CHECKING
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 if TYPE_CHECKING:
     from domain.knowledge.repositories.knowledge_repository import KnowledgeRepository
+from application.world.dtos.cast_dto import (
+    BibleCharacterDTO,
+    CastCoverageDTO,
+    CastGraphDTO,
+    CastSearchResultDTO,
+    CharacterCoverageDTO,
+    QuotedTextDTO,
+)
 from domain.cast.aggregates.cast_graph import CastGraph
 from domain.cast.entities.character import Character
 from domain.cast.entities.relationship import Relationship
-from domain.cast.entities.story_event import StoryEvent
 from domain.cast.value_objects.character_id import CharacterId
 from domain.cast.value_objects.relationship_id import RelationshipId
 from domain.novel.value_objects.novel_id import NovelId
-from application.world.dtos.cast_dto import (
-    CastGraphDTO,
-    CastSearchResultDTO,
-    CastCoverageDTO,
-    CharacterCoverageDTO,
-    BibleCharacterDTO,
-    QuotedTextDTO
-)
 
 logger = logging.getLogger(__name__)
 
 
 # 人物角色关键词（用于识别人物节点）
 CHARACTER_ROLE_KEYWORDS = {
-    "主角", "配角", "反派", "人物", "角色",
-    "主要角色", "次要角色", "重要角色",
-    "男主", "女主", "男配", "女配"
+    "主角",
+    "配角",
+    "反派",
+    "人物",
+    "角色",
+    "主要角色",
+    "次要角色",
+    "重要角色",
+    "男主",
+    "女主",
+    "男配",
+    "女配",
 }
 
 # 人物关系谓词（用于识别关系边）
 RELATIONSHIP_PREDICATES = {
-    "师徒", "父子", "母子", "父女", "母女", "兄弟", "姐妹", "夫妻",
-    "朋友", "好友", "挚友", "知己",
-    "敌对", "仇敌", "对手", "竞争",
-    "上下级", "主仆", "雇佣",
-    "认识", "相识", "熟悉"
+    "师徒",
+    "父子",
+    "母子",
+    "父女",
+    "母女",
+    "兄弟",
+    "姐妹",
+    "夫妻",
+    "朋友",
+    "好友",
+    "挚友",
+    "知己",
+    "敌对",
+    "仇敌",
+    "对手",
+    "竞争",
+    "上下级",
+    "主仆",
+    "雇佣",
+    "认识",
+    "相识",
+    "熟悉",
 }
 
 
@@ -161,13 +187,7 @@ class CastService:
             # 规则1：predicate="是" 且 object 是人物角色
             if predicate == "是" and any(keyword in obj for keyword in CHARACTER_ROLE_KEYWORDS):
                 if subject not in character_map:
-                    character_map[subject] = {
-                        "name": subject,
-                        "role": obj,
-                        "traits": "",
-                        "note": note,
-                        "aliases": []
-                    }
+                    character_map[subject] = {"name": subject, "role": obj, "traits": "", "note": note, "aliases": []}
                 else:
                     # 更新角色信息
                     character_map[subject]["role"] = obj
@@ -177,13 +197,7 @@ class CastService:
             # 规则2：predicate 是能力、目标等属性
             elif predicate in ["能力是", "目标是", "特点是", "性格是"]:
                 if subject not in character_map:
-                    character_map[subject] = {
-                        "name": subject,
-                        "role": "",
-                        "traits": obj,
-                        "note": note,
-                        "aliases": []
-                    }
+                    character_map[subject] = {"name": subject, "role": "", "traits": obj, "note": note, "aliases": []}
                 else:
                     # 追加特质
                     if character_map[subject]["traits"]:
@@ -202,21 +216,9 @@ class CastService:
             if self._predicate_matches_relationship(predicate):
                 # subject 和 object 都应该是人物
                 if subject and subject not in character_map:
-                    character_map[subject] = {
-                        "name": subject,
-                        "role": "",
-                        "traits": "",
-                        "note": "",
-                        "aliases": []
-                    }
+                    character_map[subject] = {"name": subject, "role": "", "traits": "", "note": "", "aliases": []}
                 if obj and obj not in character_map:
-                    character_map[obj] = {
-                        "name": obj,
-                        "role": "",
-                        "traits": "",
-                        "note": "",
-                        "aliases": []
-                    }
+                    character_map[obj] = {"name": obj, "role": "", "traits": "", "note": "", "aliases": []}
 
         # 转换为 Character 对象
         characters = []
@@ -229,18 +231,14 @@ class CastService:
                 role=data["role"],
                 traits=data["traits"],
                 note=data["note"],
-                story_events=[]
+                story_events=[],
             )
             characters.append(character)
 
         logger.info(f"→ 从三元组中提取了 {len(characters)} 个人物")
         return characters
 
-    def _extract_relationships_from_facts(
-        self,
-        facts: List[dict],
-        characters: List[Character]
-    ) -> List[Relationship]:
+    def _extract_relationships_from_facts(self, facts: List[dict], characters: List[Character]) -> List[Relationship]:
         """从三元组中提取人物关系
 
         Args:
@@ -283,7 +281,7 @@ class CastService:
                 label=predicate,
                 note=full_note or note,
                 directed=True,  # 默认有向
-                story_events=[]
+                story_events=[],
             )
             relationships.append(relationship)
 
@@ -307,7 +305,7 @@ class CastService:
             novel_id=NovelId(novel_id),
             version=2,
             characters=characters,
-            relationships=relationships
+            relationships=relationships,
         )
 
         logger.info(f"✓ 关系图生成完成: {len(characters)} 人物, {len(relationships)} 关系")
@@ -336,7 +334,7 @@ class CastService:
                 role=char_dto.role,
                 traits=char_dto.traits,
                 note=char_dto.note,
-                story_events=[]
+                story_events=[],
             )
             characters.append(character)
 
@@ -349,7 +347,7 @@ class CastService:
                 label=rel_dto.label,
                 note=rel_dto.note,
                 directed=rel_dto.directed,
-                story_events=[]
+                story_events=[],
             )
             relationships.append(relationship)
 
@@ -358,7 +356,7 @@ class CastService:
             novel_id=NovelId(novel_id),
             version=2,
             characters=characters,
-            relationships=relationships
+            relationships=relationships,
         )
 
         matched_chars = cast_graph.search_characters(query)
@@ -394,13 +392,13 @@ class CastService:
         char_mentions: Dict[str, Set[int]] = {char.id: set() for char in cast_dto.characters}
 
         for chapter_file in chapter_files:
-            match = re.search(r'chapter_(\d+)\.md', chapter_file.name)
+            match = re.search(r"chapter_(\d+)\.md", chapter_file.name)
             if not match:
                 continue
             chapter_id = int(match.group(1))
 
             try:
-                content = chapter_file.read_text(encoding='utf-8')
+                content = chapter_file.read_text(encoding="utf-8")
                 for name, char_id in char_name_map.items():
                     if name in content:
                         char_mentions[char_id].add(chapter_id)
@@ -411,12 +409,11 @@ class CastService:
         characters_coverage = []
         for char in cast_dto.characters:
             chapter_ids = sorted(char_mentions.get(char.id, set()))
-            characters_coverage.append(CharacterCoverageDTO(
-                id=char.id,
-                name=char.name,
-                mentioned=len(chapter_ids) > 0,
-                chapter_ids=chapter_ids
-            ))
+            characters_coverage.append(
+                CharacterCoverageDTO(
+                    id=char.id, name=char.name, mentioned=len(chapter_ids) > 0, chapter_ids=chapter_ids
+                )
+            )
 
         # 分析 Bible 覆盖率
         bible_not_in_cast = self._analyze_bible_coverage(novel_id, cast_dto, chapter_files)
@@ -428,14 +425,11 @@ class CastService:
             chapter_files_scanned=chapter_files_scanned,
             characters=characters_coverage,
             bible_not_in_cast=bible_not_in_cast,
-            quoted_not_in_cast=quoted_not_in_cast
+            quoted_not_in_cast=quoted_not_in_cast,
         )
 
     def _analyze_bible_coverage(
-        self,
-        novel_id: str,
-        cast_dto: CastGraphDTO,
-        chapter_files: List[Path]
+        self, novel_id: str, cast_dto: CastGraphDTO, chapter_files: List[Path]
     ) -> List[BibleCharacterDTO]:
         """分析 Bible 中的人物是否在关系图中
 
@@ -452,7 +446,7 @@ class CastService:
             return []
 
         try:
-            bible_data = json.loads(bible_path.read_text(encoding='utf-8'))
+            bible_data = json.loads(bible_path.read_text(encoding="utf-8"))
             bible_characters = bible_data.get("characters", [])
         except Exception as e:
             logger.warning(f"Failed to load bible data: {e}")
@@ -474,32 +468,30 @@ class CastService:
             # 检查是否在章节中提及
             chapter_ids = set()
             for chapter_file in chapter_files:
-                match = re.search(r'chapter_(\d+)\.md', chapter_file.name)
+                match = re.search(r"chapter_(\d+)\.md", chapter_file.name)
                 if not match:
                     continue
                 chapter_id = int(match.group(1))
 
                 try:
-                    content = chapter_file.read_text(encoding='utf-8')
+                    content = chapter_file.read_text(encoding="utf-8")
                     if name in content:
                         chapter_ids.add(chapter_id)
                 except Exception:
                     pass
 
-            result.append(BibleCharacterDTO(
-                name=name,
-                role=bible_char.get("role", ""),
-                in_novel_text=len(chapter_ids) > 0,
-                chapter_ids=sorted(chapter_ids)
-            ))
+            result.append(
+                BibleCharacterDTO(
+                    name=name,
+                    role=bible_char.get("role", ""),
+                    in_novel_text=len(chapter_ids) > 0,
+                    chapter_ids=sorted(chapter_ids),
+                )
+            )
 
         return result
 
-    def _analyze_quoted_text(
-        self,
-        cast_dto: CastGraphDTO,
-        chapter_files: List[Path]
-    ) -> List[QuotedTextDTO]:
+    def _analyze_quoted_text(self, cast_dto: CastGraphDTO, chapter_files: List[Path]) -> List[QuotedTextDTO]:
         """分析引号文本中不在关系图中的人物
 
         Args:
@@ -516,17 +508,17 @@ class CastService:
             cast_names.update(char.aliases)
 
         # 查找引号文本
-        quoted_pattern = re.compile(r'「([^」]+)」')
+        quoted_pattern = re.compile(r"「([^」]+)」")
         quoted_mentions: Dict[str, Set[int]] = {}
 
         for chapter_file in chapter_files:
-            match = re.search(r'chapter_(\d+)\.md', chapter_file.name)
+            match = re.search(r"chapter_(\d+)\.md", chapter_file.name)
             if not match:
                 continue
             chapter_id = int(match.group(1))
 
             try:
-                content = chapter_file.read_text(encoding='utf-8')
+                content = chapter_file.read_text(encoding="utf-8")
                 for match in quoted_pattern.finditer(content):
                     text = match.group(1)
                     if text not in cast_names:
@@ -539,11 +531,7 @@ class CastService:
         # 构建结果
         result = []
         for text, chapter_ids in quoted_mentions.items():
-            result.append(QuotedTextDTO(
-                text=text,
-                count=len(chapter_ids),
-                chapter_ids=sorted(chapter_ids)
-            ))
+            result.append(QuotedTextDTO(text=text, count=len(chapter_ids), chapter_ids=sorted(chapter_ids)))
 
         # 按出现次数降序排序
         result.sort(key=lambda x: x.count, reverse=True)

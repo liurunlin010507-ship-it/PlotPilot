@@ -1,10 +1,11 @@
 """Statistics service layer for business logic."""
-from typing import Optional, List, Dict
-from datetime import datetime
-import logging
 
+import logging
+from datetime import datetime
+from typing import Dict, List, Optional
+
+from ..models.stats_models import BookStats, ChapterStats, GlobalStats, WritingProgress
 from ..repositories.stats_repository import StatsRepository
-from ..models.stats_models import GlobalStats, BookStats, ChapterStats, WritingProgress
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class StatsService:
             total_chapters=total_chapters,
             total_words=total_words,
             total_characters=total_characters,
-            books_by_stage=books_by_stage
+            books_by_stage=books_by_stage,
         )
 
         logger.info(f"Global stats: {total_books} books, {total_chapters} chapters, {total_words} words")
@@ -135,10 +136,12 @@ class StatsService:
             total_words=total_words,
             avg_chapter_words=avg_chapter_words,
             completion_rate=completion_rate,
-            last_updated=datetime.now()
+            last_updated=datetime.now(),
         )
 
-        logger.info(f"Book stats for {slug}: {total_chapters} chapters, {completed_chapters} completed, {total_words} words")
+        logger.info(
+            f"Book stats for {slug}: {total_chapters} chapters, {completed_chapters} completed, {total_words} words"
+        )
         return stats
 
     def get_chapter_stats(self, slug: str, chapter_id: int) -> Optional[ChapterStats]:
@@ -181,7 +184,7 @@ class StatsService:
         character_count = len(content)
 
         # Count paragraphs (non-empty lines)
-        lines = content.split('\n')
+        lines = content.split("\n")
         paragraph_count = sum(1 for line in lines if line.strip())
 
         has_content = word_count > 0 or character_count > 0
@@ -192,10 +195,12 @@ class StatsService:
             word_count=word_count,
             character_count=character_count,
             paragraph_count=paragraph_count,
-            has_content=has_content
+            has_content=has_content,
         )
 
-        logger.info(f"Chapter stats for {slug}/{chapter_id}: {word_count} words, {character_count} chars, {paragraph_count} paragraphs")
+        logger.info(
+            f"Chapter stats for {slug}/{chapter_id}: {word_count} words, {character_count} chars, {paragraph_count} paragraphs"
+        )
         return stats
 
     def get_writing_progress(self, slug: str, days: int = 30) -> List[WritingProgress]:

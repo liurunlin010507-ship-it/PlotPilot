@@ -6,15 +6,15 @@
 """
 
 import uuid
-from typing import List, Optional, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from domain.novel.value_objects.novel_id import NovelId
-from domain.structure.story_node import StoryNode, StoryTree, NodeType
+from domain.structure.story_node import NodeType, StoryNode
 from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
 
 if TYPE_CHECKING:
-    from domain.novel.repositories.chapter_repository import ChapterRepository
     from application.blueprint.services.continuous_planning_service import ContinuousPlanningService
+    from domain.novel.repositories.chapter_repository import ChapterRepository
 
 
 class StoryStructureService:
@@ -36,9 +36,7 @@ class StoryStructureService:
         self._chapter_repository = chapter_repository
         self._planning_service = planning_service
 
-    def _enrich_chapter_nodes_from_chapters_table(
-        self, novel_id: str, nodes: List[Dict[str, Any]]
-    ) -> None:
+    def _enrich_chapter_nodes_from_chapters_table(self, novel_id: str, nodes: List[Dict[str, Any]]) -> None:
         """章节正文写入 chapters 表后，story_nodes.word_count 可能未同步；展示时以章节表为准。"""
         if not self._chapter_repository or not nodes:
             return
@@ -108,7 +106,7 @@ class StoryStructureService:
         title: str,
         parent_id: Optional[str] = None,
         description: Optional[str] = None,
-        order_index: Optional[int] = None
+        order_index: Optional[int] = None,
     ) -> Dict[str, Any]:
         """创建节点"""
         # 验证节点类型
@@ -131,18 +129,14 @@ class StoryStructureService:
             number=number,
             title=title,
             description=description,
-            order_index=order_index
+            order_index=order_index,
         )
 
         saved_node = await self.repository.save(node)
         return saved_node.to_dict()
 
     async def update_node(
-        self,
-        node_id: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        number: Optional[int] = None
+        self, node_id: str, title: Optional[str] = None, description: Optional[str] = None, number: Optional[int] = None
     ) -> Dict[str, Any]:
         """更新节点"""
         node = await self.repository.get_by_id(node_id)
@@ -180,10 +174,7 @@ class StoryStructureService:
         await self.repository.update_chapter_ranges(novel_id)
 
     async def create_default_structure(
-        self,
-        novel_id: str,
-        total_chapters: int = 100,
-        structure_preference: Optional[Dict[str, Any]] = None
+        self, novel_id: str, total_chapters: int = 100, structure_preference: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """创建默认结构（AI 动态规划驱动）
 
@@ -212,15 +203,12 @@ class StoryStructureService:
         # 检查 planning_service 是否可用
         if self._planning_service is None:
             raise RuntimeError(
-                "AI 规划服务未初始化。请确保在创建 StoryStructureService 时 "
-                "传入了 planning_service 参数。"
+                "AI 规划服务未初始化。请确保在创建 StoryStructureService 时 传入了 planning_service 参数。"
             )
 
         # 步骤 1：调用 AI 生成宏观规划
         plan_result = await self._planning_service.generate_macro_plan(
-            novel_id=novel_id,
-            target_chapters=total_chapters,
-            structure_preference=structure_preference
+            novel_id=novel_id, target_chapters=total_chapters, structure_preference=structure_preference
         )
 
         if not plan_result.get("success"):
@@ -232,10 +220,7 @@ class StoryStructureService:
 
         # 步骤 2：使用安全合并机制保存结构
         # 这会保护已有正文章节，避免数据丢失
-        merge_result = await self._planning_service.confirm_macro_plan_safe(
-            novel_id=novel_id,
-            structure=structure
-        )
+        merge_result = await self._planning_service.confirm_macro_plan_safe(novel_id=novel_id, structure=structure)
 
         if not merge_result.get("success"):
             raise RuntimeError(f"结构保存失败: {merge_result.get('message', '未知错误')}")

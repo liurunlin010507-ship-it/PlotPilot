@@ -10,12 +10,12 @@
 使用 FAISS 进行向量检索，使用 JSON 文件管理元数据。
 命名保持 ChromaDB 以兼容现有代码。
 """
-from typing import List
+
 import json
-import os
-import uuid
 import logging
+import uuid
 from pathlib import Path
+from typing import List
 
 from domain.ai.services.vector_store import VectorStore
 from domain.novel.value_objects.chapter_renumber_spec import ChapterRenumberSpec
@@ -108,12 +108,9 @@ class ChromaDBVectorStore(VectorStore):
 
                 if index_path.exists() and metadata_path.exists():
                     index = faiss.read_index(str(index_path))
-                    with open(metadata_path, 'r', encoding='utf-8') as f:
+                    with open(metadata_path, encoding="utf-8") as f:
                         metadata = json.load(f)
-                    self.collections[collection_name] = {
-                        "index": index,
-                        "metadata": metadata
-                    }
+                    self.collections[collection_name] = {"index": index, "metadata": metadata}
 
     def _save_collection(self, collection: str):
         """保存集合到磁盘"""
@@ -127,19 +124,12 @@ class ChromaDBVectorStore(VectorStore):
         metadata_path = collection_dir / "metadata.json"
 
         faiss.write_index(coll["index"], str(index_path))
-        with open(metadata_path, 'w', encoding='utf-8') as f:
+        with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(coll["metadata"], f, ensure_ascii=False, indent=2)
 
-    async def insert(
-        self,
-        collection: str,
-        id: str,
-        vector: List[float],
-        payload: dict
-    ) -> None:
+    async def insert(self, collection: str, id: str, vector: List[float], payload: dict) -> None:
         """插入向量到集合中"""
         import numpy as np
-        import faiss
 
         try:
             if collection not in self.collections:
@@ -152,9 +142,12 @@ class ChromaDBVectorStore(VectorStore):
             # 用实际向量维度检测 FAISS 索引维度，不匹配则重建
             if coll["index"].d != actual_dim:
                 import logging
+
                 logging.getLogger(__name__).warning(
                     "FAISS索引维度不匹配，自动重建 collection=%s old_dim=%d actual_dim=%d",
-                    collection, coll["index"].d, actual_dim
+                    collection,
+                    coll["index"].d,
+                    actual_dim,
                 )
                 await self.delete_collection(collection)
                 await self.create_collection(collection, actual_dim)
@@ -169,21 +162,13 @@ class ChromaDBVectorStore(VectorStore):
             idx = coll["index"].ntotal - 1
 
             # 保存元数据
-            coll["metadata"][id] = {
-                "idx": idx,
-                "payload": payload
-            }
+            coll["metadata"][id] = {"idx": idx, "payload": payload}
 
             self._save_collection(collection)
         except Exception as e:
             raise Exception(f"Failed to insert vector: {str(e)}")
 
-    async def search(
-        self,
-        collection: str,
-        query_vector: List[float],
-        limit: int
-    ) -> List[dict]:
+    async def search(self, collection: str, query_vector: List[float], limit: int) -> List[dict]:
         """搜索相似向量"""
         import numpy as np
 
@@ -211,21 +196,13 @@ class ChromaDBVectorStore(VectorStore):
                 if vec_id:
                     # 将 L2 距离转换为相似度分数 (0-1)
                     score = 1.0 / (1.0 + float(dist))
-                    output.append({
-                        "id": vec_id,
-                        "score": score,
-                        "payload": coll["metadata"][vec_id]["payload"]
-                    })
+                    output.append({"id": vec_id, "score": score, "payload": coll["metadata"][vec_id]["payload"]})
 
             return output
         except Exception as e:
             raise Exception(f"Failed to search vectors: {str(e)}")
 
-    async def delete(
-        self,
-        collection: str,
-        id: str
-    ) -> None:
+    async def delete(self, collection: str, id: str) -> None:
         """删除向量（标记删除，不重建索引）"""
         try:
             if collection not in self.collections:
@@ -238,11 +215,7 @@ class ChromaDBVectorStore(VectorStore):
         except Exception as e:
             raise Exception(f"Failed to delete vector: {str(e)}")
 
-    async def create_collection(
-        self,
-        collection: str,
-        dimension: int
-    ) -> None:
+    async def create_collection(self, collection: str, dimension: int) -> None:
         """创建集合（若已存在且维度匹配则跳过；维度不匹配时删除后重建）"""
         import faiss
 
@@ -253,26 +226,23 @@ class ChromaDBVectorStore(VectorStore):
                     return  # 未知维度(0)或维度匹配，跳过重建
                 # 嵌入模型已更换，旧索引不兼容，重建
                 import logging
+
                 logging.getLogger(__name__).warning(
                     "向量集合维度不匹配，重建索引 collection=%s old_dim=%d new_dim=%d",
-                    collection, existing_dim, dimension
+                    collection,
+                    existing_dim,
+                    dimension,
                 )
                 await self.delete_collection(collection)
 
             # 创建 FAISS 索引（使用 L2 距离）
             index = faiss.IndexFlatL2(dimension)
-            self.collections[collection] = {
-                "index": index,
-                "metadata": {}
-            }
+            self.collections[collection] = {"index": index, "metadata": {}}
             self._save_collection(collection)
         except Exception as e:
             raise Exception(f"Failed to create collection: {repr(e)}")
 
-    async def delete_collection(
-        self,
-        collection: str
-    ) -> None:
+    async def delete_collection(self, collection: str) -> None:
         """删除集合"""
         import shutil
 
@@ -330,9 +300,7 @@ class ChromaDBVectorStore(VectorStore):
                     continue
                 new_payload = dict(payload)
                 new_payload["chapter_number"] = new_cn
-                new_id = _vector_id_after_chapter_shift(
-                    collection, old_id, new_payload, spec.novel_id, new_cn
-                )
+                new_id = _vector_id_after_chapter_shift(collection, old_id, new_payload, spec.novel_id, new_cn)
                 entry["payload"] = new_payload
                 if new_id == old_id:
                     meta[old_id] = entry
@@ -340,8 +308,7 @@ class ChromaDBVectorStore(VectorStore):
                     continue
                 if new_id in meta:
                     _vector_renumber_log.warning(
-                        "向量重编号 id 已存在，仅更新 payload，建议对该书重扫向量: "
-                        "collection=%s old_id=%s new_id=%s",
+                        "向量重编号 id 已存在，仅更新 payload，建议对该书重扫向量: collection=%s old_id=%s new_id=%s",
                         collection,
                         old_id,
                         new_id,

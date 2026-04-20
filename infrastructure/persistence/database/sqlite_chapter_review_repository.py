@@ -1,8 +1,8 @@
 """SQLite Chapter Review Repository：章节审阅（审定）记录。"""
+
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
@@ -63,4 +63,3 @@ class SqliteChapterReviewRepository:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-

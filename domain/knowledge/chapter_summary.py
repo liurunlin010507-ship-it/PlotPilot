@@ -1,5 +1,7 @@
 """Chapter Summary entity"""
-from typing import List, Dict, Any
+
+from typing import Any, Dict, List
+
 from domain.shared.base_entity import BaseEntity
 
 
@@ -15,7 +17,7 @@ class ChapterSummary(BaseEntity):
         consistency_note: str = "",
         beat_sections: List[str] = None,
         micro_beats: List[Dict[str, Any]] = None,
-        sync_status: str = "draft"
+        sync_status: str = "draft",
     ):
         """初始化章节摘要
 

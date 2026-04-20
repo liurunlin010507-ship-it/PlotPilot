@@ -9,10 +9,11 @@
 2. 文风评分：写入 chapter_style_scores（仅一次，不再入队 VOICE_ANALYSIS）
 3. 结构树知识图谱推断：KnowledgeGraphService.infer_from_chapter（与 LLM 三元组互补，非重复）
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from domain.ai.services.llm_service import LLMService
 
@@ -26,12 +27,12 @@ async def infer_kg_from_chapter(novel_id: str, chapter_number: int) -> None:
     """结构树章节节点 → 知识图谱增量推断（与 HTTP 原 _try_infer_kg_chapter 一致）。"""
     try:
         from application.paths import get_db_path
+        from application.world.services.knowledge_graph_service import KnowledgeGraphService
+        from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
         from infrastructure.persistence.database.connection import get_database
         from infrastructure.persistence.database.sqlite_knowledge_repository import SqliteKnowledgeRepository
-        from infrastructure.persistence.database.triple_repository import TripleRepository
-        from infrastructure.persistence.database.chapter_element_repository import ChapterElementRepository
         from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
-        from application.world.services.knowledge_graph_service import KnowledgeGraphService
+        from infrastructure.persistence.database.triple_repository import TripleRepository
 
         db_path = get_db_path()
         kr = SqliteKnowledgeRepository(get_database())
@@ -56,7 +57,7 @@ class ChapterAftermathPipeline:
 
     def __init__(
         self,
-        knowledge_service: "KnowledgeService",
+        knowledge_service: KnowledgeService,
         chapter_indexing_service: Any,
         llm_service: LLMService,
         voice_drift_service: Any = None,
@@ -126,9 +127,7 @@ class ChapterAftermathPipeline:
             out["foreshadow_stored"] = bool(sync_flags.get("foreshadow_stored"))
             out["triples_extracted"] = bool(sync_flags.get("triples_extracted"))
         except Exception as e:
-            logger.warning(
-                "叙事同步/向量失败 novel=%s ch=%s: %s", novel_id, chapter_number, e
-            )
+            logger.warning("叙事同步/向量失败 novel=%s ch=%s: %s", novel_id, chapter_number, e)
 
         # 2) 文风（落库 chapter_style_scores）
         # 支持 LLM 模式（异步）和统计模式（同步）

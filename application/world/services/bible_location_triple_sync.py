@@ -1,4 +1,5 @@
 """Bible locations[] parent_id → triples（位于）幂等同步。"""
+
 from __future__ import annotations
 
 import logging
@@ -22,7 +23,7 @@ def _map_location_kind(raw_type: str) -> str:
         return "city"
     if any(k in t for k in ("区域", "域", "境", "荒", "谷", "原", "山脉")):
         return "region"
-    if "region" in tl or "natural" in tl or "other" == tl.strip():
+    if "region" in tl or "natural" in tl or tl.strip() == "other":
         return "region"
     if any(k in t for k in ("建筑", "楼", "殿", "阁", "府", "宫", "塔")):
         return "building"
@@ -70,9 +71,7 @@ class BibleLocationTripleSyncService:
             p = raw.get("parent_id")
             parent_id = str(p).strip() if isinstance(p, str) and str(p).strip() else None
             loc_type = str(raw.get("type") or raw.get("location_type") or "").strip()
-            normalized.append(
-                {"id": lid, "name": name, "parent_id": parent_id, "type": loc_type}
-            )
+            normalized.append({"id": lid, "name": name, "parent_id": parent_id, "type": loc_type})
 
         current_ids = {loc["id"] for loc in normalized}
         id_to_row = {row["id"]: row for row in normalized}

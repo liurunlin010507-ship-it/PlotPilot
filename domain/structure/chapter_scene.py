@@ -2,15 +2,16 @@
 章节场景领域模型
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List
-import json
+from typing import List, Optional
 
 
 @dataclass
 class ChapterScene:
     """章节场景"""
+
     id: str
     chapter_id: str
     scene_number: int
@@ -64,8 +65,12 @@ class ChapterScene:
             content=data.get("content"),
             word_count=data.get("word_count", 0),
             characters=data.get("characters", []),
-            created_at=datetime.fromisoformat(data["created_at"]) if isinstance(data.get("created_at"), str) else data.get("created_at", datetime.now()),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if isinstance(data.get("updated_at"), str) else data.get("updated_at", datetime.now()),
+            created_at=datetime.fromisoformat(data["created_at"])
+            if isinstance(data.get("created_at"), str)
+            else data.get("created_at", datetime.now()),
+            updated_at=datetime.fromisoformat(data["updated_at"])
+            if isinstance(data.get("updated_at"), str)
+            else data.get("updated_at", datetime.now()),
         )
 
     def add_character(self, character_id: str, role: str = "participant"):

@@ -1,6 +1,8 @@
 """时间线仓储接口"""
+
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from domain.novel.entities.timeline_registry import TimelineRegistry
 from domain.novel.value_objects.novel_id import NovelId
 

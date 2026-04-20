@@ -1,18 +1,16 @@
 """自动驾驶控制 API（v2：含审阅确认 + SSE 生成流）"""
+
 import asyncio
 import json
 import logging
 import os
 from datetime import datetime
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Any, Dict, Optional
-from domain.novel.entities.novel import AutopilotStatus, NovelStage
-from domain.novel.value_objects.novel_id import NovelId
-from interfaces.api.dependencies import get_novel_repository, get_chapter_repository
-from application.paths import get_db_path
-from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+
 from application.engine.services.autopilot_log_ring import (
     file_end_offset,
     initial_snapshot_offset,
@@ -22,6 +20,11 @@ from application.engine.services.autopilot_log_ring import (
     shorten_log_message,
     snapshot_for_novel,
 )
+from application.paths import get_db_path
+from domain.novel.entities.novel import AutopilotStatus, NovelStage
+from domain.novel.value_objects.novel_id import NovelId
+from infrastructure.persistence.database.story_node_repository import StoryNodeRepository
+from interfaces.api.dependencies import get_chapter_repository, get_novel_repository
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +55,7 @@ def _has_chapter_nodes_under_current_act(novel_id: str, current_act_zero_based: 
     target_act_number = (current_act_zero_based or 0) + 1
     all_nodes = repo.get_by_novel_sync(novel_id)
     act_nodes = sorted(
-        [
-            n
-            for n in all_nodes
-            if (n.node_type.value if hasattr(n.node_type, "value") else str(n.node_type)) == "act"
-        ],
+        [n for n in all_nodes if (n.node_type.value if hasattr(n.node_type, "value") else str(n.node_type)) == "act"],
         key=lambda n: n.number,
     )
     target = next((n for n in act_nodes if n.number == target_act_number), None)
@@ -76,6 +75,8 @@ def _stage_after_review(novel) -> NovelStage:
     if _has_chapter_nodes_under_current_act(nid, ca):
         return NovelStage.WRITING
     return NovelStage.ACT_PLANNING
+
+
 router = APIRouter(prefix="/autopilot", tags=["autopilot"])
 
 # 与 AutopilotDaemon 中单本挂起阈值一致；守护进程内另有全局 CircuitBreaker（独立进程，API 不可见）
@@ -189,10 +190,9 @@ async def get_autopilot_status(novel_id: str):
 
     chapters = chapter_repo.list_by_novel(NovelId(novel_id))
     total_words = sum(
-        c.word_count.value if hasattr(c.word_count, 'value') else c.word_count
-        for c in chapters if c.word_count
+        c.word_count.value if hasattr(c.word_count, "value") else c.word_count for c in chapters if c.word_count
     )
-    _status = lambda c: c.status.value if hasattr(c.status, 'value') else c.status
+    _status = lambda c: c.status.value if hasattr(c.status, "value") else c.status
     completed = [c for c in chapters if _status(c) == "completed"]
     in_manuscript = [c for c in chapters if _status(c) in ("draft", "completed")]
     current_chapter_number = resolve_autopilot_current_chapter_number(chapters)
@@ -366,9 +366,7 @@ async def autopilot_log_stream(
                 current_chapter_number = resolve_autopilot_current_chapter_number(chapters_snapshot)
                 chapter_label = f"第 {current_chapter_number} 章 · " if current_chapter_number else ""
 
-                file_lines, file_cursor = read_incremental_log_file_lines(
-                    log_file_path, novel_id, file_cursor
-                )
+                file_lines, file_cursor = read_incremental_log_file_lines(log_file_path, novel_id, file_cursor)
                 for item in file_lines:
                     ev = {
                         "type": "log_line",
@@ -550,9 +548,7 @@ async def autopilot_log_stream(
                             "stage_label": stage_zh,
                             "chapter_number": current_chapter_number,
                             "autopilot_status": novel.autopilot_status.value,
-                            "autopilot_status_label": _autopilot_status_zh(
-                                novel.autopilot_status.value
-                            ),
+                            "autopilot_status_label": _autopilot_status_zh(novel.autopilot_status.value),
                         },
                     }
                     yield f"data: {json.dumps(progress_event, ensure_ascii=False)}\n\n"
@@ -563,7 +559,7 @@ async def autopilot_log_stream(
                     heartbeat_event = {
                         "type": "heartbeat",
                         "message": "keepalive",
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
                     }
                     yield f"data: {json.dumps(heartbeat_event, ensure_ascii=False)}\n\n"
                     heartbeat_counter = 0
@@ -577,7 +573,7 @@ async def autopilot_log_stream(
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -597,11 +593,7 @@ async def autopilot_chapter_stream(novel_id: str):
         from application.engine.services.streaming_bus import streaming_bus
 
         # 发送初始连接事件
-        init_event = {
-            "type": "connected",
-            "message": "章节内容流已连接",
-            "timestamp": datetime.now().isoformat()
-        }
+        init_event = {"type": "connected", "message": "章节内容流已连接", "timestamp": datetime.now().isoformat()}
         yield f"data: {json.dumps(init_event, ensure_ascii=False)}\n\n"
 
         last_chapter_number = None
@@ -628,10 +620,7 @@ async def autopilot_chapter_stream(novel_id: str):
                 if novel.current_stage.value == "writing":
                     chapters = chapter_repo.list_by_novel(NovelId(novel_id))
                     _st = lambda c: c.status.value if hasattr(c.status, "value") else c.status
-                    drafts = sorted(
-                        [c for c in chapters if _st(c) == "draft"],
-                        key=lambda c: c.number
-                    )
+                    drafts = sorted([c for c in chapters if _st(c) == "draft"], key=lambda c: c.number)
                     if drafts:
                         chapter_number = drafts[0].number
                         # 发送章节开始事件（首次或章节改变时）
@@ -669,7 +658,7 @@ async def autopilot_chapter_stream(novel_id: str):
                     heartbeat_event = {
                         "type": "heartbeat",
                         "message": "keepalive",
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
                     }
                     yield f"data: {json.dumps(heartbeat_event, ensure_ascii=False)}\n\n"
                     heartbeat_counter = 0
@@ -683,7 +672,7 @@ async def autopilot_chapter_stream(novel_id: str):
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -701,10 +690,11 @@ async def autopilot_events(novel_id: str):
                     break
                 chapters = chapter_repo.list_by_novel(NovelId(novel_id))
                 total_words = sum(
-                    c.word_count.value if hasattr(c.word_count, 'value') else c.word_count
-                    for c in chapters if c.word_count
+                    c.word_count.value if hasattr(c.word_count, "value") else c.word_count
+                    for c in chapters
+                    if c.word_count
                 )
-                _st = lambda c: c.status.value if hasattr(c.status, 'value') else c.status
+                _st = lambda c: c.status.value if hasattr(c.status, "value") else c.status
                 completed = [c for c in chapters if _st(c) == "completed"]
                 in_manuscript = [c for c in chapters if _st(c) in ("draft", "completed")]
                 tgt = novel.target_chapters or 1
@@ -728,8 +718,7 @@ async def autopilot_events(novel_id: str):
                 yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
                 terminal_states = {"stopped", "error", "completed"}
-                if novel.autopilot_status.value in terminal_states and \
-                   novel.current_stage.value != "paused_for_review":
+                if novel.autopilot_status.value in terminal_states and novel.current_stage.value != "paused_for_review":
                     break
 
                 await asyncio.sleep(3)
@@ -740,19 +729,20 @@ async def autopilot_events(novel_id: str):
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
 @router.get("/{novel_id}/stream-debug")
 async def stream_debug(novel_id: str):
     """调试端点：检查流式队列状态"""
-    from application.engine.services.streaming_bus import _get_queue, _stream_queue, _injected_queue
     import multiprocessing as mp
-    
+
+    from application.engine.services.streaming_bus import _get_queue, _injected_queue, _stream_queue
+
     queue = _get_queue()
     current_process = mp.current_process()
-    
+
     # 尝试读取一条消息（非阻塞）
     sample_msg = None
     if queue is not None:
@@ -762,7 +752,7 @@ async def stream_debug(novel_id: str):
             queue.put(sample_msg)
         except:
             pass
-    
+
     return {
         "novel_id": novel_id,
         "current_process": current_process.name,

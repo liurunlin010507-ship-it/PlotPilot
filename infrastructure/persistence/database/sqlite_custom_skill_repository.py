@@ -4,6 +4,7 @@
 每个自定义技能归属于某个 novel，用户在前端填写提示词内容，
 运行时被包装为 ThemeSkill 实例注入管线。
 """
+
 import json
 import logging
 from datetime import datetime
@@ -81,20 +82,23 @@ class SqliteCustomSkillRepository:
         genres = skill_data.get("compatible_genres", [])
         audit = skill_data.get("audit_checks", [])
 
-        self.db.execute(sql, (
-            skill_data["id"],
-            skill_data["novel_id"],
-            skill_data["skill_key"],
-            skill_data["skill_name"],
-            skill_data.get("skill_description", ""),
-            json.dumps(genres, ensure_ascii=False) if isinstance(genres, list) else genres,
-            skill_data.get("context_prompt", ""),
-            skill_data.get("beat_prompt", ""),
-            skill_data.get("beat_triggers", ""),
-            json.dumps(audit, ensure_ascii=False) if isinstance(audit, list) else audit,
-            now,
-            now,
-        ))
+        self.db.execute(
+            sql,
+            (
+                skill_data["id"],
+                skill_data["novel_id"],
+                skill_data["skill_key"],
+                skill_data["skill_name"],
+                skill_data.get("skill_description", ""),
+                json.dumps(genres, ensure_ascii=False) if isinstance(genres, list) else genres,
+                skill_data.get("context_prompt", ""),
+                skill_data.get("beat_prompt", ""),
+                skill_data.get("beat_triggers", ""),
+                json.dumps(audit, ensure_ascii=False) if isinstance(audit, list) else audit,
+                now,
+                now,
+            ),
+        )
         self.db.get_connection().commit()
 
     def list_by_novel(self, novel_id: str) -> List[Dict[str, Any]]:

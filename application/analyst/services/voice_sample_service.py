@@ -1,8 +1,10 @@
 """Voice Sample Service"""
+
 import json
 import logging
-from typing import Optional
 from difflib import SequenceMatcher
+from typing import Optional
+
 from domain.novel.repositories.voice_vault_repository import VoiceVaultRepository
 
 logger = logging.getLogger(__name__)
@@ -20,12 +22,7 @@ class VoiceSampleService:
         self.fingerprint_service = fingerprint_service
 
     def append_sample(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        scene_type: Optional[str],
-        ai_original: str,
-        author_refined: str
+        self, novel_id: str, chapter_number: int, scene_type: Optional[str], ai_original: str, author_refined: str
     ) -> str:
         """
         添加文风样本
@@ -51,7 +48,7 @@ class VoiceSampleService:
             scene_type=scene_type,
             ai_original=ai_original,
             author_refined=author_refined,
-            diff_analysis=diff_json
+            diff_analysis=diff_json,
         )
 
         logger.info(
@@ -96,7 +93,7 @@ class VoiceSampleService:
             "refined_length": refined_len,
             "added_chars": added_chars,
             "removed_chars": removed_chars,
-            "length_change": refined_len - original_len
+            "length_change": refined_len - original_len,
         }
 
     def _levenshtein_distance(self, s1: str, s2: str) -> int:

@@ -1,4 +1,5 @@
 """Location 实体"""
+
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -6,6 +7,7 @@ from typing import List, Optional
 @dataclass
 class Location:
     """地点实体"""
+
     id: str
     name: str
     description: str

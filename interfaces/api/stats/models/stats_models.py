@@ -1,6 +1,8 @@
 """Statistics data models for tracking writing progress and content analysis."""
-from typing import Dict
+
 from datetime import datetime
+from typing import Dict
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -14,6 +16,7 @@ class GlobalStats(BaseModel):
         total_characters: Total character count across all books
         books_by_stage: Dictionary mapping stage names to book counts
     """
+
     total_books: int = Field(ge=0)
     total_chapters: int = Field(ge=0)
     total_words: int = Field(ge=0)
@@ -34,6 +37,7 @@ class BookStats(BaseModel):
         completion_rate: Fraction of book completed (0.0 to 1.0)
         last_updated: When statistics were last calculated
     """
+
     slug: str
     title: str
     total_chapters: int = Field(ge=0)
@@ -43,11 +47,13 @@ class BookStats(BaseModel):
     completion_rate: float = Field(ge=0.0, le=1.0)
     last_updated: datetime
 
-    @model_validator(mode='after')
-    def validate_chapter_counts(self) -> 'BookStats':
+    @model_validator(mode="after")
+    def validate_chapter_counts(self) -> "BookStats":
         """Ensure completed_chapters does not exceed total_chapters."""
         if self.completed_chapters > self.total_chapters:
-            raise ValueError(f"completed_chapters ({self.completed_chapters}) cannot exceed total_chapters ({self.total_chapters})")
+            raise ValueError(
+                f"completed_chapters ({self.completed_chapters}) cannot exceed total_chapters ({self.total_chapters})"
+            )
         return self
 
 
@@ -62,6 +68,7 @@ class ChapterStats(BaseModel):
         paragraph_count: Number of paragraphs in the chapter
         has_content: Whether the chapter has any content
     """
+
     chapter_id: int = Field(ge=1)
     title: str
     word_count: int = Field(ge=0)
@@ -69,8 +76,8 @@ class ChapterStats(BaseModel):
     paragraph_count: int = Field(ge=0)
     has_content: bool
 
-    @model_validator(mode='after')
-    def validate_content_counts(self) -> 'ChapterStats':
+    @model_validator(mode="after")
+    def validate_content_counts(self) -> "ChapterStats":
         """Ensure if has_content is False, all content counts are 0."""
         if not self.has_content:
             if self.word_count != 0:
@@ -90,6 +97,7 @@ class WritingProgress(BaseModel):
         words_written: Number of words written on this date
         chapters_completed: Number of chapters completed on this date
     """
+
     date: datetime
     words_written: int = Field(ge=0)
     chapters_completed: int = Field(ge=0)
@@ -104,6 +112,7 @@ class ContentAnalysis(BaseModel):
         scene_count: Number of scenes in the content
         avg_paragraph_length: Average length of paragraphs in words
     """
+
     character_mentions: Dict[str, int] = Field(default_factory=dict)
     dialogue_ratio: float = Field(ge=0.0, le=1.0)
     scene_count: int = Field(ge=0)

@@ -13,15 +13,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from application.ai.llm_control_service import (
     LLMControlConfig,
     LLMControlPanelData,
+    LLMControlService,
     LLMProfile,
     LLMTestResult,
-    LLMControlService,
 )
-from infrastructure.ai.provider_factory import LLMProviderFactory
 from infrastructure.ai.prompt_manager import get_prompt_manager
+from infrastructure.ai.provider_factory import LLMProviderFactory
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix='/llm-control', tags=['llm-control'])
+router = APIRouter(prefix="/llm-control", tags=["llm-control"])
 
 _service = LLMControlService()
 _factory = LLMProviderFactory(_service)
@@ -29,18 +29,20 @@ _factory = LLMProviderFactory(_service)
 
 # ---------- 模型列表拉取 ----------
 
+
 class ModelListRequest(BaseModel):
     """请求体：根据 API Key 和 Base URL 拉取可用模型列表。"""
-    protocol: str = 'openai'
-    base_url: str = ''
-    api_key: str = ''
+
+    protocol: str = "openai"
+    base_url: str = ""
+    api_key: str = ""
     timeout_ms: int = 30000
 
 
 class ModelItem(BaseModel):
-    id: str = ''
-    name: str = ''
-    owned_by: str = ''
+    id: str = ""
+    name: str = ""
+    owned_by: str = ""
 
 
 class ModelListResponse(BaseModel):
@@ -55,69 +57,71 @@ def _openai_compatible_models_base(base_url: str) -> str:
     用户常只填 ``https://网关主机``，会误请求 ``/models`` 而非 ``/v1/models``，导致 400/HTML。
     若 URL 已包含非根 path（如火山 /api/v3、智谱 /api/paas/v4），则原样保留。
     """
-    default = 'https://api.openai.com/v1'
-    raw = (base_url or '').strip()
+    default = "https://api.openai.com/v1"
+    raw = (base_url or "").strip()
     if not raw:
         return default
-    if '://' not in raw:
-        raw = f'https://{raw}'
+    if "://" not in raw:
+        raw = f"https://{raw}"
     parsed = urlparse(raw)
-    path = (parsed.path or '').rstrip('/')
+    path = (parsed.path or "").rstrip("/")
     if not path:
-        path = '/v1'
+        path = "/v1"
     else:
-        path = '/' + path.lstrip('/')
+        path = "/" + path.lstrip("/")
     return urlunparse(
-        (parsed.scheme or 'https', parsed.netloc, path, '', '', ''),
-    ).rstrip('/')
+        (parsed.scheme or "https", parsed.netloc, path, "", "", ""),
+    ).rstrip("/")
 
 
 def _normalize_model_items(data: Dict[str, Any]) -> List[ModelItem]:
     """将不同网关的 /models 响应统一为 ModelItem 列表。"""
     items: List[ModelItem] = []
-    raw_list = data.get('data', [])
+    raw_list = data.get("data", [])
     if not isinstance(raw_list, list):
         return items
     for entry in raw_list:
         if not isinstance(entry, dict):
             continue
-        items.append(ModelItem(
-            id=str(entry.get('id', '')),
-            name=str(entry.get('id', '')),  # 多数网关不返回 name，回退到 id
-            owned_by=str(entry.get('owned_by', '')),
-        ))
+        items.append(
+            ModelItem(
+                id=str(entry.get("id", "")),
+                name=str(entry.get("id", "")),  # 多数网关不返回 name，回退到 id
+                owned_by=str(entry.get("owned_by", "")),
+            )
+        )
     return items
 
 
-@router.post('/models', response_model=ModelListResponse)
+@router.post("/models", response_model=ModelListResponse)
 async def list_models(payload: ModelListRequest) -> ModelListResponse:
     """根据当前配置的 endpoint 拉取模型列表（OpenAI / Anthropic 兼容）。"""
     candidate = payload.model_dump()
-    if not candidate.get('api_key'):
+    if not candidate.get("api_key"):
         # 尝试从当前激活配置中获取 key 作为 fallback
         active = _service.get_active_profile()
         if active:
-            candidate['api_key'] = active.api_key
+            candidate["api_key"] = active.api_key
 
-    api_format = (candidate.get('protocol') or '').strip().lower()
-    api_key = (candidate.get('api_key') or '').strip()
+    api_format = (candidate.get("protocol") or "").strip().lower()
+    api_key = (candidate.get("api_key") or "").strip()
     if not api_key:
-        raise HTTPException(status_code=400, detail='API key is required to fetch model list')
+        raise HTTPException(status_code=400, detail="API key is required to fetch model list")
 
-    base_url = (candidate.get('base_url') or '').strip()
-    timeout = max(1.0, (candidate.get('timeout_ms') or 30000) / 1000)
+    base_url = (candidate.get("base_url") or "").strip()
+    timeout = max(1.0, (candidate.get("timeout_ms") or 30000) / 1000)
 
-    if api_format == 'anthropic':
+    if api_format == "anthropic":
         url = f"{(base_url or 'https://api.anthropic.com').rstrip('/')}/v1/models"
         headers = {
-            'x-api-key': api_key,
-            'anthropic-version': '2023-06-01',
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
         }
     else:
         openai_base = _openai_compatible_models_base(base_url)
-        url = f'{openai_base}/models'
+        url = f"{openai_base}/models"
         headers = {
-            'Authorization': f'Bearer {api_key}',
+            "Authorization": f"Bearer {api_key}",
         }
 
     try:
@@ -129,10 +133,10 @@ async def list_models(payload: ModelListRequest) -> ModelListResponse:
             try:
                 data = response.json()
             except json.JSONDecodeError:
-                snippet = (response.text or '')[:240].replace('\n', ' ')
+                snippet = (response.text or "")[:240].replace("\n", " ")
                 raise HTTPException(
                     status_code=502,
-                    detail=f'上游未返回 JSON（请检查 Base URL 与协议是否匹配 OpenAI 兼容）。请求 URL：{url}。片段：{snippet}',
+                    detail=f"上游未返回 JSON（请检查 Base URL 与协议是否匹配 OpenAI 兼容）。请求 URL：{url}。片段：{snippet}",
                 )
         normalized = _normalize_model_items(data)
         return ModelListResponse(
@@ -143,32 +147,33 @@ async def list_models(payload: ModelListRequest) -> ModelListResponse:
     except HTTPException:
         raise
     except httpx.HTTPStatusError as exc:
-        body = (exc.response.text or '')[:400].replace('\n', ' ')
+        body = (exc.response.text or "")[:400].replace("\n", " ")
         raise HTTPException(
             status_code=502,
-            detail=f'上游模型列表 HTTP {exc.response.status_code}：{body or exc.response.reason_phrase}（请求 {url}）',
+            detail=f"上游模型列表 HTTP {exc.response.status_code}：{body or exc.response.reason_phrase}（请求 {url}）",
         ) from exc
     except httpx.RequestError as exc:
         raise HTTPException(
             status_code=502,
             detail=(
-                f'连接上游失败：{exc}（请求 {url}）。'
-                '若日志里出现连向 127.0.0.1 某端口，多为系统 HTTP 代理注入导致 TLS 异常；'
-                '当前接口已禁用继承环境代理，请更新后端后重试。仍失败请检查本机防火墙/DNS。'
+                f"连接上游失败：{exc}（请求 {url}）。"
+                "若日志里出现连向 127.0.0.1 某端口，多为系统 HTTP 代理注入导致 TLS 异常；"
+                "当前接口已禁用继承环境代理，请更新后端后重试。仍失败请检查本机防火墙/DNS。"
             ),
         ) from exc
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f'拉取模型列表失败：{exc}') from exc
+        raise HTTPException(status_code=502, detail=f"拉取模型列表失败：{exc}") from exc
 
 
 # ---------- 核心 CRUD + 测试 ----------
 
-@router.get('', response_model=LLMControlPanelData)
+
+@router.get("", response_model=LLMControlPanelData)
 async def get_llm_control_panel() -> LLMControlPanelData:
     return _service.get_control_panel_data()
 
 
-@router.put('', response_model=LLMControlPanelData)
+@router.put("", response_model=LLMControlPanelData)
 async def save_llm_control_panel(config: LLMControlConfig) -> LLMControlPanelData:
     saved = _service.save_config(config)
     return LLMControlPanelData(
@@ -178,12 +183,12 @@ async def save_llm_control_panel(config: LLMControlConfig) -> LLMControlPanelDat
     )
 
 
-@router.post('/test', response_model=LLMTestResult)
+@router.post("/test", response_model=LLMTestResult)
 async def test_llm_profile(profile: LLMProfile) -> LLMTestResult:
     try:
         return await _service.test_profile_model(profile, _factory.create_from_profile)
     except Exception as exc:
-        logger.error('测试 LLM 配置失败: %s', exc, exc_info=True)
+        logger.error("测试 LLM 配置失败: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -194,6 +199,7 @@ async def test_llm_profile(profile: LLMProfile) -> LLMTestResult:
 
 class PromptUpdateRequest(BaseModel):
     """请求体：更新提示词节点内容（自动创建新版本）。"""
+
     system: Optional[str] = None
     user_template: Optional[str] = None
     name: Optional[str] = None
@@ -204,11 +210,13 @@ class PromptUpdateRequest(BaseModel):
 
 class PromptRenderRequest(BaseModel):
     """请求体：渲染提示词模板。"""
+
     variables: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateNodeRequest(BaseModel):
     """请求体：创建自定义提示词节点。"""
+
     template_id: str = ""
     node_key: str = ""
     name: str = ""
@@ -220,6 +228,7 @@ class CreateNodeRequest(BaseModel):
 
 class CreateTemplateRequest(BaseModel):
     """请求体：创建自定义模板包。"""
+
     name: str = ""
     description: str = ""
     category: str = "user"
@@ -229,7 +238,8 @@ class CreateTemplateRequest(BaseModel):
 # 统计 & 分类
 # ------------------------------------------------------------------
 
-@router.get('/prompts/stats')
+
+@router.get("/prompts/stats")
 async def get_prompt_stats() -> Dict[str, Any]:
     """获取提示词库统计信息。"""
     mgr = get_prompt_manager()
@@ -237,7 +247,7 @@ async def get_prompt_stats() -> Dict[str, Any]:
     return mgr.get_stats()
 
 
-@router.get('/prompts/categories-info')
+@router.get("/prompts/categories-info")
 async def get_categories_info() -> List[Dict[str, Any]]:
     """获取分类定义（含各分类的节点计数）。"""
     mgr = get_prompt_manager()
@@ -249,7 +259,8 @@ async def get_categories_info() -> List[Dict[str, Any]]:
 # 模板包 CRUD
 # ------------------------------------------------------------------
 
-@router.get('/prompts/templates')
+
+@router.get("/prompts/templates")
 async def list_templates() -> List[Dict[str, Any]]:
     """列出所有模板包。"""
     mgr = get_prompt_manager()
@@ -257,7 +268,7 @@ async def list_templates() -> List[Dict[str, Any]]:
     return [t.to_dict() for t in mgr.list_templates()]
 
 
-@router.post('/prompts/templates')
+@router.post("/prompts/templates")
 async def create_template(payload: CreateTemplateRequest) -> Dict[str, Any]:
     """创建自定义模板包。"""
     mgr = get_prompt_manager()
@@ -273,7 +284,8 @@ async def create_template(payload: CreateTemplateRequest) -> Dict[str, Any]:
 # 节点 CRUD
 # ------------------------------------------------------------------
 
-@router.get('/prompts')
+
+@router.get("/prompts")
 async def list_prompts(
     category: Optional[str] = None,
     template_id: Optional[str] = None,
@@ -286,13 +298,12 @@ async def list_prompts(
     if search and search.strip():
         nodes = mgr.search_nodes(search.strip())
     else:
-        nodes = mgr.list_nodes(category=category, template_id=template_id,
-                               include_versions=True)
+        nodes = mgr.list_nodes(category=category, template_id=template_id, include_versions=True)
 
     return [n.to_dict() for n in nodes]
 
 
-@router.get('/prompts/by-category')
+@router.get("/prompts/by-category")
 async def list_prompts_by_category() -> Dict[str, List[Dict[str, Any]]]:
     """按分类分组的提示词列表（用于前端分类卡片展示）。"""
     mgr = get_prompt_manager()
@@ -392,9 +403,7 @@ async def import_prompts(payload: ImportPayload) -> Dict[str, Any]:
 
     templates = mgr.list_templates()
     builtin_tmpl = next((t for t in templates if t.is_builtin), None)
-    target_template_id = (
-        builtin_tmpl.id if builtin_tmpl else (templates[0].id if templates else "")
-    )
+    target_template_id = builtin_tmpl.id if builtin_tmpl else (templates[0].id if templates else "")
     if not target_template_id:
         tmpl = mgr.create_template(name="导入模板", description="从 JSON 导入")
         target_template_id = tmpl.id
@@ -475,7 +484,7 @@ async def import_prompts(payload: ImportPayload) -> Dict[str, Any]:
     }
 
 
-@router.get('/prompts/{node_key}')
+@router.get("/prompts/{node_key}")
 async def get_node_detail(node_key: str) -> Dict[str, Any]:
     """获取单个节点的完整详情（含激活版本的完整 system/user 内容）。"""
     mgr = get_prompt_manager()
@@ -492,7 +501,7 @@ async def get_node_detail(node_key: str) -> Dict[str, Any]:
     return node.to_detail_dict()
 
 
-@router.post('/prompts/nodes')
+@router.post("/prompts/nodes")
 async def create_node(payload: CreateNodeRequest) -> Dict[str, Any]:
     """创建自定义提示词节点。"""
     mgr = get_prompt_manager()
@@ -517,7 +526,7 @@ async def create_node(payload: CreateNodeRequest) -> Dict[str, Any]:
     return {"status": "ok", "node": node.to_dict()}
 
 
-@router.delete('/prompts/nodes/{node_id}')
+@router.delete("/prompts/nodes/{node_id}")
 async def delete_node(node_id: str) -> Dict[str, str]:
     """删除自定义节点（内置节点不允许删除）。"""
     mgr = get_prompt_manager()
@@ -535,7 +544,8 @@ async def delete_node(node_id: str) -> Dict[str, str]:
 # 版本管理（核心！）
 # ------------------------------------------------------------------
 
-@router.get('/prompts/{node_key}/versions')
+
+@router.get("/prompts/{node_key}/versions")
 async def list_node_versions(node_key: str) -> List[Dict[str, Any]]:
     """获取节点的所有版本历史（时间线）。"""
     mgr = get_prompt_manager()
@@ -547,7 +557,7 @@ async def list_node_versions(node_key: str) -> List[Dict[str, Any]]:
     return [v.to_dict() for v in versions]
 
 
-@router.get('/prompts/versions/{version_id}')
+@router.get("/prompts/versions/{version_id}")
 async def get_version_detail(version_id: str) -> Dict[str, Any]:
     """获取单个版本的完整内容。"""
     mgr = get_prompt_manager()
@@ -557,7 +567,7 @@ async def get_version_detail(version_id: str) -> Dict[str, Any]:
     return ver.to_detail_dict()
 
 
-@router.put('/prompts/{node_key}')
+@router.put("/prompts/{node_key}")
 async def update_node(node_key: str, payload: PromptUpdateRequest) -> Dict[str, Any]:
     """更新节点 —— 自动创建新版本（不覆盖历史）。"""
     mgr = get_prompt_manager()
@@ -582,7 +592,7 @@ async def update_node(node_key: str, payload: PromptUpdateRequest) -> Dict[str, 
     }
 
 
-@router.post('/prompts/{node_key}/rollback/{version_id}')
+@router.post("/prompts/{node_key}/rollback/{version_id}")
 async def rollback_node(node_key: str, version_id: str) -> Dict[str, Any]:
     """回滚节点到指定历史版本（创建回滚快照）。"""
     mgr = get_prompt_manager()
@@ -602,7 +612,7 @@ async def rollback_node(node_key: str, version_id: str) -> Dict[str, Any]:
     }
 
 
-@router.get('/prompts/compare/{v1_id}/{v2_id}')
+@router.get("/prompts/compare/{v1_id}/{v2_id}")
 async def compare_versions(v1_id: str, v2_id: str) -> Dict[str, Any]:
     """对比两个版本的差异。"""
     mgr = get_prompt_manager()
@@ -616,7 +626,8 @@ async def compare_versions(v1_id: str, v2_id: str) -> Dict[str, Any]:
 # 渲染
 # ------------------------------------------------------------------
 
-@router.post('/prompts/{node_key}/render')
+
+@router.post("/prompts/{node_key}/render")
 async def render_prompt(
     node_key: str,
     payload: PromptRenderRequest,

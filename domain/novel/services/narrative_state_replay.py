@@ -42,8 +42,6 @@ def replay_entity_state(base_attrs: dict[str, Any], events: list[dict]) -> dict[
                 state.pop(attribute, None)
             else:
                 # Log unknown actions at debug level and ignore
-                logger.debug(
-                    f"Unknown mutation action '{action}' for attribute '{attribute}', ignoring"
-                )
+                logger.debug(f"Unknown mutation action '{action}' for attribute '{attribute}', ignoring")
 
     return state

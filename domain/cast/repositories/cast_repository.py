@@ -1,6 +1,8 @@
 """Cast repository interface"""
+
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from domain.cast.aggregates.cast_graph import CastGraph
 from domain.novel.value_objects.novel_id import NovelId
 

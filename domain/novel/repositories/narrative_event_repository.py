@@ -1,4 +1,5 @@
 """Narrative Event Repository 抽象接口"""
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -22,12 +23,7 @@ class NarrativeEventRepository(ABC):
 
     @abstractmethod
     def append_event(
-        self,
-        novel_id: str,
-        chapter_number: int,
-        event_summary: str,
-        mutations: list[dict],
-        tags: list[str] = None
+        self, novel_id: str, chapter_number: int, event_summary: str, mutations: list[dict], tags: list[str] = None
     ) -> str:
         """追加新事件
 
@@ -57,13 +53,7 @@ class NarrativeEventRepository(ABC):
         pass
 
     @abstractmethod
-    def update_event(
-        self,
-        novel_id: str,
-        event_id: str,
-        event_summary: str,
-        tags: list[str]
-    ) -> None:
+    def update_event(self, novel_id: str, event_id: str, event_summary: str, tags: list[str]) -> None:
         """更新事件
 
         Args:

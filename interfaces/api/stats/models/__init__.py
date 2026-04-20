@@ -2,14 +2,8 @@
 数据模型：Pydantic模型定义
 """
 
-from .responses import SuccessResponse, ErrorResponse, PaginatedResponse
-from .stats_models import (
-    GlobalStats,
-    BookStats,
-    ChapterStats,
-    WritingProgress,
-    ContentAnalysis
-)
+from .responses import ErrorResponse, PaginatedResponse, SuccessResponse
+from .stats_models import BookStats, ChapterStats, ContentAnalysis, GlobalStats, WritingProgress
 
 __all__ = [
     "SuccessResponse",
@@ -19,5 +13,5 @@ __all__ = [
     "BookStats",
     "ChapterStats",
     "WritingProgress",
-    "ContentAnalysis"
+    "ContentAnalysis",
 ]

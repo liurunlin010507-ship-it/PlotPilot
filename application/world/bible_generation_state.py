@@ -1,4 +1,5 @@
 """新书向导 / Bible 异步生成：向 UI 暴露最近一次失败原因（内存态，单进程有效）。"""
+
 from __future__ import annotations
 
 import threading

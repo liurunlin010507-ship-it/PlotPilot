@@ -10,25 +10,26 @@
 
 成本：约 500 token/章（300 输入 + 200 输出）
 """
+
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from domain.ai.services.llm_service import LLMService, GenerationConfig
+from domain.ai.services.llm_service import GenerationConfig, LLMService
 from domain.ai.value_objects.prompt import Prompt
 
 logger = logging.getLogger(__name__)
 
 # 风格维度定义
 STYLE_DIMENSIONS = [
-    "narrative_voice",      # 叙事声音：第一人称/第三人称/全知视角
-    "dialogue_ratio",       # 对话占比：0-1
-    "description_depth",    # 描写深度：0-1（浮光掠影 vs 细腻入微）
+    "narrative_voice",  # 叙事声音：第一人称/第三人称/全知视角
+    "dialogue_ratio",  # 对话占比：0-1
+    "description_depth",  # 描写深度：0-1（浮光掠影 vs 细腻入微）
     "emotional_intensity",  # 情感强度：0-1
-    "pacing",               # 节奏：0-1（舒缓 vs 紧凑）
-    "sensory_richness",     # 感官丰富度：0-1
-    "metaphor_usage",       # 修辞使用：0-1
-    "sentence_variety",     # 句式变化：0-1
+    "pacing",  # 节奏：0-1（舒缓 vs 紧凑）
+    "sensory_richness",  # 感官丰富度：0-1
+    "metaphor_usage",  # 修辞使用：0-1
+    "sentence_variety",  # 句式变化：0-1
 ]
 
 # 风格分析 Prompt（中文）
@@ -102,7 +103,7 @@ class LLMVoiceAnalysisService:
         try:
             prompt = Prompt(
                 system="你是专业的小说风格分析师，输出纯 JSON 格式。",
-                user=STYLE_ANALYSIS_PROMPT.format(content=snippet)
+                user=STYLE_ANALYSIS_PROMPT.format(content=snippet),
             )
             config = GenerationConfig(max_tokens=200, temperature=0.1)
 
@@ -123,17 +124,13 @@ class LLMVoiceAnalysisService:
             self._cache[cache_key] = style_vector
 
             logger.debug(
-                "LLM 文风分析完成 novel=%s ch=%d dimensions=%s",
-                novel_id, chapter_number, list(style_vector.keys())[:8]
+                "LLM 文风分析完成 novel=%s ch=%d dimensions=%s", novel_id, chapter_number, list(style_vector.keys())[:8]
             )
 
             return style_vector
 
         except Exception as e:
-            logger.warning(
-                "LLM 文风分析失败 novel=%s ch=%d: %s",
-                novel_id, chapter_number, e
-            )
+            logger.warning("LLM 文风分析失败 novel=%s ch=%d: %s", novel_id, chapter_number, e)
             # 返回中性值，避免阻断流程
             return self._get_neutral_style(chapter_number)
 
@@ -164,11 +161,11 @@ class LLMVoiceAnalysisService:
             style_data = []
             for i, vec in enumerate(style_vectors[-10:]):  # 最多取最近 10 章
                 clean_vec = {k: v for k, v in vec.items() if not k.startswith("_")}
-                style_data.append(f"章节{i+1}: {json.dumps(clean_vec, ensure_ascii=False)}")
+                style_data.append(f"章节{i + 1}: {json.dumps(clean_vec, ensure_ascii=False)}")
 
             prompt = Prompt(
                 system="你是专业的小说风格分析师，输出纯 JSON 格式。",
-                user=BASELINE_PROMPT.format(style_data="\n".join(style_data))
+                user=BASELINE_PROMPT.format(style_data="\n".join(style_data)),
             )
             config = GenerationConfig(max_tokens=300, temperature=0.1)
 
@@ -247,7 +244,8 @@ class LLMVoiceAnalysisService:
         except json.JSONDecodeError:
             # 尝试提取 JSON 块
             import re
-            match = re.search(r'\{[^}]+\}', raw)
+
+            match = re.search(r"\{[^}]+\}", raw)
             if match:
                 try:
                     data = json.loads(match.group())
@@ -270,7 +268,8 @@ class LLMVoiceAnalysisService:
             }
         except json.JSONDecodeError:
             import re
-            match = re.search(r'\{.*\}', raw, re.DOTALL)
+
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
             if match:
                 try:
                     data = json.loads(match.group())
@@ -284,9 +283,7 @@ class LLMVoiceAnalysisService:
 
     def _get_neutral_style(self, chapter_number: int) -> Dict[str, Any]:
         """返回中性风格向量"""
-        return {
-            dim: 0.5 for dim in STYLE_DIMENSIONS
-        }
+        return {dim: 0.5 for dim in STYLE_DIMENSIONS}
 
     def _get_default_baseline(self) -> Dict[str, Any]:
         """返回默认基准"""
@@ -316,7 +313,7 @@ class LLMVoiceAnalysisService:
                 # 标准差
                 if len(values) > 1:
                     variance = sum((x - avg) ** 2 for x in values) / len(values)
-                    std = variance ** 0.5
+                    std = variance**0.5
                 else:
                     std = 0.2
                 baseline[dim] = round(avg, 4)
