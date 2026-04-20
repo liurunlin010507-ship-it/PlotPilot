@@ -1,7 +1,7 @@
 # PlotPilot（墨枢）
 
 <p align="center">
-  <img src="docs/plotpilot-readme.png" alt="PlotPilot 墨枢" width="480" />
+  <img src="docs/plotpilot-readme.256.png" alt="PlotPilot 墨枢" width="480" />
 </p>
 
 > AI 驱动的长篇创作平台 — 自动驾驶生成、知识图谱管理、风格分析一体化。
@@ -50,8 +50,9 @@
 
 ## 桌面安装版（Windows · Tauri）
 
-- **下载**：[GitHub Releases](https://github.com/shenminglinyi/PlotPilot/releases)（当前线：`PlotPilot_*_x64-setup.exe`，NSIS）
-- **说明**：安装包内含冻结后端，无需单独装 Python；详细构建说明见 `[docs/BUILD_INSTALLER.md](docs/BUILD_INSTALLER.md)`。
+- **当前版本**：[v1.0.2](https://github.com/shenminglinyi/PlotPilot/releases/tag/v1.0.2) · 安装包：[`PlotPilot_1.0.2_x64-setup.exe`](https://github.com/shenminglinyi/PlotPilot/releases/download/v1.0.2/PlotPilot_1.0.2_x64-setup.exe)（NSIS）
+- **全部发行版**：[GitHub Releases](https://github.com/shenminglinyi/PlotPilot/releases)
+- **说明**：安装包内含冻结后端，无需单独装 Python；构建流程见 [docs/BUILD_INSTALLER.md](docs/BUILD_INSTALLER.md)。
 
 ---
 
@@ -143,3 +144,15 @@ pytest tests/ -v
 本项目采用 **Apache License 2.0**，并附加 **Commons Clause** 条件限制。
 
 允许学习、修改与非商业内部部署；**严禁**将本项目（含修改版）用于任何营利行为，包括封装收费 SaaS、打包售卖源码或作为收费产品的增值服务。详见 [LICENSE](LICENSE)。
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=shenminglinyi%2FPlotPilot&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=shenminglinyi/PlotPilot&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=shenminglinyi/PlotPilot&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=shenminglinyi/PlotPilot&type=date&legend=top-left" />
+ </picture>
+</a>
