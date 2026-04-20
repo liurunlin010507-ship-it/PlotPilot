@@ -18,7 +18,7 @@ async def test_beat_sheet_generation_e2e():
 
     async with async_playwright() as p:
         # 启动浏览器
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         context = await browser.new_context()
         page = await context.new_page()
 
