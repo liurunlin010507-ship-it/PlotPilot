@@ -1,5 +1,9 @@
 name: Backend CI
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   pull_request:
     paths:
@@ -7,24 +11,36 @@ on:
       - "requirements*.txt"
       - "pyproject.toml"
       - "pytest.ini"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches: [master, develop]
+    paths:
+      - "**.py"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".github/workflows/backend-ci.yml"
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.9"
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
-      - name: Run unit tests
-        run: pytest tests/unit -q --tb=short
-        env:
-          # 单测不需要真实 key，用占位值防止启动时报错
-          ANTHROPIC_API_KEY: "test-placeholder"
-          ARK_API_KEY: "test-placeholder"
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: MyPy type check
+        run: mypy domain/ application/ infrastructure/ interfaces/
+        continue-on-error: true

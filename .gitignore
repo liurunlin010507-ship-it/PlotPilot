@@ -15,6 +15,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+.conda/
 .venv/
 venv/
 *.egg-info/
@@ -34,6 +35,7 @@ out/
 frontend/node_modules/
 frontend/.vite/
 frontend/dist/
+frontend/coverage/
 
 # ── 本地 Agent / MCP 缓存 ──
 .playwright-mcp/
@@ -43,8 +45,10 @@ frontend/dist/
 # ── 覆盖率 / 测试产物 ──
 .coverage
 .coverage.*
-htmlcov/
+htmlcov*/
 coverage.xml
+coverage-*.xml
+test-results-*.xml
 *.cover
 
 # ── 数据库 SQLite 副本 ──
@@ -142,6 +146,12 @@ PlotPilot*.exe
 .cursor/*
 !.cursor/rules/
 mcps/
+
+# —— CLAUDE ——
+CLAUDE.md
+
+# ── vscode ──
+.vscode/
 
 # ── Windows「副本」等临时拷贝（含「xxx - 副本.json」） ──
 *副本*

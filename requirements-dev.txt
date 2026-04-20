@@ -1,0 +1,21 @@
+# ════════════════════════════════════════════
+# aitext — 开发依赖（lint / test / type check）
+# ════════════════════════════════════════════
+#
+# 用法: pip install -r requirements-dev.txt
+#
+# 自动包含 requirements.txt（生产依赖），
+# 再追加开发/CI 专用工具。
+# ════════════════════════════════════════════
+
+-r requirements.txt
+
+# ── 测试 ──
+pytest>=7.0,<9.0
+pytest-asyncio>=0.23,<1.0
+pytest-cov>=5.0,<7.0
+playwright>=1.40.0
+
+# ── 代码质量 ──
+ruff>=0.5.0
+mypy>=1.10
