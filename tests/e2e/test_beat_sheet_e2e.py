@@ -1,23 +1,43 @@
 """
 端到端测试：从章节大纲到节拍表生成的完整链路
 使用 Playwright 测试前端和后端的集成
+
+注意：此测试需要本地运行前端 (localhost:5173) 和后端 (localhost:8000) 服务。
+在 CI 环境中自动跳过。
 """
 
 import asyncio
 import os
 import sys
 
+import pytest
+
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+playwright = pytest.importorskip("playwright")
 from playwright.async_api import async_playwright
 
 
+async def _check_server_available(host: str, port: int, timeout: float = 2.0) -> bool:
+    """检查服务是否在运行"""
+    try:
+        import urllib.request
+
+        urllib.request.urlopen(f"http://{host}:{port}", timeout=timeout)
+        return True
+    except Exception:
+        return False
+
+
+@pytest.mark.asyncio
 async def test_beat_sheet_generation_e2e():
-    """测试节拍表生成的完整流程"""
+    """测试节拍表生成的完整流程（需要本地前后端服务）"""
+
+    if not await _check_server_available("localhost", 5173):
+        pytest.skip("前端服务未运行 (localhost:5173)，跳过浏览器 E2E 测试")
 
     async with async_playwright() as p:
-        # 启动浏览器
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context()
         page = await context.new_page()
@@ -35,7 +55,6 @@ async def test_beat_sheet_generation_e2e():
 
             # 步骤 2：选择或创建小说
             print("\n[步骤 2] 选择测试小说...")
-            # 等待小说列表加载
             await page.wait_for_selector("text=程序员穿越成状元", timeout=10000)
             await page.click("text=程序员穿越成状元")
             await page.wait_for_load_state("networkidle")
@@ -43,7 +62,6 @@ async def test_beat_sheet_generation_e2e():
 
             # 步骤 3：导航到章节列表
             print("\n[步骤 3] 导航到章节列表...")
-            # 点击树形视图或章节列表
             tree_button = page.locator("text=🌳 树形视图")
             if await tree_button.is_visible():
                 await tree_button.click()
@@ -60,7 +78,6 @@ async def test_beat_sheet_generation_e2e():
 
             # 步骤 5：检查章节大纲是否存在
             print("\n[步骤 5] 检查章节大纲...")
-            # 查找大纲输入框或显示区域
             outline_exists = await page.locator("text=大纲").count() > 0
             if outline_exists:
                 print("✓ 章节大纲存在")
@@ -69,14 +86,12 @@ async def test_beat_sheet_generation_e2e():
 
             # 步骤 6：生成节拍表（通过 API 调用）
             print("\n[步骤 6] 生成节拍表...")
-            # 直接调用 API 端点
-            response = await page.evaluate("""
+            response = await page.evaluate(
+                """
                 async () => {
                     const response = await fetch('http://localhost:8000/api/v1/beat-sheets/generate', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chapter_id: 'chapter-1775380284512-1',
                             outline: '李明收到期末成绩单，发现自己的成绩出现了异常波动。他开始怀疑这背后隐藏着某种规律，决定深入调查。'
@@ -84,7 +99,8 @@ async def test_beat_sheet_generation_e2e():
                     });
                     return await response.json();
                 }
-            """)
+            """
+            )
 
             print(f"API 响应: {response}")
 
@@ -116,9 +132,7 @@ async def test_beat_sheet_generation_e2e():
                     async (sceneData) => {
                         const response = await fetch('http://localhost:8000/api/v1/scenes/generate', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 chapter_id: 'chapter-1775380284512-1',
                                 scene_number: 1,
@@ -146,16 +160,7 @@ async def test_beat_sheet_generation_e2e():
             print("测试完成！")
             print("=" * 80)
 
-        except Exception as e:
-            print(f"\n✗ 测试失败: {str(e)}")
-            import traceback
-
-            traceback.print_exc()
-
         finally:
-            # 保持浏览器打开以便查看结果
-            print("\n按 Enter 键关闭浏览器...")
-            input()
             await browser.close()
 
 
