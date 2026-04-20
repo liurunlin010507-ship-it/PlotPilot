@@ -1,15 +1,13 @@
 """SQLite Narrative Event Repository 集成测试"""
-import pytest
-import json
-from pathlib import Path
-from infrastructure.persistence.database.connection import DatabaseConnection
-from infrastructure.persistence.database.sqlite_narrative_event_repository import (
-    SqliteNarrativeEventRepository
-)
 
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
-)
+from pathlib import Path
+
+import pytest
+
+from infrastructure.persistence.database.connection import DatabaseConnection
+from infrastructure.persistence.database.sqlite_narrative_event_repository import SqliteNarrativeEventRepository
+
+SCHEMA_PATH = Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture
@@ -41,7 +39,7 @@ def test_append_and_list_events(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
@@ -82,7 +80,7 @@ def test_list_filters_by_chapter(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
@@ -109,22 +107,14 @@ def test_mutations_json_serialization(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
     # 复杂的 mutations 结构
     mutations = [
-        {
-            "entity_id": "char-1",
-            "field": "attributes",
-            "value": {"strength": 10, "intelligence": 15}
-        },
-        {
-            "entity_id": "char-2",
-            "field": "inventory",
-            "value": ["sword", "shield", "potion"]
-        }
+        {"entity_id": "char-1", "field": "attributes", "value": {"strength": 10, "intelligence": 15}},
+        {"entity_id": "char-2", "field": "inventory", "value": ["sword", "shield", "potion"]},
     ]
 
     event_id = repository.append_event("novel-1", 1, "复杂事件", mutations)
@@ -146,7 +136,7 @@ def test_append_event_with_tags(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-2", "Test Novel 2", "test-novel-2", 10)
+        ("novel-2", "Test Novel 2", "test-novel-2", 10),
     )
     db.get_connection().commit()
 
@@ -168,7 +158,7 @@ def test_append_event_without_tags_defaults_to_empty_list(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-3", "Test Novel 3", "test-novel-3", 10)
+        ("novel-3", "Test Novel 3", "test-novel-3", 10),
     )
     db.get_connection().commit()
 
@@ -188,7 +178,7 @@ def test_list_events_includes_tags_field(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-4", "Test Novel 4", "test-novel-4", 10)
+        ("novel-4", "Test Novel 4", "test-novel-4", 10),
     )
     db.get_connection().commit()
 
@@ -213,7 +203,7 @@ def test_tags_with_chinese_characters(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-5", "Test Novel 5", "test-novel-5", 10)
+        ("novel-5", "Test Novel 5", "test-novel-5", 10),
     )
     db.get_connection().commit()
 

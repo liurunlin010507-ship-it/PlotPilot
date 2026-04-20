@@ -2,10 +2,12 @@
 
 验证 ContextBuilder 根据 POV 和章节号过滤角色的 hidden_profile。
 """
+
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from application.services.context_builder import ContextBuilder
 from application.dtos.bible_dto import BibleDTO, CharacterDTO
+from application.services.context_builder import ContextBuilder
 
 
 @pytest.fixture
@@ -45,7 +47,7 @@ def test_layer2_excludes_hidden_before_reveal(context_builder, mock_dependencies
         relationships=[],
         public_profile="警察，外表冷静",
         hidden_profile="实际上是卧底，潜伏在黑帮内部",
-        reveal_chapter=100
+        reveal_chapter=100,
     )
 
     bible_dto = BibleDTO(
@@ -55,7 +57,7 @@ def test_layer2_excludes_hidden_before_reveal(context_builder, mock_dependencies
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -66,7 +68,7 @@ def test_layer2_excludes_hidden_before_reveal(context_builder, mock_dependencies
         novel_id="novel_001",
         chapter_number=10,  # 远早于 reveal_chapter=100
         outline="男主与林雪见面",
-        max_tokens=35000
+        max_tokens=35000,
     )
 
     # Assert
@@ -87,7 +89,7 @@ def test_layer2_includes_hidden_after_reveal(context_builder, mock_dependencies)
         relationships=[],
         public_profile="警察，外表冷静",
         hidden_profile="实际上是卧底，潜伏在黑帮内部",
-        reveal_chapter=100
+        reveal_chapter=100,
     )
 
     bible_dto = BibleDTO(
@@ -97,7 +99,7 @@ def test_layer2_includes_hidden_after_reveal(context_builder, mock_dependencies)
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -108,7 +110,7 @@ def test_layer2_includes_hidden_after_reveal(context_builder, mock_dependencies)
         novel_id="novel_001",
         chapter_number=100,  # 达到 reveal_chapter
         outline="真相揭露",
-        max_tokens=35000
+        max_tokens=35000,
     )
 
     # Assert
@@ -129,7 +131,7 @@ def test_layer2_includes_hidden_when_no_reveal_chapter(context_builder, mock_dep
         relationships=[],
         public_profile="商人",
         hidden_profile="有犯罪前科",
-        reveal_chapter=None  # 总是可见
+        reveal_chapter=None,  # 总是可见
     )
 
     bible_dto = BibleDTO(
@@ -139,7 +141,7 @@ def test_layer2_includes_hidden_when_no_reveal_chapter(context_builder, mock_dep
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -150,7 +152,7 @@ def test_layer2_includes_hidden_when_no_reveal_chapter(context_builder, mock_dep
         novel_id="novel_001",
         chapter_number=1,  # 任意章节
         outline="初次登场",
-        max_tokens=35000
+        max_tokens=35000,
     )
 
     # Assert
@@ -170,7 +172,7 @@ def test_layer2_uses_public_profile_always(context_builder, mock_dependencies):
         relationships=[],
         public_profile="大学教授，温文尔雅",
         hidden_profile="秘密组织成员",
-        reveal_chapter=50
+        reveal_chapter=50,
     )
 
     bible_dto = BibleDTO(
@@ -180,7 +182,7 @@ def test_layer2_uses_public_profile_always(context_builder, mock_dependencies):
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -189,10 +191,7 @@ def test_layer2_uses_public_profile_always(context_builder, mock_dependencies):
     # Act - 测试多个章节
     for chapter_num in [1, 25, 49, 50, 100]:
         result = context_builder.build_structured_context(
-            novel_id="novel_001",
-            chapter_number=chapter_num,
-            outline="测试章节",
-            max_tokens=35000
+            novel_id="novel_001", chapter_number=chapter_num, outline="测试章节", max_tokens=35000
         )
 
         # Assert
@@ -204,12 +203,7 @@ def test_layer2_uses_public_profile_always(context_builder, mock_dependencies):
 def test_layer2_backward_compatible_with_old_data(context_builder, mock_dependencies):
     """测试：向后兼容 - 旧数据无 public_profile/hidden_profile 时使用 description"""
     # Arrange - 模拟旧数据结构（只有 description）
-    char_old_format = CharacterDTO(
-        id="char_004",
-        name="王芳",
-        description="资深记者，善于调查",
-        relationships=[]
-    )
+    char_old_format = CharacterDTO(id="char_004", name="王芳", description="资深记者，善于调查", relationships=[])
 
     bible_dto = BibleDTO(
         id="bible_001",
@@ -218,7 +212,7 @@ def test_layer2_backward_compatible_with_old_data(context_builder, mock_dependen
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -226,10 +220,7 @@ def test_layer2_backward_compatible_with_old_data(context_builder, mock_dependen
 
     # Act
     result = context_builder.build_structured_context(
-        novel_id="novel_001",
-        chapter_number=10,
-        outline="记者采访",
-        max_tokens=35000
+        novel_id="novel_001", chapter_number=10, outline="记者采访", max_tokens=35000
     )
 
     # Assert
@@ -248,7 +239,7 @@ def test_layer2_multiple_characters_with_different_reveal_chapters(context_build
         relationships=[],
         public_profile="表面身份A",
         hidden_profile="秘密A",
-        reveal_chapter=50
+        reveal_chapter=50,
     )
 
     char2 = CharacterDTO(
@@ -258,7 +249,7 @@ def test_layer2_multiple_characters_with_different_reveal_chapters(context_build
         relationships=[],
         public_profile="表面身份B",
         hidden_profile="秘密B",
-        reveal_chapter=100
+        reveal_chapter=100,
     )
 
     char3 = CharacterDTO(
@@ -268,7 +259,7 @@ def test_layer2_multiple_characters_with_different_reveal_chapters(context_build
         relationships=[],
         public_profile="表面身份C",
         hidden_profile="秘密C",
-        reveal_chapter=None  # 总是可见
+        reveal_chapter=None,  # 总是可见
     )
 
     bible_dto = BibleDTO(
@@ -278,7 +269,7 @@ def test_layer2_multiple_characters_with_different_reveal_chapters(context_build
         world_settings=[],
         locations=[],
         timeline_notes=[],
-        style_notes=[]
+        style_notes=[],
     )
 
     mock_dependencies["bible_service"].get_bible_by_novel.return_value = bible_dto
@@ -286,10 +277,7 @@ def test_layer2_multiple_characters_with_different_reveal_chapters(context_build
 
     # Act - 章节 75（在 char1 reveal 之后，char2 reveal 之前）
     result = context_builder.build_structured_context(
-        novel_id="novel_001",
-        chapter_number=75,
-        outline="中期章节",
-        max_tokens=35000
+        novel_id="novel_001", chapter_number=75, outline="中期章节", max_tokens=35000
     )
 
     # Assert

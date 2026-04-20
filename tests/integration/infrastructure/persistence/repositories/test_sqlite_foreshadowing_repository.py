@@ -1,4 +1,5 @@
 """SqliteForeshadowingRepository 集成测试"""
+
 from pathlib import Path
 
 import pytest
@@ -16,13 +17,7 @@ from infrastructure.persistence.database.sqlite_foreshadowing_repository import 
 )
 
 # pathlib: parents[0]==parent；从本文件到仓库根需 parents[5]
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[5]
-    / "infrastructure"
-    / "persistence"
-    / "database"
-    / "schema.sql"
-)
+SCHEMA_PATH = Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 import pytest
+
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 
 
@@ -14,7 +15,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=7,
             prerequisites=["intro_complete"],
-            triggers=["mentor_appears"]
+            triggers=["mentor_appears"],
         )
 
         assert milestone.order == 1
@@ -34,7 +35,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=7,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
 
         with pytest.raises(AttributeError):
@@ -49,7 +50,7 @@ class TestStorylineMilestone:
             target_chapter_start=1,
             target_chapter_end=1,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
 
         assert milestone.prerequisites == []
@@ -65,7 +66,7 @@ class TestStorylineMilestone:
                 target_chapter_start=1,
                 target_chapter_end=2,
                 prerequisites=[],
-                triggers=[]
+                triggers=[],
             )
 
     def test_milestone_chapter_range_validation_invalid(self):
@@ -78,7 +79,7 @@ class TestStorylineMilestone:
                 target_chapter_start=10,
                 target_chapter_end=5,
                 prerequisites=[],
-                triggers=[]
+                triggers=[],
             )
 
     def test_milestone_chapter_range_validation_zero(self):
@@ -91,7 +92,7 @@ class TestStorylineMilestone:
                 target_chapter_start=0,
                 target_chapter_end=1,
                 prerequisites=[],
-                triggers=[]
+                triggers=[],
             )
 
         with pytest.raises(ValueError, match="Chapter numbers must be positive"):
@@ -102,7 +103,7 @@ class TestStorylineMilestone:
                 target_chapter_start=1,
                 target_chapter_end=-1,
                 prerequisites=[],
-                triggers=[]
+                triggers=[],
             )
 
     def test_milestone_equality(self):
@@ -114,7 +115,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=7,
             prerequisites=["intro"],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -123,7 +124,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=7,
             prerequisites=["intro"],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone3 = StorylineMilestone(
             order=2,
@@ -132,7 +133,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=7,
             prerequisites=["intro"],
-            triggers=["meet"]
+            triggers=["meet"],
         )
 
         assert milestone1 == milestone2
@@ -147,7 +148,7 @@ class TestStorylineMilestone:
             target_chapter_start=5,
             target_chapter_end=5,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
 
         assert milestone.target_chapter_start == 5

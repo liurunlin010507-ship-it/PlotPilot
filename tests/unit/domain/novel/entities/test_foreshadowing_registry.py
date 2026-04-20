@@ -1,12 +1,9 @@
 # tests/unit/domain/novel/entities/test_foreshadowing_registry.py
 import pytest
+
 from domain.novel.entities.foreshadowing_registry import ForeshadowingRegistry
+from domain.novel.value_objects.foreshadowing import Foreshadowing, ForeshadowingStatus, ImportanceLevel
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.foreshadowing import (
-    Foreshadowing,
-    ForeshadowingStatus,
-    ImportanceLevel
-)
 from domain.shared.exceptions import InvalidOperationError
 
 
@@ -33,7 +30,7 @@ class TestForeshadowingRegistry:
             description="神秘的预言",
             importance=ImportanceLevel.HIGH,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=10
+            suggested_resolve_chapter=10,
         )
 
         registry.register(foreshadowing)
@@ -51,7 +48,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=1,
             description="神秘的预言",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         registry.register(foreshadowing)
@@ -69,7 +66,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=1,
             description="神秘的预言",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         registry.register(foreshadowing)
@@ -98,7 +95,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=1,
             description="神秘的预言",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         registry.register(foreshadowing)
@@ -119,7 +116,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=1,
             description="未解决的伏笔",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         resolved = Foreshadowing(
@@ -128,7 +125,7 @@ class TestForeshadowingRegistry:
             description="已解决的伏笔",
             importance=ImportanceLevel.MEDIUM,
             status=ForeshadowingStatus.RESOLVED,
-            resolved_in_chapter=5
+            resolved_in_chapter=5,
         )
 
         registry.register(planted)
@@ -150,7 +147,7 @@ class TestForeshadowingRegistry:
             description="准备解决的伏笔",
             importance=ImportanceLevel.HIGH,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=10
+            suggested_resolve_chapter=10,
         )
 
         # 建议在第 15 章解决
@@ -160,7 +157,7 @@ class TestForeshadowingRegistry:
             description="还不能解决的伏笔",
             importance=ImportanceLevel.MEDIUM,
             status=ForeshadowingStatus.PLANTED,
-            suggested_resolve_chapter=15
+            suggested_resolve_chapter=15,
         )
 
         # 没有建议解决章节
@@ -169,7 +166,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=3,
             description="没有建议的伏笔",
             importance=ImportanceLevel.LOW,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         registry.register(ready)
@@ -191,7 +188,7 @@ class TestForeshadowingRegistry:
             planted_in_chapter=1,
             description="测试伏笔",
             importance=ImportanceLevel.HIGH,
-            status=ForeshadowingStatus.PLANTED
+            status=ForeshadowingStatus.PLANTED,
         )
 
         registry.register(foreshadowing)

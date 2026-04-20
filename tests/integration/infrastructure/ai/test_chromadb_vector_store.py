@@ -1,10 +1,13 @@
 """ChromaDB 向量存储集成测试"""
-import pytest
-import tempfile
+
+import os
 import shutil
+import tempfile
+
+import pytest
+
 from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
 from infrastructure.ai.openai_embedding_service import OpenAIEmbeddingService
-import os
 
 
 @pytest.fixture
@@ -39,26 +42,19 @@ async def test_full_workflow_with_embeddings(vector_store, embedding_service):
     texts = [
         "林雪站在雪山之巅，寒风刺骨。",
         "李明在图书馆里翻阅古籍，寻找线索。",
-        "雪山上的风越来越大，林雪感到一丝不安。"
+        "雪山上的风越来越大，林雪感到一丝不安。",
     ]
 
     # 生成 embeddings 并插入
     for i, text in enumerate(texts):
         vector = await embedding_service.embed(text)
         await vector_store.insert(
-            collection=collection,
-            id=f"chapter_{i}",
-            vector=vector,
-            payload={"text": text, "chapter": i}
+            collection=collection, id=f"chapter_{i}", vector=vector, payload={"text": text, "chapter": i}
         )
 
     # 搜索：查找与"雪山"相关的内容
     query_vector = await embedding_service.embed("雪山上的场景")
-    results = await vector_store.search(
-        collection=collection,
-        query_vector=query_vector,
-        limit=2
-    )
+    results = await vector_store.search(collection=collection, query_vector=query_vector, limit=2)
 
     # 验证结果
     assert len(results) == 2
@@ -78,23 +74,14 @@ async def test_persistence(temp_dir, embedding_service):
 
     text = "这是一段测试文本"
     vector = await embedding_service.embed(text)
-    await store1.insert(
-        collection=collection,
-        id="test_id",
-        vector=vector,
-        payload={"text": text}
-    )
+    await store1.insert(collection=collection, id="test_id", vector=vector, payload={"text": text})
 
     # 模拟重启：创建新实例
     store2 = ChromaDBVectorStore(persist_directory=temp_dir)
 
     # 验证数据仍然存在
     query_vector = await embedding_service.embed("测试文本")
-    results = await store2.search(
-        collection=collection,
-        query_vector=query_vector,
-        limit=1
-    )
+    results = await store2.search(collection=collection, query_vector=query_vector, limit=1)
 
     assert len(results) == 1
     assert results[0]["id"] == "test_id"

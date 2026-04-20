@@ -1,9 +1,10 @@
 import pytest
+
 from domain.novel.entities.storyline import Storyline
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 
 
 class TestStoryline:
@@ -18,7 +19,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         assert storyline.id == "storyline-1"
@@ -39,7 +40,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -49,7 +50,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -58,7 +59,7 @@ class TestStoryline:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline.add_milestone(milestone1)
@@ -77,7 +78,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -87,7 +88,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -96,7 +97,7 @@ class TestStoryline:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
         milestone3 = StorylineMilestone(
             order=2,
@@ -105,7 +106,7 @@ class TestStoryline:
             target_chapter_start=15,
             target_chapter_end=16,
             prerequisites=["date"],
-            triggers=["confess"]
+            triggers=["confess"],
         )
 
         storyline.add_milestone(milestone1)
@@ -128,7 +129,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -138,7 +139,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -147,7 +148,7 @@ class TestStoryline:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline.add_milestone(milestone1)
@@ -171,7 +172,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -181,7 +182,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
 
         storyline.add_milestone(milestone1)
@@ -198,7 +199,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -208,7 +209,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -217,7 +218,7 @@ class TestStoryline:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline.add_milestone(milestone1)
@@ -243,7 +244,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         current = storyline.get_current_milestone()
@@ -258,7 +259,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -268,7 +269,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
 
         storyline.add_milestone(milestone1)
@@ -287,7 +288,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
 
         storyline = Storyline(
@@ -298,7 +299,7 @@ class TestStoryline:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[milestone1],
-            current_milestone_index=0
+            current_milestone_index=0,
         )
 
         assert len(storyline.milestones) == 1
@@ -314,7 +315,7 @@ class TestStoryline:
             storyline_type=StorylineType.ROMANCE,
             status=StorylineStatus.ACTIVE,
             estimated_chapter_start=5,
-            estimated_chapter_end=20
+            estimated_chapter_end=20,
         )
 
         milestone1 = StorylineMilestone(
@@ -324,7 +325,7 @@ class TestStoryline:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=[],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -333,7 +334,7 @@ class TestStoryline:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline.add_milestone(milestone1)

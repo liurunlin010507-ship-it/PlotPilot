@@ -1,22 +1,26 @@
 """AutoNovelGenerationWorkflow 单元测试"""
+
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
-from application.workflows.auto_novel_generation_workflow import (
-    AutoNovelGenerationWorkflow,
-    CHAPTER_CONTEXT_LAYER2_HEADER,
-    CHAPTER_CONTEXT_LAYER3_HEADER,
-    assemble_chapter_bundle_context_text,
-)
+
 from application.engine.dtos.generation_result import GenerationResult
 from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
 from application.engine.services.context_builder import ContextBuilder
+from application.workflows.auto_novel_generation_workflow import (
+    CHAPTER_CONTEXT_LAYER2_HEADER,
+    CHAPTER_CONTEXT_LAYER3_HEADER,
+    AutoNovelGenerationWorkflow,
+    assemble_chapter_bundle_context_text,
+)
+from domain.ai.services.llm_service import GenerationResult as LLMResult
+from domain.ai.services.llm_service import LLMService
+from domain.ai.value_objects.token_usage import TokenUsage
+from domain.novel.repositories.plot_arc_repository import PlotArcRepository
 from domain.novel.services.consistency_checker import ConsistencyChecker
 from domain.novel.services.storyline_manager import StorylineManager
-from domain.novel.repositories.plot_arc_repository import PlotArcRepository
-from domain.novel.value_objects.consistency_report import ConsistencyReport, Issue, IssueType, Severity
 from domain.novel.value_objects.chapter_state import ChapterState
-from domain.ai.services.llm_service import LLMService, GenerationResult as LLMResult
-from domain.ai.value_objects.token_usage import TokenUsage
+from domain.novel.value_objects.consistency_report import ConsistencyReport
 
 
 @pytest.fixture
@@ -27,12 +31,7 @@ def mock_context_builder():
         "layer1_text": "Layer 1 context",
         "layer2_text": "Layer 2 context",
         "layer3_text": "Layer 3 context",
-        "token_usage": {
-            "layer1": 1250,
-            "layer2": 5500,
-            "layer3": 2500,
-            "total": 9250
-        }
+        "token_usage": {"layer1": 1250, "layer2": 5500, "layer3": 2500, "total": 9250},
     }
     # 不再需要 estimate_tokens 方法
     return builder
@@ -42,11 +41,7 @@ def mock_context_builder():
 def mock_consistency_checker():
     """Mock ConsistencyChecker"""
     checker = Mock(spec=ConsistencyChecker)
-    checker.check_all = Mock(return_value=ConsistencyReport(
-        issues=[],
-        warnings=[],
-        suggestions=[]
-    ))
+    checker.check_all = Mock(return_value=ConsistencyReport(issues=[], warnings=[], suggestions=[]))
     return checker
 
 
@@ -75,21 +70,18 @@ async def _mock_stream_generate(*args, **kwargs):
 def mock_llm_service():
     """Mock LLMService"""
     service = Mock(spec=LLMService)
-    service.generate = AsyncMock(return_value=LLMResult(
-        content="Generated chapter content",
-        token_usage=TokenUsage(input_tokens=500, output_tokens=500)
-    ))
+    service.generate = AsyncMock(
+        return_value=LLMResult(
+            content="Generated chapter content", token_usage=TokenUsage(input_tokens=500, output_tokens=500)
+        )
+    )
     service.stream_generate = _mock_stream_generate
     return service
 
 
 @pytest.fixture
 def workflow(
-    mock_context_builder,
-    mock_consistency_checker,
-    mock_storyline_manager,
-    mock_plot_arc_repository,
-    mock_llm_service
+    mock_context_builder, mock_consistency_checker, mock_storyline_manager, mock_plot_arc_repository, mock_llm_service
 ):
     """创建 AutoNovelGenerationWorkflow 实例"""
     return AutoNovelGenerationWorkflow(
@@ -97,7 +89,7 @@ def workflow(
         consistency_checker=mock_consistency_checker,
         storyline_manager=mock_storyline_manager,
         plot_arc_repository=mock_plot_arc_repository,
-        llm_service=mock_llm_service
+        llm_service=mock_llm_service,
     )
 
 
@@ -119,11 +111,7 @@ class TestGenerateChapter:
     @pytest.mark.asyncio
     async def test_generate_chapter_success(self, workflow, mock_context_builder, mock_llm_service):
         """测试成功生成章节"""
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="Chapter 1 outline"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="Chapter 1 outline")
 
         # 验证返回结果
         assert isinstance(result, GenerationResult)
@@ -136,11 +124,7 @@ class TestGenerateChapter:
 
         # 验证调用顺序
         mock_context_builder.build_structured_context.assert_called_once_with(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="Chapter 1 outline",
-            max_tokens=35000,
-            scene_director=None
+            novel_id="novel-1", chapter_number=1, outline="Chapter 1 outline", max_tokens=35000, scene_director=None
         )
         # 验证 LLM 被调用：至少一次用于生成章节，可能还有一次用于状态提取
         assert mock_llm_service.generate.call_count >= 1
@@ -154,14 +138,11 @@ class TestGenerateChapter:
             action_types=["dialogue", "action"],
             trigger_keywords=["conflict"],
             emotional_state="tense",
-            pov="Alice"
+            pov="Alice",
         )
 
         result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="Chapter 1 outline",
-            scene_director=scene_director
+            novel_id="novel-1", chapter_number=1, outline="Chapter 1 outline", scene_director=scene_director
         )
 
         # 验证返回结果
@@ -174,28 +155,20 @@ class TestGenerateChapter:
             chapter_number=1,
             outline="Chapter 1 outline",
             max_tokens=35000,
-            scene_director=scene_director
+            scene_director=scene_director,
         )
 
     @pytest.mark.asyncio
     async def test_generate_chapter_invalid_chapter_number(self, workflow):
         """测试无效的章节号"""
         with pytest.raises(ValueError, match="chapter_number must be positive"):
-            await workflow.generate_chapter(
-                novel_id="novel-1",
-                chapter_number=0,
-                outline="Chapter outline"
-            )
+            await workflow.generate_chapter(novel_id="novel-1", chapter_number=0, outline="Chapter outline")
 
     @pytest.mark.asyncio
     async def test_generate_chapter_empty_outline(self, workflow):
         """测试空大纲"""
         with pytest.raises(ValueError, match="outline cannot be empty"):
-            await workflow.generate_chapter(
-                novel_id="novel-1",
-                chapter_number=1,
-                outline=""
-            )
+            await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="")
 
 
 class TestGenerateChapterWithReview:
@@ -205,9 +178,7 @@ class TestGenerateChapterWithReview:
     async def test_generate_with_review_success(self, workflow):
         """测试带审查的生成成功"""
         content, report = await workflow.generate_chapter_with_review(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="Chapter 1 outline"
+            novel_id="novel-1", chapter_number=1, outline="Chapter 1 outline"
         )
 
         assert content == "Generated chapter content"
@@ -270,10 +241,7 @@ class TestBuildPrompt:
 
     def test_build_prompt_with_context(self, workflow):
         """测试构建提示词"""
-        prompt = workflow._build_prompt(
-            context="Full context",
-            outline="Chapter outline"
-        )
+        prompt = workflow._build_prompt(context="Full context", outline="Chapter outline")
 
         assert "Full context" in prompt.system
         assert "Chapter outline" in prompt.user
@@ -290,6 +258,7 @@ class TestBuildPrompt:
         assert "HIGH" in prompt.system
         assert "CTX" in prompt.system
 
+
 class TestConflictDetectionIntegration:
     """测试冲突检测集成"""
 
@@ -300,15 +269,15 @@ class TestConflictDetectionIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试生成章节时包含幽灵批注"""
-        from application.services.conflict_detection_service import ConflictDetectionService
         from application.dtos.ghost_annotation import GhostAnnotation
-        from domain.bible.repositories.bible_repository import BibleRepository
+        from application.services.conflict_detection_service import ConflictDetectionService
+
         from domain.bible.entities.bible import Bible
         from domain.bible.entities.character import Character
-        from domain.novel.value_objects.novel_id import NovelId
+        from domain.bible.repositories.bible_repository import BibleRepository
 
         # Mock ConflictDetectionService
         mock_conflict_service = Mock(spec=ConflictDetectionService)
@@ -320,7 +289,7 @@ class TestConflictDetectionIntegration:
                 entity_id="char-001",
                 entity_name="李明",
                 expected="水系",
-                actual="火系"
+                actual="火系",
             )
         ]
 
@@ -341,14 +310,10 @@ class TestConflictDetectionIntegration:
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
             conflict_detection_service=mock_conflict_service,
-            bible_repository=mock_bible_repo
+            bible_repository=mock_bible_repo,
         )
 
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="李明释放火球术攻击敌人"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="李明释放火球术攻击敌人")
 
         # 验证返回结果包含批注
         assert isinstance(result, GenerationResult)
@@ -369,7 +334,7 @@ class TestConflictDetectionIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试无冲突时返回空批注列表"""
         from application.services.conflict_detection_service import ConflictDetectionService
@@ -384,31 +349,20 @@ class TestConflictDetectionIntegration:
             storyline_manager=mock_storyline_manager,
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
-            conflict_detection_service=mock_conflict_service
+            conflict_detection_service=mock_conflict_service,
         )
 
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="李明与王总对话"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="李明与王总对话")
 
         # 验证返回空批注列表
         assert isinstance(result, GenerationResult)
         assert len(result.ghost_annotations) == 0
 
     @pytest.mark.asyncio
-    async def test_generate_chapter_without_conflict_service(
-        self,
-        workflow
-    ):
+    async def test_generate_chapter_without_conflict_service(self, workflow):
         """测试没有冲突检测服务时不报错"""
         # workflow fixture 默认没有 conflict_detection_service
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="Chapter outline"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="Chapter outline")
 
         # 验证不报错，返回空批注列表
         assert isinstance(result, GenerationResult)
@@ -421,11 +375,11 @@ class TestConflictDetectionIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试流式生成时包含幽灵批注"""
-        from application.services.conflict_detection_service import ConflictDetectionService
         from application.dtos.ghost_annotation import GhostAnnotation
+        from application.services.conflict_detection_service import ConflictDetectionService
 
         # Mock ConflictDetectionService
         mock_conflict_service = Mock(spec=ConflictDetectionService)
@@ -435,7 +389,7 @@ class TestConflictDetectionIntegration:
                 severity="warning",
                 message="测试批注",
                 entity_id="char-001",
-                entity_name="测试角色"
+                entity_name="测试角色",
             )
         ]
 
@@ -445,15 +399,11 @@ class TestConflictDetectionIntegration:
             storyline_manager=mock_storyline_manager,
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
-            conflict_detection_service=mock_conflict_service
+            conflict_detection_service=mock_conflict_service,
         )
 
         events = []
-        async for event in workflow.generate_chapter_stream(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="测试大纲"
-        ):
+        async for event in workflow.generate_chapter_stream(novel_id="novel-1", chapter_number=1, outline="测试大纲"):
             events.append(event)
 
         # 验证最后的 done 事件包含批注
@@ -475,28 +425,16 @@ class TestStyleIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试生成章节时包含风格警告"""
-        from application.services.cliche_scanner import ClicheScanner, ClicheHit
+        from application.services.cliche_scanner import ClicheHit, ClicheScanner
 
         # Mock ClicheScanner
         mock_scanner = Mock(spec=ClicheScanner)
         mock_scanner.scan_cliches.return_value = [
-            ClicheHit(
-                pattern="熊熊系列",
-                text="熊熊烈火",
-                start=10,
-                end=14,
-                severity="warning"
-            ),
-            ClicheHit(
-                pattern="眼神闪过系列",
-                text="眼中闪过一丝",
-                start=50,
-                end=57,
-                severity="warning"
-            )
+            ClicheHit(pattern="熊熊系列", text="熊熊烈火", start=10, end=14, severity="warning"),
+            ClicheHit(pattern="眼神闪过系列", text="眼中闪过一丝", start=50, end=57, severity="warning"),
         ]
 
         # 创建带俗套扫描的工作流
@@ -506,14 +444,10 @@ class TestStyleIntegration:
             storyline_manager=mock_storyline_manager,
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
-            cliche_scanner=mock_scanner
+            cliche_scanner=mock_scanner,
         )
 
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="测试大纲"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="测试大纲")
 
         # 验证返回结果包含风格警告
         assert isinstance(result, GenerationResult)
@@ -532,21 +466,18 @@ class TestStyleIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试生成章节时注入风格指纹摘要"""
         from application.services.voice_fingerprint_service import VoiceFingerprintService
+
         from domain.novel.repositories.voice_fingerprint_repository import VoiceFingerprintRepository
 
         # Mock VoiceFingerprintService
         mock_fingerprint_repo = Mock(spec=VoiceFingerprintRepository)
         mock_fingerprint_repo.get_by_novel.return_value = {
-            "metrics": {
-                "adjective_density": 0.052,
-                "avg_sentence_length": 18.5,
-                "sentence_count": 100
-            },
-            "sample_count": 10
+            "metrics": {"adjective_density": 0.052, "avg_sentence_length": 18.5, "sentence_count": 100},
+            "sample_count": 10,
         }
 
         mock_fingerprint_service = Mock(spec=VoiceFingerprintService)
@@ -559,14 +490,10 @@ class TestStyleIntegration:
             storyline_manager=mock_storyline_manager,
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
-            voice_fingerprint_service=mock_fingerprint_service
+            voice_fingerprint_service=mock_fingerprint_service,
         )
 
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="测试大纲"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="测试大纲")
 
         # 验证 LLM 被调用
         assert mock_llm_service.generate.called
@@ -582,17 +509,10 @@ class TestStyleIntegration:
         mock_fingerprint_repo.get_by_novel.assert_called_once_with("novel-1", pov_character_id=None)
 
     @pytest.mark.asyncio
-    async def test_generate_chapter_without_style_services(
-        self,
-        workflow
-    ):
+    async def test_generate_chapter_without_style_services(self, workflow):
         """测试没有风格服务时不报错"""
         # workflow fixture 默认没有 voice_fingerprint_service 和 cliche_scanner
-        result = await workflow.generate_chapter(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="测试大纲"
-        )
+        result = await workflow.generate_chapter(novel_id="novel-1", chapter_number=1, outline="测试大纲")
 
         # 验证不报错，返回空风格警告列表
         assert isinstance(result, GenerationResult)
@@ -605,21 +525,15 @@ class TestStyleIntegration:
         mock_consistency_checker,
         mock_storyline_manager,
         mock_plot_arc_repository,
-        mock_llm_service
+        mock_llm_service,
     ):
         """测试流式生成时包含风格警告"""
-        from application.services.cliche_scanner import ClicheScanner, ClicheHit
+        from application.services.cliche_scanner import ClicheHit, ClicheScanner
 
         # Mock ClicheScanner
         mock_scanner = Mock(spec=ClicheScanner)
         mock_scanner.scan_cliches.return_value = [
-            ClicheHit(
-                pattern="熊熊系列",
-                text="熊熊烈火",
-                start=10,
-                end=14,
-                severity="warning"
-            )
+            ClicheHit(pattern="熊熊系列", text="熊熊烈火", start=10, end=14, severity="warning")
         ]
 
         workflow = AutoNovelGenerationWorkflow(
@@ -628,15 +542,11 @@ class TestStyleIntegration:
             storyline_manager=mock_storyline_manager,
             plot_arc_repository=mock_plot_arc_repository,
             llm_service=mock_llm_service,
-            cliche_scanner=mock_scanner
+            cliche_scanner=mock_scanner,
         )
 
         events = []
-        async for event in workflow.generate_chapter_stream(
-            novel_id="novel-1",
-            chapter_number=1,
-            outline="测试大纲"
-        ):
+        async for event in workflow.generate_chapter_stream(novel_id="novel-1", chapter_number=1, outline="测试大纲"):
             events.append(event)
 
         # 验证最后的 done 事件包含风格警告

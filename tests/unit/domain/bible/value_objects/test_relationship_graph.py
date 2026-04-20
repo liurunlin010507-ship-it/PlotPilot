@@ -1,4 +1,5 @@
 import pytest
+
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.relationship import Relationship, RelationType
 from domain.bible.value_objects.relationship_graph import RelationshipGraph
@@ -24,56 +25,32 @@ class TestRelationship:
 
     def test_create_valid_relationship(self):
         """测试创建有效的关系"""
-        rel = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Met at school"
-        )
+        rel = Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="Met at school")
         assert rel.relation_type == RelationType.FRIEND
         assert rel.established_in_chapter == 1
         assert rel.description == "Met at school"
 
     def test_relationship_is_frozen(self):
         """测试关系对象是不可变的"""
-        rel = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Met at school"
-        )
+        rel = Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="Met at school")
         with pytest.raises((AttributeError, TypeError)):  # dataclass frozen raises one of these
             rel.relation_type = RelationType.ENEMY
 
     def test_invalid_chapter_number(self):
         """测试无效的章节号"""
         with pytest.raises(ValueError, match="established_in_chapter must be >= 1"):
-            Relationship(
-                relation_type=RelationType.FRIEND,
-                established_in_chapter=0,
-                description="Met at school"
-            )
+            Relationship(relation_type=RelationType.FRIEND, established_in_chapter=0, description="Met at school")
 
         with pytest.raises(ValueError, match="established_in_chapter must be >= 1"):
-            Relationship(
-                relation_type=RelationType.FRIEND,
-                established_in_chapter=-1,
-                description="Met at school"
-            )
+            Relationship(relation_type=RelationType.FRIEND, established_in_chapter=-1, description="Met at school")
 
     def test_empty_description(self):
         """测试空描述"""
         with pytest.raises(ValueError, match="description cannot be empty"):
-            Relationship(
-                relation_type=RelationType.FRIEND,
-                established_in_chapter=1,
-                description=""
-            )
+            Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="")
 
         with pytest.raises(ValueError, match="description cannot be empty"):
-            Relationship(
-                relation_type=RelationType.FRIEND,
-                established_in_chapter=1,
-                description="   "
-            )
+            Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="   ")
 
     def test_invalid_relation_type(self):
         """测试无效的关系类型"""
@@ -81,7 +58,7 @@ class TestRelationship:
             Relationship(
                 relation_type="friend",  # string instead of enum
                 established_in_chapter=1,
-                description="Met at school"
+                description="Met at school",
             )
 
     def test_invalid_description_type(self):
@@ -90,7 +67,7 @@ class TestRelationship:
             Relationship(
                 relation_type=RelationType.FRIEND,
                 established_in_chapter=1,
-                description=123  # number instead of string
+                description=123,  # number instead of string
             )
 
 
@@ -107,11 +84,7 @@ class TestRelationshipGraph:
         graph = RelationshipGraph()
         char1 = CharacterId("alice")
         char2 = CharacterId("bob")
-        rel = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Met at school"
-        )
+        rel = Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="Met at school")
 
         graph.add_relationship(char1, char2, rel)
 
@@ -137,9 +110,7 @@ class TestRelationshipGraph:
 
         # 第一次见面 - 陌生人
         rel1 = Relationship(
-            relation_type=RelationType.STRANGER,
-            established_in_chapter=1,
-            description="First encounter"
+            relation_type=RelationType.STRANGER, established_in_chapter=1, description="First encounter"
         )
         graph.add_relationship(char1, char2, rel1)
 
@@ -147,15 +118,13 @@ class TestRelationshipGraph:
         rel2 = Relationship(
             relation_type=RelationType.FRIEND,
             established_in_chapter=3,
-            description="Became friends after working together"
+            description="Became friends after working together",
         )
         graph.add_relationship(char1, char2, rel2)
 
         # 成为密友
         rel3 = Relationship(
-            relation_type=RelationType.CLOSE_FRIEND,
-            established_in_chapter=7,
-            description="Shared deep secrets"
+            relation_type=RelationType.CLOSE_FRIEND, established_in_chapter=7, description="Shared deep secrets"
         )
         graph.add_relationship(char1, char2, rel3)
 
@@ -176,11 +145,7 @@ class TestRelationshipGraph:
         graph = RelationshipGraph()
         char1 = CharacterId("alice")
         char2 = CharacterId("bob")
-        rel = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Met at school"
-        )
+        rel = Relationship(relation_type=RelationType.FRIEND, established_in_chapter=1, description="Met at school")
 
         graph.add_relationship(char1, char2, rel)
 
@@ -200,14 +165,10 @@ class TestRelationshipGraph:
         charlie = CharacterId("charlie")
 
         rel1 = Relationship(
-            relation_type=RelationType.FRIEND,
-            established_in_chapter=1,
-            description="Alice and Bob are friends"
+            relation_type=RelationType.FRIEND, established_in_chapter=1, description="Alice and Bob are friends"
         )
         rel2 = Relationship(
-            relation_type=RelationType.ENEMY,
-            established_in_chapter=2,
-            description="Alice and Charlie are enemies"
+            relation_type=RelationType.ENEMY, established_in_chapter=2, description="Alice and Charlie are enemies"
         )
 
         graph.add_relationship(alice, bob, rel1)
@@ -255,7 +216,7 @@ class TestRelationshipGraph:
             Relationship(RelationType.STRANGER, 1, "First met"),
             Relationship(RelationType.FRIEND, 3, "Became friends"),
             Relationship(RelationType.LOVER, 5, "Fell in love"),
-            Relationship(RelationType.ENEMY, 10, "Betrayal")
+            Relationship(RelationType.ENEMY, 10, "Betrayal"),
         ]
 
         for rel in relationships:
@@ -272,5 +233,5 @@ class TestRelationshipGraph:
             RelationType.STRANGER,
             RelationType.FRIEND,
             RelationType.LOVER,
-            RelationType.ENEMY
+            RelationType.ENEMY,
         ]

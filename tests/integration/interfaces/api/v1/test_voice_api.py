@@ -1,6 +1,8 @@
 """Integration tests for Voice API"""
+
 import pytest
 from fastapi.testclient import TestClient
+
 from interfaces.main import app
 
 
@@ -16,6 +18,7 @@ class TestVoiceAPI:
     def test_novel_id(self, client):
         """创建测试小说并返回 ID"""
         import uuid
+
         novel_id = f"test-novel-voice-{uuid.uuid4().hex[:8]}"
         response = client.post(
             "/api/v1/novels",
@@ -24,8 +27,8 @@ class TestVoiceAPI:
                 "title": "测试小说",
                 "author": "测试作者",
                 "target_chapters": 10,
-                "premise": "测试前提"
-            }
+                "premise": "测试前提",
+            },
         )
         assert response.status_code == 201
         return response.json()["id"]
@@ -37,14 +40,11 @@ class TestVoiceAPI:
             "ai_original": "这是AI生成的原始文本，包含一些描述。",
             "author_refined": "这是作者精心修改后的文本，更加生动。",
             "chapter_number": 1,
-            "scene_type": "dialogue"
+            "scene_type": "dialogue",
         }
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 201
@@ -56,17 +56,10 @@ class TestVoiceAPI:
     def test_create_voice_sample_with_default_scene_type(self, client, test_novel_id):
         """测试使用默认场景类型创建文风样本"""
         # Arrange
-        request_data = {
-            "ai_original": "AI原文",
-            "author_refined": "作者改稿",
-            "chapter_number": 2
-        }
+        request_data = {"ai_original": "AI原文", "author_refined": "作者改稿", "chapter_number": 2}
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 201
@@ -76,18 +69,10 @@ class TestVoiceAPI:
     def test_create_voice_sample_validation_empty_ai_original(self, client, test_novel_id):
         """测试空 AI 原文验证"""
         # Arrange
-        request_data = {
-            "ai_original": "",
-            "author_refined": "作者改稿",
-            "chapter_number": 1,
-            "scene_type": "action"
-        }
+        request_data = {"ai_original": "", "author_refined": "作者改稿", "chapter_number": 1, "scene_type": "action"}
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 422  # Validation error
@@ -95,18 +80,10 @@ class TestVoiceAPI:
     def test_create_voice_sample_validation_empty_author_refined(self, client, test_novel_id):
         """测试空作者改稿验证"""
         # Arrange
-        request_data = {
-            "ai_original": "AI原文",
-            "author_refined": "",
-            "chapter_number": 1,
-            "scene_type": "action"
-        }
+        request_data = {"ai_original": "AI原文", "author_refined": "", "chapter_number": 1, "scene_type": "action"}
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 422  # Validation error
@@ -118,14 +95,11 @@ class TestVoiceAPI:
             "ai_original": "AI原文",
             "author_refined": "作者改稿",
             "chapter_number": 0,  # Invalid: must be >= 1
-            "scene_type": "action"
+            "scene_type": "action",
         }
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 422  # Validation error
@@ -139,10 +113,7 @@ class TestVoiceAPI:
         }
 
         # Act
-        response = client.post(
-            f"/api/v1/novels/{test_novel_id}/voice/samples",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
 
         # Assert
         assert response.status_code == 422  # Validation error
@@ -155,29 +126,26 @@ class TestVoiceAPI:
                 "ai_original": "第一个样本的AI原文",
                 "author_refined": "第一个样本的作者改稿",
                 "chapter_number": 1,
-                "scene_type": "dialogue"
+                "scene_type": "dialogue",
             },
             {
                 "ai_original": "第二个样本的AI原文",
                 "author_refined": "第二个样本的作者改稿",
                 "chapter_number": 2,
-                "scene_type": "action"
+                "scene_type": "action",
             },
             {
                 "ai_original": "第三个样本的AI原文",
                 "author_refined": "第三个样本的作者改稿",
                 "chapter_number": 3,
-                "scene_type": "description"
-            }
+                "scene_type": "description",
+            },
         ]
 
         # Act & Assert
         sample_ids = []
         for sample in samples:
-            response = client.post(
-                f"/api/v1/novels/{test_novel_id}/voice/samples",
-                json=sample
-            )
+            response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=sample)
             assert response.status_code == 201
             data = response.json()
             assert "sample_id" in data
@@ -191,15 +159,12 @@ class TestVoiceAPI:
         # Arrange - Create 10 samples to trigger fingerprint computation
         for i in range(10):
             request_data = {
-                "ai_original": f"这是第{i+1}个美丽的样本。天气很温柔！",
-                "author_refined": f"这是第{i+1}个漂亮的样本。天气真好！",
+                "ai_original": f"这是第{i + 1}个美丽的样本。天气很温柔！",
+                "author_refined": f"这是第{i + 1}个漂亮的样本。天气真好！",
                 "chapter_number": i + 1,
-                "scene_type": "general"
+                "scene_type": "general",
             }
-            response = client.post(
-                f"/api/v1/novels/{test_novel_id}/voice/samples",
-                json=request_data
-            )
+            response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
             assert response.status_code == 201
 
         # Act - Get fingerprint
@@ -232,21 +197,17 @@ class TestVoiceAPI:
         # Arrange - Create 10 samples (fingerprint will be computed without POV)
         for i in range(10):
             request_data = {
-                "ai_original": f"样本{i+1}的内容。",
-                "author_refined": f"样本{i+1}的改稿。",
+                "ai_original": f"样本{i + 1}的内容。",
+                "author_refined": f"样本{i + 1}的改稿。",
                 "chapter_number": i + 1,
-                "scene_type": "general"
+                "scene_type": "general",
             }
-            response = client.post(
-                f"/api/v1/novels/{test_novel_id}/voice/samples",
-                json=request_data
-            )
+            response = client.post(f"/api/v1/novels/{test_novel_id}/voice/samples", json=request_data)
             assert response.status_code == 201
 
         # Act - Try to get fingerprint with POV character (should not exist)
         response = client.get(
-            f"/api/v1/novels/{test_novel_id}/voice/fingerprint",
-            params={"pov_character_id": "char-123"}
+            f"/api/v1/novels/{test_novel_id}/voice/fingerprint", params={"pov_character_id": "char-123"}
         )
 
         # Assert - Should return 404 since we didn't create samples with POV

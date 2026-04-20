@@ -1,4 +1,5 @@
 import pytest
+
 from domain.novel.value_objects.novel_id import NovelId
 
 

@@ -1,6 +1,7 @@
 """监控大盘 API 测试"""
-import pytest
+
 from fastapi.testclient import TestClient
+
 from interfaces.main import app
 
 client = TestClient(app)
@@ -89,7 +90,7 @@ def test_generate_dialogue_endpoint():
         "character_id": "char-001",
         "scene_prompt": "测试场景",
         "mental_state": "平静",
-        "verbal_tic": "嗯..."
+        "verbal_tic": "嗯...",
     }
     response = client.post("/api/v1/novels/sandbox/generate-dialogue", json=payload)
     # 可能返回 404（小说不存在）或 500（LLM 服务不可用）

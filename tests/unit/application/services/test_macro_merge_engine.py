@@ -2,8 +2,7 @@
 宏观合并引擎单元测试
 """
 
-import pytest
-from application.services.macro_merge_engine import MacroMergeEngine, MergePlan
+from application.services.macro_merge_engine import MacroMergeEngine
 
 
 class TestMacroMergeEngine:
@@ -13,15 +12,50 @@ class TestMacroMergeEngine:
         """绿色通路：纯空框架覆盖"""
         # 旧结构：3 个空幕
         old_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
-            {"id": "act-3", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第三幕", "order_index": 2},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
+            {
+                "id": "act-3",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第三幕",
+                "order_index": 2,
+            },
         ]
 
         # 新结构：2 个幕
         new_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "序章", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "正章", "order_index": 1},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "序章",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "正章",
+                "order_index": 1,
+            },
         ]
 
         engine = MacroMergeEngine(old_nodes, new_nodes)
@@ -39,17 +73,66 @@ class TestMacroMergeEngine:
         """黄色通路：安全合并（保留已写正文）"""
         # 旧结构：3 个幕，第一幕有正文
         old_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "chapter-1", "novel_id": "novel-1", "parent_id": "act-1", "node_type": "CHAPTER", "title": "第1章", "order_index": 1},
-            {"id": "chapter-2", "novel_id": "novel-1", "parent_id": "act-1", "node_type": "CHAPTER", "title": "第2章", "order_index": 2},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 3},
-            {"id": "act-3", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第三幕", "order_index": 4},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "chapter-1",
+                "novel_id": "novel-1",
+                "parent_id": "act-1",
+                "node_type": "CHAPTER",
+                "title": "第1章",
+                "order_index": 1,
+            },
+            {
+                "id": "chapter-2",
+                "novel_id": "novel-1",
+                "parent_id": "act-1",
+                "node_type": "CHAPTER",
+                "title": "第2章",
+                "order_index": 2,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 3,
+            },
+            {
+                "id": "act-3",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第三幕",
+                "order_index": 4,
+            },
         ]
 
         # 新结构：2 个幕（删除 act-3）
         new_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "序章·觉醒", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "正章·征途", "order_index": 1},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "序章·觉醒",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "正章·征途",
+                "order_index": 1,
+            },
         ]
 
         engine = MacroMergeEngine(old_nodes, new_nodes)
@@ -71,16 +154,58 @@ class TestMacroMergeEngine:
         """红色阻断：试图删除包含正文的节点"""
         # 旧结构：3 个幕，第三幕有正文
         old_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
-            {"id": "act-3", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第三幕·大结局", "order_index": 2},
-            {"id": "chapter-10", "novel_id": "novel-1", "parent_id": "act-3", "node_type": "CHAPTER", "title": "终章", "order_index": 3},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
+            {
+                "id": "act-3",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第三幕·大结局",
+                "order_index": 2,
+            },
+            {
+                "id": "chapter-10",
+                "novel_id": "novel-1",
+                "parent_id": "act-3",
+                "node_type": "CHAPTER",
+                "title": "终章",
+                "order_index": 3,
+            },
         ]
 
         # 新结构：只有 2 个幕（试图删除有正文的 act-3）
         new_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
         ]
 
         engine = MacroMergeEngine(old_nodes, new_nodes)
@@ -97,10 +222,38 @@ class TestMacroMergeEngine:
         """测试自底向上感染机制"""
         # 旧结构：Part → Volume → Act → Chapter（四层嵌套）
         old_nodes = [
-            {"id": "part-1", "novel_id": "novel-1", "parent_id": None, "node_type": "PART", "title": "第一部", "order_index": 0},
-            {"id": "volume-1", "novel_id": "novel-1", "parent_id": "part-1", "node_type": "VOLUME", "title": "第一卷", "order_index": 1},
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": "volume-1", "node_type": "ACT", "title": "第一幕", "order_index": 2},
-            {"id": "chapter-1", "novel_id": "novel-1", "parent_id": "act-1", "node_type": "CHAPTER", "title": "第1章", "order_index": 3},
+            {
+                "id": "part-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "PART",
+                "title": "第一部",
+                "order_index": 0,
+            },
+            {
+                "id": "volume-1",
+                "novel_id": "novel-1",
+                "parent_id": "part-1",
+                "node_type": "VOLUME",
+                "title": "第一卷",
+                "order_index": 1,
+            },
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": "volume-1",
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 2,
+            },
+            {
+                "id": "chapter-1",
+                "novel_id": "novel-1",
+                "parent_id": "act-1",
+                "node_type": "CHAPTER",
+                "title": "第1章",
+                "order_index": 3,
+            },
         ]
 
         # 新结构：删除整个 part-1
@@ -121,15 +274,50 @@ class TestMacroMergeEngine:
         """测试新增节点"""
         # 旧结构：2 个幕
         old_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
         ]
 
         # 新结构：3 个幕（新增 act-3）
         new_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
-            {"id": "act-3", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第三幕", "order_index": 2},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
+            {
+                "id": "act-3",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第三幕",
+                "order_index": 2,
+            },
         ]
 
         engine = MacroMergeEngine(old_nodes, new_nodes)
@@ -146,14 +334,42 @@ class TestMacroMergeEngine:
         """测试更新 order_index（换皮不换骨）"""
         # 旧结构：act-1, act-2
         old_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第一幕", "order_index": 0},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "第二幕", "order_index": 1},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第一幕",
+                "order_index": 0,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "第二幕",
+                "order_index": 1,
+            },
         ]
 
         # 新结构：act-1, act-2（调整 order_index）
         new_nodes = [
-            {"id": "act-1", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "序章", "order_index": 10},
-            {"id": "act-2", "novel_id": "novel-1", "parent_id": None, "node_type": "ACT", "title": "正章", "order_index": 20},
+            {
+                "id": "act-1",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "序章",
+                "order_index": 10,
+            },
+            {
+                "id": "act-2",
+                "novel_id": "novel-1",
+                "parent_id": None,
+                "node_type": "ACT",
+                "title": "正章",
+                "order_index": 20,
+            },
         ]
 
         engine = MacroMergeEngine(old_nodes, new_nodes)

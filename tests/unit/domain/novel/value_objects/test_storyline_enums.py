@@ -1,6 +1,5 @@
-import pytest
-from domain.novel.value_objects.storyline_type import StorylineType
 from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 
 
 class TestStorylineType:

@@ -1,8 +1,9 @@
 """V1 体量档推导与黑盒文案"""
+
 from application.core.v1_length_tiers import (
+    V1_LENGTH_TIERS,
     build_v1_structure_black_box_hint,
     resolve_v1_length_params,
-    V1_LENGTH_TIERS,
 )
 
 

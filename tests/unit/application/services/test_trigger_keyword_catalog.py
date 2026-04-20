@@ -1,5 +1,5 @@
 """触发词目录单元测试"""
-import pytest
+
 from application.services.trigger_keyword_catalog import expand_triggers
 
 

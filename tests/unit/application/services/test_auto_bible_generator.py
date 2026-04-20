@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from application.world.services.auto_bible_generator import AutoBibleGenerator
 from domain.ai.services.llm_service import GenerationResult

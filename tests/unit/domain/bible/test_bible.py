@@ -1,4 +1,5 @@
 import pytest
+
 from domain.bible.entities.bible import Bible
 from domain.bible.entities.character import Character
 from domain.bible.entities.world_setting import WorldSetting
@@ -22,20 +23,12 @@ def test_bible_characters_returns_copy():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    character = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
+    character = Character(id=CharacterId("char-1"), name="张三", description="主角")
     bible.add_character(character)
 
     # 获取列表并尝试修改
     chars = bible.characters
-    chars.append(Character(
-        id=CharacterId("char-2"),
-        name="李四",
-        description="配角"
-    ))
+    chars.append(Character(id=CharacterId("char-2"), name="李四", description="配角"))
 
     # 原始列表不应被修改
     assert len(bible.characters) == 1
@@ -46,22 +39,12 @@ def test_bible_world_settings_returns_copy():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    setting = WorldSetting(
-        id="setting-1",
-        name="长安城",
-        description="繁华的都城",
-        setting_type="location"
-    )
+    setting = WorldSetting(id="setting-1", name="长安城", description="繁华的都城", setting_type="location")
     bible.add_world_setting(setting)
 
     # 获取列表并尝试修改
     settings = bible.world_settings
-    settings.append(WorldSetting(
-        id="setting-2",
-        name="洛阳城",
-        description="另一座城市",
-        setting_type="location"
-    ))
+    settings.append(WorldSetting(id="setting-2", name="洛阳城", description="另一座城市", setting_type="location"))
 
     # 原始列表不应被修改
     assert len(bible.world_settings) == 1
@@ -72,11 +55,7 @@ def test_bible_add_character():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    character = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
+    character = Character(id=CharacterId("char-1"), name="张三", description="主角")
     bible.add_character(character)
 
     assert len(bible.characters) == 1
@@ -88,16 +67,8 @@ def test_bible_add_duplicate_character_raises_error():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    character1 = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
-    character2 = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="另一个描述"
-    )
+    character1 = Character(id=CharacterId("char-1"), name="张三", description="主角")
+    character2 = Character(id=CharacterId("char-1"), name="张三", description="另一个描述")
 
     bible.add_character(character1)
     with pytest.raises(InvalidOperationError, match="Character with id 'char-1' already exists"):
@@ -109,11 +80,7 @@ def test_bible_remove_character():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    character = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
+    character = Character(id=CharacterId("char-1"), name="张三", description="主角")
     bible.add_character(character)
     bible.remove_character(CharacterId("char-1"))
 
@@ -134,11 +101,7 @@ def test_bible_get_character():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    character = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
+    character = Character(id=CharacterId("char-1"), name="张三", description="主角")
     bible.add_character(character)
 
     found = bible.get_character(CharacterId("char-1"))
@@ -160,12 +123,7 @@ def test_bible_add_world_setting():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    setting = WorldSetting(
-        id="setting-1",
-        name="长安城",
-        description="繁华的都城",
-        setting_type="location"
-    )
+    setting = WorldSetting(id="setting-1", name="长安城", description="繁华的都城", setting_type="location")
     bible.add_world_setting(setting)
 
     assert len(bible.world_settings) == 1
@@ -177,18 +135,8 @@ def test_bible_add_duplicate_world_setting_raises_error():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    setting1 = WorldSetting(
-        id="setting-1",
-        name="长安城",
-        description="繁华的都城",
-        setting_type="location"
-    )
-    setting2 = WorldSetting(
-        id="setting-1",
-        name="长安城",
-        description="另一个描述",
-        setting_type="location"
-    )
+    setting1 = WorldSetting(id="setting-1", name="长安城", description="繁华的都城", setting_type="location")
+    setting2 = WorldSetting(id="setting-1", name="长安城", description="另一个描述", setting_type="location")
 
     bible.add_world_setting(setting1)
     with pytest.raises(InvalidOperationError, match="World setting with id 'setting-1' already exists"):
@@ -200,12 +148,7 @@ def test_bible_remove_world_setting():
     novel_id = NovelId("novel-1")
     bible = Bible(id="bible-1", novel_id=novel_id)
 
-    setting = WorldSetting(
-        id="setting-1",
-        name="长安城",
-        description="繁华的都城",
-        setting_type="location"
-    )
+    setting = WorldSetting(id="setting-1", name="长安城", description="繁华的都城", setting_type="location")
     bible.add_world_setting(setting)
     bible.remove_world_setting("setting-1")
 

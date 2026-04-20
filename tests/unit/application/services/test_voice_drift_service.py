@@ -1,6 +1,8 @@
 """VoiceDriftService 单元测试"""
+
 from unittest.mock import MagicMock
-from application.services.voice_drift_service import VoiceDriftService, DRIFT_ALERT_CONSECUTIVE
+
+from application.services.voice_drift_service import DRIFT_ALERT_CONSECUTIVE, VoiceDriftService
 
 
 def _make_service(scores=None, fingerprint=None):
@@ -15,6 +17,7 @@ def _make_service(scores=None, fingerprint=None):
 
 
 # ------ 指标计算 ------
+
 
 def test_compute_metrics_empty_text():
     m = VoiceDriftService._compute_metrics("")
@@ -32,6 +35,7 @@ def test_compute_metrics_counts_sentences():
 
 # ------ 相似度计算 ------
 
+
 def test_cosine_similarity_identical_returns_one():
     metrics = {"adjective_density": 0.05, "avg_sentence_length": 20.0}
     fp = {"adjective_density": 0.05, "avg_sentence_length": 20.0}
@@ -45,6 +49,7 @@ def test_cosine_similarity_zero_baseline():
 
 
 # ------ 漂移告警 ------
+
 
 def test_no_alert_when_insufficient_history():
     svc = _make_service(scores=[{"similarity_score": 0.5}] * 3)
@@ -65,6 +70,7 @@ def test_no_alert_when_one_high_score():
 
 
 # ------ score_chapter 集成 ------
+
 
 def test_score_chapter_without_fingerprint_returns_none_similarity():
     svc = _make_service(fingerprint=None)

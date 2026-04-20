@@ -113,8 +113,9 @@ def test_extract_outer_json_value_prefers_object_root_over_leading_array():
 @pytest.mark.asyncio
 async def test_generate_macro_plan_precise_mode_repairs_missing_act_fields_and_rebalances_chapters():
     llm_service = AsyncMock()
-    llm_service.generate = AsyncMock(side_effect=[
-        """{
+    llm_service.generate = AsyncMock(
+        side_effect=[
+            """{
           "node_updates": [
             {"node_id": "P1", "title": "寒门燃灯", "description": "寒门少年被卷入京师风暴"},
             {"node_id": "V1_1", "title": "初入京城", "description": "立足与试探"},
@@ -142,7 +143,7 @@ async def test_generate_macro_plan_precise_mode_repairs_missing_act_fields_and_r
             }
           ]
         }""",
-        """{
+            """{
           "node_updates": [
             {
               "node_id": "A1_1_1",
@@ -153,7 +154,8 @@ async def test_generate_macro_plan_precise_mode_repairs_missing_act_fields_and_r
             }
           ]
         }""",
-    ])
+        ]
+    )
     svc = ContinuousPlanningService(
         story_node_repo=Mock(),
         chapter_element_repo=Mock(),

@@ -1,12 +1,11 @@
 """测试 entity_base 和 narrative_events 表的存在性与结构（事件溯源架构）。"""
+
 import sqlite3
 from pathlib import Path
 
 import pytest
 
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
-)
+SCHEMA_PATH = Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture
@@ -21,9 +20,7 @@ def db_conn(tmp_path):
 
 def test_entity_base_table_exists(db_conn):
     """验证 entity_base 表存在且结构正确。"""
-    cursor = db_conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='entity_base'"
-    )
+    cursor = db_conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='entity_base'")
     assert cursor.fetchone() is not None, "entity_base 表不存在"
 
     # 验证列结构
@@ -40,9 +37,7 @@ def test_entity_base_table_exists(db_conn):
 
 def test_narrative_events_table_exists(db_conn):
     """验证 narrative_events 表存在且结构正确。"""
-    cursor = db_conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='narrative_events'"
-    )
+    cursor = db_conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='narrative_events'")
     assert cursor.fetchone() is not None, "narrative_events 表不存在"
 
     # 验证列结构
@@ -59,18 +54,14 @@ def test_narrative_events_table_exists(db_conn):
 
 def test_entity_base_indexes_exist(db_conn):
     """验证 entity_base 索引存在。"""
-    cursor = db_conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='entity_base'"
-    )
+    cursor = db_conn.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='entity_base'")
     indexes = [row[0] for row in cursor.fetchall()]
     assert "idx_entity_base_novel" in indexes
 
 
 def test_narrative_events_indexes_exist(db_conn):
     """验证 narrative_events 索引存在。"""
-    cursor = db_conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='narrative_events'"
-    )
+    cursor = db_conn.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='narrative_events'")
     indexes = [row[0] for row in cursor.fetchall()]
     assert "idx_narrative_events_novel_chapter" in indexes
 
@@ -103,22 +94,18 @@ def test_narrative_events_tags_default_empty_array(db_conn):
     """验证 tags 列默认值为空 JSON 数组。"""
     # 插入测试小说
     db_conn.execute(
-        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)",
-        ("test-novel-1", "Test Novel", "test-novel")
+        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)", ("test-novel-1", "Test Novel", "test-novel")
     )
 
     # 插入事件但不指定 tags
     db_conn.execute(
         """INSERT INTO narrative_events (event_id, novel_id, chapter_number, event_summary, mutations)
            VALUES (?, ?, ?, ?, ?)""",
-        ("evt-1", "test-novel-1", 1, "Test event", "[]")
+        ("evt-1", "test-novel-1", 1, "Test event", "[]"),
     )
 
     # 验证默认值
-    cursor = db_conn.execute(
-        "SELECT tags FROM narrative_events WHERE event_id = ?",
-        ("evt-1",)
-    )
+    cursor = db_conn.execute("SELECT tags FROM narrative_events WHERE event_id = ?", ("evt-1",))
     tags = cursor.fetchone()[0]
     assert tags == "[]", f"默认 tags 应为 '[]'，实际为 {tags}"
 
@@ -129,8 +116,7 @@ def test_append_event_with_tags(db_conn):
 
     # 插入测试小说
     db_conn.execute(
-        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)",
-        ("test-novel-2", "Test Novel 2", "test-novel-2")
+        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)", ("test-novel-2", "Test Novel 2", "test-novel-2")
     )
 
     # 插入带 tags 的事件
@@ -140,14 +126,11 @@ def test_append_event_with_tags(db_conn):
     db_conn.execute(
         """INSERT INTO narrative_events (event_id, novel_id, chapter_number, event_summary, mutations, tags)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        ("evt-2", "test-novel-2", 1, "Character acts impulsively", "[]", tags_json)
+        ("evt-2", "test-novel-2", 1, "Character acts impulsively", "[]", tags_json),
     )
 
     # 验证插入成功
-    cursor = db_conn.execute(
-        "SELECT tags FROM narrative_events WHERE event_id = ?",
-        ("evt-2",)
-    )
+    cursor = db_conn.execute("SELECT tags FROM narrative_events WHERE event_id = ?", ("evt-2",))
     stored_tags = cursor.fetchone()[0]
     assert json.loads(stored_tags) == tags
 
@@ -158,28 +141,27 @@ def test_list_events_includes_tags(db_conn):
 
     # 插入测试小说
     db_conn.execute(
-        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)",
-        ("test-novel-3", "Test Novel 3", "test-novel-3")
+        "INSERT INTO novels (id, title, slug) VALUES (?, ?, ?)", ("test-novel-3", "Test Novel 3", "test-novel-3")
     )
 
     # 插入多个事件，有的有 tags，有的没有
     db_conn.execute(
         """INSERT INTO narrative_events (event_id, novel_id, chapter_number, event_summary, mutations, tags)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        ("evt-3a", "test-novel-3", 1, "Event with tags", "[]", '["标签1", "标签2"]')
+        ("evt-3a", "test-novel-3", 1, "Event with tags", "[]", '["标签1", "标签2"]'),
     )
 
     db_conn.execute(
         """INSERT INTO narrative_events (event_id, novel_id, chapter_number, event_summary, mutations)
            VALUES (?, ?, ?, ?, ?)""",
-        ("evt-3b", "test-novel-3", 2, "Event without tags", "[]")
+        ("evt-3b", "test-novel-3", 2, "Event without tags", "[]"),
     )
 
     # 查询所有事件
     cursor = db_conn.execute(
         """SELECT event_id, tags FROM narrative_events
            WHERE novel_id = ? ORDER BY chapter_number""",
-        ("test-novel-3",)
+        ("test-novel-3",),
     )
     rows = cursor.fetchall()
 

@@ -1,5 +1,6 @@
 # tests/unit/domain/ai/value_objects/test_token_usage.py
 import pytest
+
 from domain.ai.value_objects.token_usage import TokenUsage
 
 

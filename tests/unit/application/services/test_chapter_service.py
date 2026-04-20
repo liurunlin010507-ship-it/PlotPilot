@@ -1,11 +1,14 @@
 """ChapterService 单元测试"""
-import pytest
+
 from unittest.mock import Mock
-from domain.novel.entities.chapter import Chapter, ChapterStatus
+
+import pytest
+
+from application.core.services.chapter_service import ChapterService
+from domain.novel.entities.chapter import Chapter
 from domain.novel.value_objects.chapter_id import ChapterId
 from domain.novel.value_objects.novel_id import NovelId
 from domain.shared.exceptions import EntityNotFoundError
-from application.core.services.chapter_service import ChapterService
 
 
 class TestChapterService:
@@ -29,19 +32,10 @@ class TestChapterService:
     def test_update_chapter_content(self, service, mock_chapter_repository):
         """测试更新章节内容"""
         # 准备 mock 数据
-        chapter = Chapter(
-            id="chapter-1",
-            novel_id=NovelId("novel-1"),
-            number=1,
-            title="第一章",
-            content="原始内容"
-        )
+        chapter = Chapter(id="chapter-1", novel_id=NovelId("novel-1"), number=1, title="第一章", content="原始内容")
         mock_chapter_repository.get_by_id.return_value = chapter
 
-        chapter_dto = service.update_chapter_content(
-            chapter_id="chapter-1",
-            content="更新后的内容"
-        )
+        chapter_dto = service.update_chapter_content(chapter_id="chapter-1", content="更新后的内容")
 
         assert chapter_dto.id == "chapter-1"
         assert chapter_dto.content == "更新后的内容"
@@ -54,28 +48,13 @@ class TestChapterService:
         mock_chapter_repository.get_by_id.return_value = None
 
         with pytest.raises(EntityNotFoundError, match="Chapter"):
-            service.update_chapter_content(
-                chapter_id="nonexistent",
-                content="新内容"
-            )
+            service.update_chapter_content(chapter_id="nonexistent", content="新内容")
 
     def test_list_chapters_by_novel(self, service, mock_chapter_repository):
         """测试列出小说的所有章节"""
         # 准备 mock 数据
-        chapter1 = Chapter(
-            id="chapter-1",
-            novel_id=NovelId("novel-1"),
-            number=1,
-            title="第一章",
-            content="内容1"
-        )
-        chapter2 = Chapter(
-            id="chapter-2",
-            novel_id=NovelId("novel-1"),
-            number=2,
-            title="第二章",
-            content="内容2"
-        )
+        chapter1 = Chapter(id="chapter-1", novel_id=NovelId("novel-1"), number=1, title="第一章", content="内容1")
+        chapter2 = Chapter(id="chapter-2", novel_id=NovelId("novel-1"), number=2, title="第二章", content="内容2")
         mock_chapter_repository.list_by_novel.return_value = [chapter1, chapter2]
 
         chapters = service.list_chapters_by_novel("novel-1")
@@ -89,13 +68,7 @@ class TestChapterService:
     def test_get_chapter(self, service, mock_chapter_repository):
         """测试获取章节"""
         # 准备 mock 数据
-        chapter = Chapter(
-            id="chapter-1",
-            novel_id=NovelId("novel-1"),
-            number=1,
-            title="第一章",
-            content="内容"
-        )
+        chapter = Chapter(id="chapter-1", novel_id=NovelId("novel-1"), number=1, title="第一章", content="内容")
         mock_chapter_repository.get_by_id.return_value = chapter
 
         chapter_dto = service.get_chapter("chapter-1")

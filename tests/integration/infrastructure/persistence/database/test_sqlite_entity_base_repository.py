@@ -1,15 +1,13 @@
 """SQLite Entity Base Repository 集成测试"""
-import pytest
-import json
-from pathlib import Path
-from infrastructure.persistence.database.connection import DatabaseConnection
-from infrastructure.persistence.database.sqlite_entity_base_repository import (
-    SqliteEntityBaseRepository
-)
 
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
-)
+from pathlib import Path
+
+import pytest
+
+from infrastructure.persistence.database.connection import DatabaseConnection
+from infrastructure.persistence.database.sqlite_entity_base_repository import SqliteEntityBaseRepository
+
+SCHEMA_PATH = Path(__file__).resolve().parents[5] / "infrastructure" / "persistence" / "database" / "schema.sql"
 
 
 @pytest.fixture
@@ -41,22 +39,15 @@ def test_create_and_get_entity(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
     # 创建实体
-    core_attributes = {
-        "age": 25,
-        "gender": "male",
-        "occupation": "warrior"
-    }
+    core_attributes = {"age": 25, "gender": "male", "occupation": "warrior"}
 
     entity_id = repository.create(
-        novel_id="novel-1",
-        entity_type="character",
-        name="张三",
-        core_attributes=core_attributes
+        novel_id="novel-1", entity_type="character", name="张三", core_attributes=core_attributes
     )
 
     # 验证返回的 ID 不为空
@@ -79,20 +70,14 @@ def test_create_multiple_entities(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
     # 创建多个实体
-    char_id = repository.create(
-        "novel-1", "character", "主角", {"level": 1}
-    )
-    location_id = repository.create(
-        "novel-1", "location", "城市A", {"population": 10000}
-    )
-    item_id = repository.create(
-        "novel-1", "item", "神剑", {"power": 100}
-    )
+    char_id = repository.create("novel-1", "character", "主角", {"level": 1})
+    location_id = repository.create("novel-1", "location", "城市A", {"population": 10000})
+    item_id = repository.create("novel-1", "item", "神剑", {"power": 100})
 
     # 验证每个实体都能获取
     char = repository.get_by_id(char_id)
@@ -113,31 +98,19 @@ def test_core_attributes_json_serialization(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
     # 复杂的 core_attributes 结构
     core_attributes = {
-        "basic": {
-            "age": 30,
-            "gender": "female"
-        },
+        "basic": {"age": 30, "gender": "female"},
         "skills": ["剑术", "魔法", "炼金"],
-        "stats": {
-            "hp": 100,
-            "mp": 50,
-            "strength": 15
-        },
-        "flags": {
-            "is_alive": True,
-            "is_leader": False
-        }
+        "stats": {"hp": 100, "mp": 50, "strength": 15},
+        "flags": {"is_alive": True, "is_leader": False},
     }
 
-    entity_id = repository.create(
-        "novel-1", "character", "复杂角色", core_attributes
-    )
+    entity_id = repository.create("novel-1", "character", "复杂角色", core_attributes)
 
     # 获取并验证反序列化
     entity = repository.get_by_id(entity_id)
@@ -156,13 +129,11 @@ def test_empty_core_attributes(repository, db):
     # 先创建小说
     db.execute(
         "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-        ("novel-1", "Test Novel", "test-novel", 10)
+        ("novel-1", "Test Novel", "test-novel", 10),
     )
     db.get_connection().commit()
 
-    entity_id = repository.create(
-        "novel-1", "character", "简单角色", {}
-    )
+    entity_id = repository.create("novel-1", "character", "简单角色", {})
 
     entity = repository.get_by_id(entity_id)
     assert entity is not None

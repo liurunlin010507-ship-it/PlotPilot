@@ -1,8 +1,10 @@
 """ChromaDB 向量存储单元测试"""
-import pytest
-import tempfile
+
 import shutil
-from pathlib import Path
+import tempfile
+
+import pytest
+
 from infrastructure.ai.chromadb_vector_store import ChromaDBVectorStore
 
 
@@ -36,30 +38,17 @@ async def test_insert_and_search(vector_store):
 
     # 插入测试向量
     await vector_store.insert(
-        collection=collection,
-        id="vec1",
-        vector=[1.0, 0.0, 0.0],
-        payload={"text": "第一个向量", "chapter": 1}
+        collection=collection, id="vec1", vector=[1.0, 0.0, 0.0], payload={"text": "第一个向量", "chapter": 1}
     )
     await vector_store.insert(
-        collection=collection,
-        id="vec2",
-        vector=[0.0, 1.0, 0.0],
-        payload={"text": "第二个向量", "chapter": 2}
+        collection=collection, id="vec2", vector=[0.0, 1.0, 0.0], payload={"text": "第二个向量", "chapter": 2}
     )
     await vector_store.insert(
-        collection=collection,
-        id="vec3",
-        vector=[0.9, 0.1, 0.0],
-        payload={"text": "第三个向量", "chapter": 1}
+        collection=collection, id="vec3", vector=[0.9, 0.1, 0.0], payload={"text": "第三个向量", "chapter": 1}
     )
 
     # 搜索相似向量
-    results = await vector_store.search(
-        collection=collection,
-        query_vector=[1.0, 0.0, 0.0],
-        limit=2
-    )
+    results = await vector_store.search(collection=collection, query_vector=[1.0, 0.0, 0.0], limit=2)
 
     assert len(results) == 2
     assert results[0]["id"] == "vec1"  # 最相似
@@ -74,22 +63,13 @@ async def test_delete_vector(vector_store):
     await vector_store.create_collection(collection, dimension=3)
 
     # 插入向量
-    await vector_store.insert(
-        collection=collection,
-        id="vec1",
-        vector=[1.0, 0.0, 0.0],
-        payload={"text": "测试向量"}
-    )
+    await vector_store.insert(collection=collection, id="vec1", vector=[1.0, 0.0, 0.0], payload={"text": "测试向量"})
 
     # 删除向量
     await vector_store.delete(collection=collection, id="vec1")
 
     # 验证已删除
-    results = await vector_store.search(
-        collection=collection,
-        query_vector=[1.0, 0.0, 0.0],
-        limit=1
-    )
+    results = await vector_store.search(collection=collection, query_vector=[1.0, 0.0, 0.0], limit=1)
     assert len(results) == 0
 
 
@@ -125,27 +105,13 @@ async def test_upsert_behavior(vector_store):
     await vector_store.create_collection(collection, dimension=3)
 
     # 首次插入
-    await vector_store.insert(
-        collection=collection,
-        id="vec1",
-        vector=[1.0, 0.0, 0.0],
-        payload={"text": "原始文本"}
-    )
+    await vector_store.insert(collection=collection, id="vec1", vector=[1.0, 0.0, 0.0], payload={"text": "原始文本"})
 
     # 相同 ID 再次插入（应该覆盖）
-    await vector_store.insert(
-        collection=collection,
-        id="vec1",
-        vector=[0.0, 1.0, 0.0],
-        payload={"text": "更新文本"}
-    )
+    await vector_store.insert(collection=collection, id="vec1", vector=[0.0, 1.0, 0.0], payload={"text": "更新文本"})
 
     # 搜索验证
-    results = await vector_store.search(
-        collection=collection,
-        query_vector=[0.0, 1.0, 0.0],
-        limit=1
-    )
+    results = await vector_store.search(collection=collection, query_vector=[0.0, 1.0, 0.0], limit=1)
 
     assert len(results) == 1
     assert results[0]["id"] == "vec1"

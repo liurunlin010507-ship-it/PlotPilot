@@ -1,5 +1,6 @@
 # tests/unit/domain/ai/services/test_llm_service.py
 import pytest
+
 from domain.ai.services.llm_service import GenerationConfig, GenerationResult
 from domain.ai.value_objects.token_usage import TokenUsage
 
@@ -9,11 +10,7 @@ class TestGenerationConfig:
 
     def test_generation_config_creation(self):
         """测试创建 GenerationConfig"""
-        config = GenerationConfig(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=4096,
-            temperature=1.0
-        )
+        config = GenerationConfig(model="claude-3-5-sonnet-20241022", max_tokens=4096, temperature=1.0)
         assert config.model == "claude-3-5-sonnet-20241022"
         assert config.max_tokens == 4096
         assert config.temperature == 1.0
@@ -88,4 +85,3 @@ class TestGenerationResult:
         with pytest.raises(ValueError, match="Token counts cannot be negative"):
             token_usage = TokenUsage(input_tokens=100, output_tokens=-1)
             GenerationResult(content="内容", token_usage=token_usage)
-

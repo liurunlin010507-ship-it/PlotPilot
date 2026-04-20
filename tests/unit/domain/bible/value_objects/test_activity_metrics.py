@@ -1,15 +1,11 @@
-import pytest
 from datetime import datetime
+
 from domain.bible.value_objects.activity_metrics import ActivityMetrics
 
 
 def test_activity_metrics_creation():
     """测试创建 ActivityMetrics"""
-    metrics = ActivityMetrics(
-        last_appearance_chapter=5,
-        appearance_count=10,
-        total_dialogue_count=25
-    )
+    metrics = ActivityMetrics(last_appearance_chapter=5, appearance_count=10, total_dialogue_count=25)
     assert metrics.last_appearance_chapter == 5
     assert metrics.appearance_count == 10
     assert metrics.total_dialogue_count == 25
@@ -82,11 +78,7 @@ def test_activity_metrics_is_active_since():
 
 def test_activity_metrics_immutability():
     """测试值对象不可变性"""
-    metrics = ActivityMetrics(
-        last_appearance_chapter=5,
-        appearance_count=10,
-        total_dialogue_count=25
-    )
+    metrics = ActivityMetrics(last_appearance_chapter=5, appearance_count=10, total_dialogue_count=25)
 
     # 值对象应该是不可变的，但 update_activity 返回新实例
     # 这里我们测试原对象不变

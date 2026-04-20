@@ -1,6 +1,8 @@
 """Writer Block API 集成测试"""
+
 import pytest
 from fastapi.testclient import TestClient
+
 from interfaces.main import app
 
 
@@ -32,7 +34,7 @@ class TestWriterBlockAPI:
         # 创建测试小说
         db.execute(
             "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-            (novel_id, "Test Novel", "test-novel-writer-block", 10)
+            (novel_id, "Test Novel", "test-novel-writer-block", 10),
         )
         db.get_connection().commit()
 
@@ -42,15 +44,9 @@ class TestWriterBlockAPI:
             chapter_number=1,
             event_summary="主角在家吃早餐",
             mutations=[],
-            tags=["日常", "情绪:平静"]
+            tags=["日常", "情绪:平静"],
         )
-        repo.append_event(
-            novel_id=novel_id,
-            chapter_number=2,
-            event_summary="主角去上班",
-            mutations=[],
-            tags=["日常"]
-        )
+        repo.append_event(novel_id=novel_id, chapter_number=2, event_summary="主角去上班", mutations=[], tags=["日常"])
 
         # 添加高张力事件（有冲突标签）
         repo.append_event(
@@ -58,7 +54,7 @@ class TestWriterBlockAPI:
             chapter_number=3,
             event_summary="主角与敌人激烈战斗",
             mutations=[],
-            tags=["冲突:对抗", "冲突:生死", "情绪:愤怒", "情绪:恐惧"]
+            tags=["冲突:对抗", "冲突:生死", "情绪:愤怒", "情绪:恐惧"],
         )
 
         yield novel_id
@@ -74,16 +70,10 @@ class TestWriterBlockAPI:
         novel_id = setup_test_data
 
         # 构建请求
-        request_data = {
-            "novel_id": novel_id,
-            "chapter_number": 2
-        }
+        request_data = {"novel_id": novel_id, "chapter_number": 2}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -108,17 +98,10 @@ class TestWriterBlockAPI:
         novel_id = setup_test_data
 
         # 构建请求（包含卡文原因）
-        request_data = {
-            "novel_id": novel_id,
-            "chapter_number": 2,
-            "stuck_reason": "不知道如何推进情节"
-        }
+        request_data = {"novel_id": novel_id, "chapter_number": 2, "stuck_reason": "不知道如何推进情节"}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -134,16 +117,10 @@ class TestWriterBlockAPI:
         novel_id = setup_test_data
 
         # 构建请求
-        request_data = {
-            "novel_id": novel_id,
-            "chapter_number": 3
-        }
+        request_data = {"novel_id": novel_id, "chapter_number": 3}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -156,15 +133,9 @@ class TestWriterBlockAPI:
     def test_tension_slingshot_validation_novel_id_mismatch(self, client):
         """测试：验证 novel_id 不匹配时返回错误"""
         # 路径中的 novel_id 与请求体中的不匹配
-        request_data = {
-            "novel_id": "different-novel-id",
-            "chapter_number": 1
-        }
+        request_data = {"novel_id": "different-novel-id", "chapter_number": 1}
 
-        response = client.post(
-            "/api/v1/novels/test-novel/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post("/api/v1/novels/test-novel/writer-block/tension-slingshot", json=request_data)
 
         # 应该返回 400 错误
         assert response.status_code == 400
@@ -180,10 +151,7 @@ class TestWriterBlockAPI:
             # 缺少 chapter_number
         }
 
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=invalid_request
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=invalid_request)
 
         # 应该返回 422 验证错误
         assert response.status_code == 422
@@ -203,21 +171,15 @@ class TestWriterBlockAPI:
 
         db.execute(
             "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
-            (novel_id, "Empty Novel", "test-novel-empty", 10)
+            (novel_id, "Empty Novel", "test-novel-empty", 10),
         )
         db.get_connection().commit()
 
         # 构建请求
-        request_data = {
-            "novel_id": novel_id,
-            "chapter_number": 1
-        }
+        request_data = {"novel_id": novel_id, "chapter_number": 1}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -234,16 +196,10 @@ class TestWriterBlockAPI:
         novel_id = setup_test_data
 
         # 构建请求
-        request_data = {
-            "novel_id": novel_id,
-            "chapter_number": 2
-        }
+        request_data = {"novel_id": novel_id, "chapter_number": 2}
 
         # 发送请求
-        response = client.post(
-            f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot",
-            json=request_data
-        )
+        response = client.post(f"/api/v1/novels/{novel_id}/writer-block/tension-slingshot", json=request_data)
 
         # 验证响应
         assert response.status_code == 200
@@ -254,10 +210,7 @@ class TestWriterBlockAPI:
 
         # 验证建议包含动作动词（至少有一个建议包含）
         action_verbs = ["引入", "增加", "设置", "让", "创造", "提高", "添加", "加入"]
-        has_action = any(
-            any(verb in suggestion for verb in action_verbs)
-            for suggestion in diagnosis["suggestions"]
-        )
+        has_action = any(any(verb in suggestion for verb in action_verbs) for suggestion in diagnosis["suggestions"])
         # 注意：由于使用 MockProvider，可能不会生成真实的动作建议
         # 这里只验证建议存在即可
         assert len(diagnosis["suggestions"]) > 0

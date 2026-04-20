@@ -1,9 +1,10 @@
 import pytest
+
 from domain.novel.entities.storyline import Storyline
 from domain.novel.value_objects.novel_id import NovelId
-from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
+from domain.novel.value_objects.storyline_status import StorylineStatus
+from domain.novel.value_objects.storyline_type import StorylineType
 from infrastructure.persistence.mappers.storyline_mapper import StorylineMapper
 
 
@@ -20,7 +21,7 @@ class TestStorylineMapper:
             target_chapter_start=5,
             target_chapter_end=6,
             prerequisites=["intro"],
-            triggers=["meet"]
+            triggers=["meet"],
         )
         milestone2 = StorylineMilestone(
             order=1,
@@ -29,7 +30,7 @@ class TestStorylineMapper:
             target_chapter_start=8,
             target_chapter_end=9,
             prerequisites=["meet"],
-            triggers=["date"]
+            triggers=["date"],
         )
 
         storyline = Storyline(
@@ -40,7 +41,7 @@ class TestStorylineMapper:
             estimated_chapter_start=5,
             estimated_chapter_end=20,
             milestones=[milestone1, milestone2],
-            current_milestone_index=1
+            current_milestone_index=1,
         )
 
         data = StorylineMapper.to_dict(storyline)
@@ -80,7 +81,7 @@ class TestStorylineMapper:
                     "target_chapter_start": 5,
                     "target_chapter_end": 6,
                     "prerequisites": ["intro"],
-                    "triggers": ["meet"]
+                    "triggers": ["meet"],
                 },
                 {
                     "order": 1,
@@ -89,9 +90,9 @@ class TestStorylineMapper:
                     "target_chapter_start": 8,
                     "target_chapter_end": 9,
                     "prerequisites": ["meet"],
-                    "triggers": ["date"]
-                }
-            ]
+                    "triggers": ["date"],
+                },
+            ],
         }
 
         storyline = StorylineMapper.from_dict(data)
@@ -112,10 +113,7 @@ class TestStorylineMapper:
 
     def test_from_dict_missing_fields(self):
         """测试从字典创建 Storyline - 缺少必需字段"""
-        data = {
-            "id": "storyline-1",
-            "novel_id": "novel-123"
-        }
+        data = {"id": "storyline-1", "novel_id": "novel-123"}
 
         with pytest.raises(ValueError, match="Missing required fields"):
             StorylineMapper.from_dict(data)
@@ -130,7 +128,7 @@ class TestStorylineMapper:
             "estimated_chapter_start": 5,
             "estimated_chapter_end": 20,
             "current_milestone_index": 0,
-            "milestones": []
+            "milestones": [],
         }
 
         with pytest.raises(ValueError, match="Invalid storyline data format"):
@@ -146,7 +144,7 @@ class TestStorylineMapper:
             target_chapter_start=1,
             target_chapter_end=2,
             prerequisites=[],
-            triggers=[]
+            triggers=[],
         )
 
         original = Storyline(
@@ -157,7 +155,7 @@ class TestStorylineMapper:
             estimated_chapter_start=1,
             estimated_chapter_end=10,
             milestones=[milestone],
-            current_milestone_index=1
+            current_milestone_index=1,
         )
 
         data = StorylineMapper.to_dict(original)

@@ -1,6 +1,7 @@
 import pytest
-from domain.bible.entities.character_registry import CharacterRegistry
+
 from domain.bible.entities.character import Character
+from domain.bible.entities.character_registry import CharacterRegistry
 from domain.bible.value_objects.character_id import CharacterId
 from domain.bible.value_objects.character_importance import CharacterImportance
 from domain.bible.value_objects.relationship_graph import RelationshipGraph
@@ -8,10 +9,7 @@ from domain.bible.value_objects.relationship_graph import RelationshipGraph
 
 def test_character_registry_creation():
     """测试创建 CharacterRegistry"""
-    registry = CharacterRegistry(
-        id="registry-1",
-        novel_id="novel-1"
-    )
+    registry = CharacterRegistry(id="registry-1", novel_id="novel-1")
     assert registry.id == "registry-1"
     assert registry.novel_id == "novel-1"
     assert len(registry.characters_by_importance) == 0
@@ -21,11 +19,7 @@ def test_character_registry_creation():
 def test_register_character():
     """测试注册角色"""
     registry = CharacterRegistry(id="registry-1", novel_id="novel-1")
-    char = Character(
-        id=CharacterId("char-1"),
-        name="张三",
-        description="主角"
-    )
+    char = Character(id=CharacterId("char-1"), name="张三", description="主角")
 
     registry.register_character(char, CharacterImportance.PROTAGONIST)
 
@@ -149,7 +143,7 @@ def test_get_characters_for_context_with_token_limit():
         char = Character(
             CharacterId(f"char-{i}"),
             f"角色{i}",
-            f"描述{i}" * 100  # 长描述
+            f"描述{i}" * 100,  # 长描述
         )
         importance = CharacterImportance.PROTAGONIST if i == 0 else CharacterImportance.MINOR
         registry.register_character(char, importance)
@@ -190,11 +184,7 @@ def test_large_scale_character_registry():
 
     # 注册 1000 个角色
     for i in range(1000):
-        char = Character(
-            CharacterId(f"char-{i}"),
-            f"角色{i}",
-            f"这是角色{i}的描述"
-        )
+        char = Character(CharacterId(f"char-{i}"), f"角色{i}", f"这是角色{i}的描述")
         # 分配不同的重要性
         if i < 2:
             importance = CharacterImportance.PROTAGONIST
@@ -228,11 +218,7 @@ def test_character_selection_performance():
 
     # 注册 10000 个角色
     for i in range(10000):
-        char = Character(
-            CharacterId(f"char-{i}"),
-            f"角色{i}",
-            f"这是角色{i}的详细描述" * 10
-        )
+        char = Character(CharacterId(f"char-{i}"), f"角色{i}", f"这是角色{i}的详细描述" * 10)
         if i < 5:
             importance = CharacterImportance.PROTAGONIST
         elif i < 50:

@@ -1,7 +1,10 @@
 """OpenAIEmbeddingService 测试"""
+
 import os
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+
 from infrastructure.ai.openai_embedding_service import OpenAIEmbeddingService
 
 _EMBED_MODEL = "unit-test-embedding-model"
@@ -35,7 +38,7 @@ class TestOpenAIEmbeddingService:
         mock_response = Mock()
         mock_response.data = [Mock(embedding=[0.1] * 1536)]
 
-        with patch.object(service.client.embeddings, 'create', new_callable=AsyncMock) as mock_create:
+        with patch.object(service.client.embeddings, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = mock_response
 
             result = await service.embed(text)
@@ -44,10 +47,7 @@ class TestOpenAIEmbeddingService:
             assert all(isinstance(x, float) for x in result)
             assert result[0] == 0.1
 
-            mock_create.assert_called_once_with(
-                model=_EMBED_MODEL,
-                input=text
-            )
+            mock_create.assert_called_once_with(model=_EMBED_MODEL, input=text)
 
         assert service.get_dimension() == 1536
 
@@ -57,13 +57,9 @@ class TestOpenAIEmbeddingService:
         texts = ["Hello", "World", "Test"]
 
         mock_response = Mock()
-        mock_response.data = [
-            Mock(embedding=[0.1] * 1536),
-            Mock(embedding=[0.2] * 1536),
-            Mock(embedding=[0.3] * 1536)
-        ]
+        mock_response.data = [Mock(embedding=[0.1] * 1536), Mock(embedding=[0.2] * 1536), Mock(embedding=[0.3] * 1536)]
 
-        with patch.object(service.client.embeddings, 'create', new_callable=AsyncMock) as mock_create:
+        with patch.object(service.client.embeddings, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = mock_response
 
             result = await service.embed_batch(texts)
@@ -74,10 +70,7 @@ class TestOpenAIEmbeddingService:
             assert result[1][0] == 0.2
             assert result[2][0] == 0.3
 
-            mock_create.assert_called_once_with(
-                model=_EMBED_MODEL,
-                input=texts
-            )
+            mock_create.assert_called_once_with(model=_EMBED_MODEL, input=texts)
 
     @pytest.mark.asyncio
     async def test_embed_empty_text(self, service):
@@ -104,7 +97,7 @@ class TestOpenAIEmbeddingService:
         """测试 API 错误处理"""
         text = "Hello"
 
-        with patch.object(service.client.embeddings, 'create', new_callable=AsyncMock) as mock_create:
+        with patch.object(service.client.embeddings, "create", new_callable=AsyncMock) as mock_create:
             mock_create.side_effect = Exception("OpenAI API Error")
 
             with pytest.raises(RuntimeError, match="Failed to generate embedding"):

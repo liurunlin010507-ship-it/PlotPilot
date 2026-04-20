@@ -1,41 +1,25 @@
-"""端到端集成测试 - Novel 工作流"""
+"""端到端集成测试 - Novel 工作流（SQLite 仓储）"""
+
 import pytest
-import tempfile
-import shutil
-from pathlib import Path
-from infrastructure.persistence.storage.file_storage import FileStorage
-from infrastructure.persistence.repositories.file_novel_repository import FileNovelRepository
-from infrastructure.persistence.repositories.file_chapter_repository import FileChapterRepository
-from application.services.novel_service import NovelService
+from application.core.services.novel_service import NovelService
+from infrastructure.persistence.database.sqlite_chapter_repository import SqliteChapterRepository
+from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
+
+
+@pytest.fixture
+def service(db):
+    novel_repo = SqliteNovelRepository(db)
+    chapter_repo = SqliteChapterRepository(db)
+    return NovelService(novel_repo, chapter_repo)
 
 
 class TestNovelWorkflow:
     """Novel 完整工作流集成测试"""
 
-    @pytest.fixture
-    def temp_dir(self):
-        """创建临时目录"""
-        temp_path = tempfile.mkdtemp()
-        yield Path(temp_path)
-        shutil.rmtree(temp_path)
-
-    @pytest.fixture
-    def service(self, temp_dir):
-        """创建完整的服务栈"""
-        storage = FileStorage(temp_dir)
-        novel_repo = FileNovelRepository(storage)
-        chapter_repo = FileChapterRepository(storage)
-        return NovelService(novel_repo, chapter_repo)
-
     def test_complete_novel_workflow(self, service):
         """测试完整的小说创建和管理流程"""
         # 1. 创建小说
-        novel_dto = service.create_novel(
-            novel_id="test-novel",
-            title="测试小说",
-            author="测试作者",
-            target_chapters=3
-        )
+        novel_dto = service.create_novel(novel_id="test-novel", title="测试小说", author="测试作者", target_chapters=3)
 
         assert novel_dto.id == "test-novel"
         assert novel_dto.title == "测试小说"
@@ -44,11 +28,7 @@ class TestNovelWorkflow:
 
         # 2. 添加第一章
         novel_dto = service.add_chapter(
-            novel_id="test-novel",
-            chapter_id="chapter-1",
-            number=1,
-            title="第一章：开始",
-            content="这是第一章的内容。"
+            novel_id="test-novel", chapter_id="chapter-1", number=1, title="第一章：开始", content="这是第一章的内容。"
         )
 
         assert len(novel_dto.chapters) == 1
@@ -61,7 +41,7 @@ class TestNovelWorkflow:
             chapter_id="chapter-2",
             number=2,
             title="第二章：发展",
-            content="这是第二章的内容，更长一些。"
+            content="这是第二章的内容，更长一些。",
         )
 
         assert len(novel_dto.chapters) == 2
@@ -113,7 +93,7 @@ class TestNovelWorkflow:
                 chapter_id=f"chapter-{i}",
                 number=i,
                 title=f"第{i}章",
-                content=f"这是第{i}章的内容。" * 10
+                content=f"这是第{i}章的内容。" * 10,
             )
 
         # 验证
@@ -125,32 +105,3 @@ class TestNovelWorkflow:
         for i, chapter in enumerate(novel.chapters, 1):
             assert chapter.number == i
             assert chapter.title == f"第{i}章"
-
-    def test_novel_metadata_fields(self, service, temp_dir):
-        """测试小说元数据字段（has_bible, has_outline）"""
-        # 创建小说
-        service.create_novel("novel-meta", "测试元数据", "作者", 5)
-
-        # 初始状态：没有 bible 和 outline
-        novel = service.get_novel("novel-meta")
-        assert novel.has_bible is False
-        assert novel.has_outline is False
-
-        # 创建 bible.json 文件
-        bible_path = temp_dir / "novels" / "novel-meta" / "bible.json"
-        bible_path.parent.mkdir(parents=True, exist_ok=True)
-        bible_path.write_text('{"characters": []}')
-
-        # 再次获取，应该检测到 bible
-        novel = service.get_novel("novel-meta")
-        assert novel.has_bible is True
-        assert novel.has_outline is False
-
-        # 创建 outline.json 文件
-        outline_path = temp_dir / "novels" / "novel-meta" / "outline.json"
-        outline_path.write_text('{"chapters": []}')
-
-        # 再次获取，应该检测到两者
-        novel = service.get_novel("novel-meta")
-        assert novel.has_bible is True
-        assert novel.has_outline is True

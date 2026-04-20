@@ -1,14 +1,16 @@
 """ContextBuilder 集成测试（与 Bible DTO / 故事线 协作）。"""
+
 from unittest.mock import Mock
 
 from application.dtos.bible_dto import BibleDTO, CharacterDTO
 from application.services.context_builder import ContextBuilder
+
 from domain.bible.entities.character import Character
-from domain.bible.value_objects.character_id import CharacterId
-from domain.bible.value_objects.character_importance import CharacterImportance
 from domain.bible.services.appearance_scheduler import AppearanceScheduler
 from domain.bible.services.relationship_engine import RelationshipEngine
 from domain.bible.value_objects.activity_metrics import ActivityMetrics
+from domain.bible.value_objects.character_id import CharacterId
+from domain.bible.value_objects.character_importance import CharacterImportance
 from domain.bible.value_objects.relationship_graph import RelationshipGraph
 from domain.novel.entities.storyline import Storyline
 from domain.novel.value_objects.novel_id import NovelId
@@ -93,9 +95,7 @@ class TestContextBuilderIntegration:
         prev_chapter = Mock()
         prev_chapter.number = 5
         prev_chapter.title = "The Betrayal"
-        prev_chapter.content = (
-            "Alice discovered the truth about her family's death..."
-        )
+        prev_chapter.content = "Alice discovered the truth about her family's death..."
         chapter_repo.list_by_novel.return_value = [prev_chapter]
 
         context_builder = ContextBuilder(
@@ -163,13 +163,9 @@ class TestContextBuilderIntegration:
             CharacterDTO("char-0", "Hero", "The main character", []),
         ]
         for i in range(1, 11):
-            characters.append(
-                CharacterDTO(f"char-{i}", f"Support{i}", f"Supporting {i}", [])
-            )
+            characters.append(CharacterDTO(f"char-{i}", f"Support{i}", f"Supporting {i}", []))
         for i in range(11, 61):
-            characters.append(
-                CharacterDTO(f"char-{i}", f"Minor{i}", f"Minor {i}", [])
-            )
+            characters.append(CharacterDTO(f"char-{i}", f"Minor{i}", f"Minor {i}", []))
 
         bible_dto = BibleDTO(
             id="novel-1-bible",

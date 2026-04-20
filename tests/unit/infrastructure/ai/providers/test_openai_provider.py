@@ -1,4 +1,5 @@
 """OpenAIProvider 测试"""
+
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -81,7 +82,7 @@ class TestOpenAIProviderLegacy:
                     message=SimpleNamespace(
                         content=[
                             {"type": "text", "text": '{"a":'},
-                            {"type": "text", "text": ' 1}'},
+                            {"type": "text", "text": " 1}"},
                         ]
                     )
                 )
@@ -104,16 +105,18 @@ class TestOpenAIProviderLegacy:
             choices=[SimpleNamespace(message=SimpleNamespace(content=None))],
             usage=SimpleNamespace(prompt_tokens=19, completion_tokens=15),
         )
-        stream = _FakeStream([
-            SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content="OK"))],
-                usage=None,
-            ),
-            SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
-                usage=SimpleNamespace(prompt_tokens=19, completion_tokens=17),
-            ),
-        ])
+        stream = _FakeStream(
+            [
+                SimpleNamespace(
+                    choices=[SimpleNamespace(delta=SimpleNamespace(content="OK"))],
+                    usage=None,
+                ),
+                SimpleNamespace(
+                    choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
+                    usage=SimpleNamespace(prompt_tokens=19, completion_tokens=17),
+                ),
+            ]
+        )
 
         with patch.object(provider.async_client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.side_effect = [empty_response, stream]
@@ -130,11 +133,13 @@ class TestOpenAIProviderLegacy:
     async def test_stream_generate(self, provider):
         prompt = Prompt(system="You are helpful", user="Hello")
         config = GenerationConfig(model="gpt-4o", temperature=0.7, max_tokens=32)
-        stream = _FakeStream([
-            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="Hi"))]),
-            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=" there"))]),
-            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]),
-        ])
+        stream = _FakeStream(
+            [
+                SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="Hi"))]),
+                SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=" there"))]),
+                SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]),
+            ]
+        )
 
         with patch.object(provider.async_client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = stream
@@ -152,12 +157,14 @@ class TestOpenAIProviderLegacy:
             choices=[SimpleNamespace(message=SimpleNamespace(content=None))],
             usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
         )
-        empty_stream = _FakeStream([
-            SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
-                usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
-            ),
-        ])
+        empty_stream = _FakeStream(
+            [
+                SimpleNamespace(
+                    choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
+                    usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
+                ),
+            ]
+        )
 
         with patch.object(provider.async_client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.side_effect = [empty_response, empty_stream]
@@ -241,13 +248,15 @@ class TestOpenAIProviderResponses:
     async def test_stream_generate(self, provider):
         prompt = Prompt(system="You are helpful", user="Hello")
         config = GenerationConfig(model="gpt-4o", temperature=0.7, max_tokens=32)
-        stream = _FakeStream([
-            SimpleNamespace(
-                type="response.content_part.added",
-                part=SimpleNamespace(type="text", text="Hello"),
-            ),
-            SimpleNamespace(type="response.completed"),
-        ])
+        stream = _FakeStream(
+            [
+                SimpleNamespace(
+                    type="response.content_part.added",
+                    part=SimpleNamespace(type="text", text="Hello"),
+                ),
+                SimpleNamespace(type="response.completed"),
+            ]
+        )
 
         with patch.object(provider.async_client.responses, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = stream

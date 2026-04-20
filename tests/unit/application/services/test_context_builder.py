@@ -1,25 +1,22 @@
 """ContextBuilder 单元测试（BibleService + 可选 PlotArcRepository）。"""
+
 import time
 from typing import Optional
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
 
-import pytest
-
+from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
+from application.engine.services.context_builder import ContextBuilder
 from application.world.dtos.bible_dto import (
     BibleDTO,
     CharacterDTO,
     TimelineNoteDTO,
 )
-from application.engine.dtos.scene_director_dto import SceneDirectorAnalysis
-from application.engine.services.context_builder import ContextBuilder
-from domain.bible.value_objects.relationship_graph import RelationshipGraph
 from domain.novel.entities.plot_arc import PlotArc
 from domain.novel.entities.storyline import Storyline
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.plot_point import PlotPoint, PlotPointType
 from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_type import StorylineType
-from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 from domain.novel.value_objects.tension_level import TensionLevel
 
 
@@ -80,7 +77,7 @@ def _make_builder(
 class TestContextBuilder:
     # estimate_tokens 已移至 ContextBudgetAllocator
     # 此测试已过时,跳过
-    
+
     def test_build_context_basic(self):
         dto = _empty_bible_dto(
             characters=[
@@ -99,10 +96,7 @@ class TestContextBuilder:
         assert "Chapter 1" in context
 
     def test_build_context_respects_token_budget(self):
-        chars = [
-            CharacterDTO(f"c{i}", f"C{i}", "Very long description " * 100, [])
-            for i in range(10)
-        ]
+        chars = [CharacterDTO(f"c{i}", f"C{i}", "Very long description " * 100, []) for i in range(10)]
         builder = _make_builder(bible_dto=_empty_bible_dto(characters=chars))
         context = builder.build_context(
             novel_id="novel-1",
@@ -161,20 +155,12 @@ class TestContextBuilder:
 
     def test_layer1_includes_plot_arc_and_timeline(self):
         arc = PlotArc(id="arc-1", novel_id=NovelId("novel-1"))
-        arc.add_plot_point(
-            PlotPoint(1, PlotPointType.OPENING, "开局", TensionLevel.LOW)
-        )
-        arc.add_plot_point(
-            PlotPoint(10, PlotPointType.CLIMAX, "高潮", TensionLevel.PEAK)
-        )
+        arc.add_plot_point(PlotPoint(1, PlotPointType.OPENING, "开局", TensionLevel.LOW))
+        arc.add_plot_point(PlotPoint(10, PlotPointType.CLIMAX, "高潮", TensionLevel.PEAK))
         plot_repo = Mock()
         plot_repo.get_by_novel_id.return_value = arc
 
-        notes = [
-            TimelineNoteDTO(
-                id="tn-1", event="元年", time_point="春", description="建都"
-            )
-        ]
+        notes = [TimelineNoteDTO(id="tn-1", event="元年", time_point="春", description="建都")]
         dto = _empty_bible_dto(timeline_notes=notes)
 
         builder = _make_builder(bible_dto=dto, plot_arc_repository=plot_repo)
@@ -190,17 +176,14 @@ class TestContextBuilder:
         assert "元年" in context
 
     def test_build_context_performance(self):
-        chars = [
-            CharacterDTO(f"c{i}", f"C{i}", f"Description {i}", [])
-            for i in range(50)
-        ]
+        chars = [CharacterDTO(f"c{i}", f"C{i}", f"Description {i}", []) for i in range(50)]
         chapter_repo = Mock()
         chapters = []
         for i in range(100):
             ch = Mock()
             ch.number = i + 1
-            ch.title = f"Chapter {i+1}"
-            ch.content = f"Content {i+1}" * 100
+            ch.title = f"Chapter {i + 1}"
+            ch.content = f"Content {i + 1}" * 100
             chapters.append(ch)
         chapter_repo.list_by_novel.return_value = chapters
 
@@ -226,7 +209,9 @@ class TestContextBuilder:
             ]
         )
         builder = _make_builder(bible_dto=dto)
-        hint = SceneDirectorAnalysis(characters=["Alice"], locations=[], action_types=[], trigger_keywords=[], emotional_state="", pov="Alice")
+        hint = SceneDirectorAnalysis(
+            characters=["Alice"], locations=[], action_types=[], trigger_keywords=[], emotional_state="", pov="Alice"
+        )
         structured = builder.build_structured_context(
             novel_id="novel-1",
             chapter_number=2,
@@ -246,10 +231,12 @@ class TestContextBuilder:
 
         # Mock vector store search with async method
         mock_vector_store = Mock()
-        mock_vector_store.search = AsyncMock(return_value=[
-            {"id": "chunk1", "score": 0.9, "payload": {"text": "Vector result 1", "chapter_number": 5}},
-            {"id": "chunk2", "score": 0.8, "payload": {"text": "Vector result 2", "chapter_number": 6}},
-        ])
+        mock_vector_store.search = AsyncMock(
+            return_value=[
+                {"id": "chunk1", "score": 0.9, "payload": {"text": "Vector result 1", "chapter_number": 5}},
+                {"id": "chunk2", "score": 0.8, "payload": {"text": "Vector result 2", "chapter_number": 6}},
+            ]
+        )
 
         # 创建 builder 时传入 mock 服务
         builder = _make_builder()
@@ -258,6 +245,7 @@ class TestContextBuilder:
 
         # 手动创建 facade
         from application.ai.vector_retrieval_facade import VectorRetrievalFacade
+
         builder.vector_facade = VectorRetrievalFacade(mock_vector_store, mock_embedding)
 
         structured = builder.build_structured_context(
@@ -279,11 +267,13 @@ class TestContextBuilder:
 
         # Mock vector store 返回 3 条结果：chapter 1, 11, 22
         mock_vector_store = Mock()
-        mock_vector_store.search = AsyncMock(return_value=[
-            {"id": "chunk1", "score": 0.9, "payload": {"text": "Chapter 1 content", "chapter_number": 1}},
-            {"id": "chunk2", "score": 0.85, "payload": {"text": "Chapter 11 content", "chapter_number": 11}},
-            {"id": "chunk3", "score": 0.8, "payload": {"text": "Chapter 22 content", "chapter_number": 22}},
-        ])
+        mock_vector_store.search = AsyncMock(
+            return_value=[
+                {"id": "chunk1", "score": 0.9, "payload": {"text": "Chapter 1 content", "chapter_number": 1}},
+                {"id": "chunk2", "score": 0.85, "payload": {"text": "Chapter 11 content", "chapter_number": 11}},
+                {"id": "chunk3", "score": 0.8, "payload": {"text": "Chapter 22 content", "chapter_number": 22}},
+            ]
+        )
 
         builder = _make_builder()
         builder.embedding_service = mock_embedding
@@ -291,6 +281,7 @@ class TestContextBuilder:
 
         # 手动创建 facade
         from application.ai.vector_retrieval_facade import VectorRetrievalFacade
+
         builder.vector_facade = VectorRetrievalFacade(mock_vector_store, mock_embedding)
 
         # 当前章节 11，窗口 [1, 21]，只保留 chapter 1 和 11
@@ -308,9 +299,7 @@ class TestContextBuilder:
 
     def test_layer2_skips_vector_when_store_is_none(self):
         """当 vector_store 为 None 时，行为与 Phase 1 一致"""
-        dto = _empty_bible_dto(
-            characters=[CharacterDTO("c1", "Alice", "Hero", [])]
-        )
+        dto = _empty_bible_dto(characters=[CharacterDTO("c1", "Alice", "Hero", [])])
         builder = _make_builder(bible_dto=dto)
         builder.vector_store = None
         builder.embedding_service = None
@@ -335,10 +324,12 @@ class TestContextBuilder:
         # Mock vector store 返回大量文本
         large_text = "x" * 10000
         mock_vector_store = Mock()
-        mock_vector_store.search = AsyncMock(return_value=[
-            {"id": f"chunk{i}", "score": 0.9, "payload": {"text": large_text, "chapter_number": 5}}
-            for i in range(10)
-        ])
+        mock_vector_store.search = AsyncMock(
+            return_value=[
+                {"id": f"chunk{i}", "score": 0.9, "payload": {"text": large_text, "chapter_number": 5}}
+                for i in range(10)
+            ]
+        )
 
         builder = _make_builder()
         builder.embedding_service = mock_embedding
@@ -346,6 +337,7 @@ class TestContextBuilder:
 
         # 手动创建 facade
         from application.ai.vector_retrieval_facade import VectorRetrievalFacade
+
         builder.vector_facade = VectorRetrievalFacade(mock_vector_store, mock_embedding)
 
         structured = builder.build_structured_context(

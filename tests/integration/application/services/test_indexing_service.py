@@ -1,6 +1,8 @@
 """Integration tests for IndexingService"""
-import pytest
+
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 from application.services.indexing_service import IndexingService
 
 
@@ -17,17 +19,15 @@ def mock_vector_store():
     """Mock VectorStore"""
     store = Mock()
     store.insert = AsyncMock()
-    store.search = AsyncMock(return_value=[
-        {
-            "id": "novel1_1",
-            "score": 0.95,
-            "payload": {
-                "novel_id": "novel1",
-                "chapter_number": 1,
-                "summary": "Chapter 1 summary"
+    store.search = AsyncMock(
+        return_value=[
+            {
+                "id": "novel1_1",
+                "score": 0.95,
+                "payload": {"novel_id": "novel1", "chapter_number": 1, "summary": "Chapter 1 summary"},
             }
-        }
-    ])
+        ]
+    )
     store.delete = AsyncMock()
     return store
 
@@ -44,9 +44,7 @@ def mock_summarizer():
 def indexing_service(mock_embedding_service, mock_vector_store, mock_summarizer):
     """Create IndexingService with mocked dependencies"""
     return IndexingService(
-        embedding_service=mock_embedding_service,
-        vector_store=mock_vector_store,
-        summarizer=mock_summarizer
+        embedding_service=mock_embedding_service, vector_store=mock_vector_store, summarizer=mock_summarizer
     )
 
 
@@ -73,11 +71,7 @@ async def test_index_chapter_flow(indexing_service, mock_summarizer, mock_embedd
         collection="chapters",
         id="novel123_5",
         vector=[0.1, 0.2, 0.3],
-        payload={
-            "novel_id": "novel123",
-            "chapter_number": 5,
-            "summary": "This is a summary of the chapter content."
-        }
+        payload={"novel_id": "novel123", "chapter_number": 5, "summary": "This is a summary of the chapter content."},
     )
 
 
@@ -96,11 +90,7 @@ async def test_search_chapters(indexing_service, mock_embedding_service, mock_ve
     mock_embedding_service.embed.assert_called_once_with(query)
 
     # 2. Vector store should be searched
-    mock_vector_store.search.assert_called_once_with(
-        collection="chapters",
-        query_vector=[0.1, 0.2, 0.3],
-        limit=5
-    )
+    mock_vector_store.search.assert_called_once_with(collection="chapters", query_vector=[0.1, 0.2, 0.3], limit=5)
 
     # 3. Results should be returned
     assert len(results) == 1
@@ -120,11 +110,7 @@ async def test_search_chapters_default_limit(indexing_service, mock_embedding_se
     results = await indexing_service.search_chapters(query)
 
     # Assert
-    mock_vector_store.search.assert_called_once_with(
-        collection="chapters",
-        query_vector=[0.1, 0.2, 0.3],
-        limit=5
-    )
+    mock_vector_store.search.assert_called_once_with(collection="chapters", query_vector=[0.1, 0.2, 0.3], limit=5)
 
 
 @pytest.mark.asyncio
@@ -138,14 +124,13 @@ async def test_delete_chapter(indexing_service, mock_vector_store):
     await indexing_service.delete_chapter(novel_id, chapter_number)
 
     # Assert
-    mock_vector_store.delete.assert_called_once_with(
-        collection="chapters",
-        id="novel456_10"
-    )
+    mock_vector_store.delete.assert_called_once_with(collection="chapters", id="novel456_10")
 
 
 @pytest.mark.asyncio
-async def test_index_chapter_with_special_characters_in_id(indexing_service, mock_summarizer, mock_embedding_service, mock_vector_store):
+async def test_index_chapter_with_special_characters_in_id(
+    indexing_service, mock_summarizer, mock_embedding_service, mock_vector_store
+):
     """Test indexing with special characters in novel_id"""
     # Arrange
     novel_id = "novel-abc-123"

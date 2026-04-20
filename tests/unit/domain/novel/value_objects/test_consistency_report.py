@@ -1,10 +1,6 @@
 import pytest
-from domain.novel.value_objects.consistency_report import (
-    ConsistencyReport,
-    Issue,
-    IssueType,
-    Severity
-)
+
+from domain.novel.value_objects.consistency_report import ConsistencyReport, Issue, IssueType, Severity
 
 
 class TestIssueType:
@@ -38,7 +34,7 @@ class TestIssue:
             type=IssueType.CHARACTER_INCONSISTENCY,
             severity=Severity.CRITICAL,
             description="Character behavior inconsistent with personality",
-            location=5
+            location=5,
         )
 
         assert issue.type == IssueType.CHARACTER_INCONSISTENCY
@@ -49,10 +45,7 @@ class TestIssue:
     def test_issue_immutable(self):
         """测试问题对象不可变"""
         issue = Issue(
-            type=IssueType.CHARACTER_INCONSISTENCY,
-            severity=Severity.CRITICAL,
-            description="Test",
-            location=1
+            type=IssueType.CHARACTER_INCONSISTENCY, severity=Severity.CRITICAL, description="Test", location=1
         )
 
         with pytest.raises(AttributeError):
@@ -61,22 +54,12 @@ class TestIssue:
     def test_issue_requires_positive_location(self):
         """测试位置必须为正数"""
         with pytest.raises(ValueError, match="location must be >= 1"):
-            Issue(
-                type=IssueType.CHARACTER_INCONSISTENCY,
-                severity=Severity.CRITICAL,
-                description="Test",
-                location=0
-            )
+            Issue(type=IssueType.CHARACTER_INCONSISTENCY, severity=Severity.CRITICAL, description="Test", location=0)
 
     def test_issue_requires_non_empty_description(self):
         """测试描述不能为空"""
         with pytest.raises(ValueError, match="description cannot be empty"):
-            Issue(
-                type=IssueType.CHARACTER_INCONSISTENCY,
-                severity=Severity.CRITICAL,
-                description="",
-                location=1
-            )
+            Issue(type=IssueType.CHARACTER_INCONSISTENCY, severity=Severity.CRITICAL, description="", location=1)
 
 
 class TestConsistencyReport:
@@ -84,11 +67,7 @@ class TestConsistencyReport:
 
     def test_create_empty_report(self):
         """测试创建空报告"""
-        report = ConsistencyReport(
-            issues=[],
-            warnings=[],
-            suggestions=[]
-        )
+        report = ConsistencyReport(issues=[], warnings=[], suggestions=[])
 
         assert report.issues == []
         assert report.warnings == []
@@ -100,19 +79,17 @@ class TestConsistencyReport:
             type=IssueType.CHARACTER_INCONSISTENCY,
             severity=Severity.CRITICAL,
             description="Character behavior inconsistent",
-            location=5
+            location=5,
         )
         issue2 = Issue(
             type=IssueType.RELATIONSHIP_INCONSISTENCY,
             severity=Severity.IMPORTANT,
             description="Relationship change not justified",
-            location=7
+            location=7,
         )
 
         report = ConsistencyReport(
-            issues=[issue1],
-            warnings=[issue2],
-            suggestions=["Consider adding more character development"]
+            issues=[issue1], warnings=[issue2], suggestions=["Consider adding more character development"]
         )
 
         assert len(report.issues) == 1
@@ -123,11 +100,7 @@ class TestConsistencyReport:
 
     def test_report_immutable(self):
         """测试报告对象不可变"""
-        report = ConsistencyReport(
-            issues=[],
-            warnings=[],
-            suggestions=[]
-        )
+        report = ConsistencyReport(issues=[], warnings=[], suggestions=[])
 
         with pytest.raises(AttributeError):
             report.issues = []
@@ -138,26 +111,15 @@ class TestConsistencyReport:
             type=IssueType.CHARACTER_INCONSISTENCY,
             severity=Severity.CRITICAL,
             description="Critical problem",
-            location=1
+            location=1,
         )
         minor_issue = Issue(
-            type=IssueType.TIMELINE_ERROR,
-            severity=Severity.MINOR,
-            description="Minor problem",
-            location=2
+            type=IssueType.TIMELINE_ERROR, severity=Severity.MINOR, description="Minor problem", location=2
         )
 
-        report_with_critical = ConsistencyReport(
-            issues=[critical_issue, minor_issue],
-            warnings=[],
-            suggestions=[]
-        )
+        report_with_critical = ConsistencyReport(issues=[critical_issue, minor_issue], warnings=[], suggestions=[])
 
-        report_without_critical = ConsistencyReport(
-            issues=[minor_issue],
-            warnings=[],
-            suggestions=[]
-        )
+        report_without_critical = ConsistencyReport(issues=[minor_issue], warnings=[], suggestions=[])
 
         assert report_with_critical.has_critical_issues() is True
         assert report_without_critical.has_critical_issues() is False
@@ -168,20 +130,16 @@ class TestConsistencyReport:
             type=IssueType.CHARACTER_INCONSISTENCY,
             severity=Severity.CRITICAL,
             description="Character problem",
-            location=1
+            location=1,
         )
         rel_issue = Issue(
             type=IssueType.RELATIONSHIP_INCONSISTENCY,
             severity=Severity.IMPORTANT,
             description="Relationship problem",
-            location=2
+            location=2,
         )
 
-        report = ConsistencyReport(
-            issues=[char_issue, rel_issue],
-            warnings=[],
-            suggestions=[]
-        )
+        report = ConsistencyReport(issues=[char_issue, rel_issue], warnings=[], suggestions=[])
 
         char_issues = report.get_issues_by_type(IssueType.CHARACTER_INCONSISTENCY)
         assert len(char_issues) == 1
@@ -197,20 +155,13 @@ class TestConsistencyReport:
             type=IssueType.CHARACTER_INCONSISTENCY,
             severity=Severity.CRITICAL,
             description="Critical problem",
-            location=1
+            location=1,
         )
         minor_issue = Issue(
-            type=IssueType.TIMELINE_ERROR,
-            severity=Severity.MINOR,
-            description="Minor problem",
-            location=2
+            type=IssueType.TIMELINE_ERROR, severity=Severity.MINOR, description="Minor problem", location=2
         )
 
-        report = ConsistencyReport(
-            issues=[critical_issue, minor_issue],
-            warnings=[],
-            suggestions=[]
-        )
+        report = ConsistencyReport(issues=[critical_issue, minor_issue], warnings=[], suggestions=[])
 
         critical_issues = report.get_issues_by_severity(Severity.CRITICAL)
         assert len(critical_issues) == 1

@@ -1,4 +1,5 @@
 """API 端点测试 - 场景导演分析"""
+
 from fastapi.testclient import TestClient
 
 from interfaces.main import app
@@ -39,10 +40,9 @@ def test_scene_director_analyze_with_longer_outline():
     assert r.status_code == 200, r.text
     data = r.json()
     # Verify all required fields are present
-    assert all(k in data for k in [
-        "characters", "locations", "action_types",
-        "trigger_keywords", "emotional_state", "pov"
-    ])
+    assert all(
+        k in data for k in ["characters", "locations", "action_types", "trigger_keywords", "emotional_state", "pov"]
+    )
 
 
 def test_scene_director_analyze_invalid_chapter_number():
@@ -78,6 +78,7 @@ def test_scene_director_analyze_whitespace_only_outline():
 def test_scene_director_analyze_service_error_returns_generic_message():
     """Test that 500 error returns generic message, not internal details"""
     from unittest.mock import patch
+
     from application.services.scene_director_service import SceneDirectorService
 
     client = TestClient(app)
@@ -139,9 +140,9 @@ def test_context_retrieve_with_scene_director_hint():
                 "action_types": ["enter"],
                 "trigger_keywords": ["door"],
                 "emotional_state": "curious",
-                "pov": "Alice"
+                "pov": "Alice",
             },
-            "max_tokens": 8000
+            "max_tokens": 8000,
         },
     )
     assert r.status_code == 200, r.text

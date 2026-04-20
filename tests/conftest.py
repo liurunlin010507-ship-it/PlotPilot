@@ -1,4 +1,5 @@
 """保证从仓库内任意 cwd 运行 pytest 时能找到包 aitext。"""
+
 import sys
 from pathlib import Path
 
