@@ -1,33 +1,32 @@
-import shutil
-import tempfile
+"""故事线集成测试（SQLite 仓储）"""
 
 import pytest
-from infrastructure.persistence.repositories.file_storyline_repository import FileStorylineRepository
-
 from domain.novel.services.storyline_manager import StorylineManager
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_type import StorylineType
-from infrastructure.persistence.storage.file_storage import FileStorage
+from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
+
+NOVEL_IDS = ["novel-123", "novel-456", "novel-789", "novel-delete", "novel-validation"]
+
+
+@pytest.fixture
+def storyline_manager(db):
+    # 插入小说以满足外键约束
+    for nid in NOVEL_IDS:
+        db.execute(
+            "INSERT INTO novels (id, title, slug, author, target_chapters, current_stage, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))",
+            (nid, nid, nid, "a", 1, "planning"),
+        )
+    db.commit()
+    repository = SqliteStorylineRepository(db)
+    return StorylineManager(repository)
 
 
 class TestStorylineIntegration:
     """故事线管理系统集成测试"""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """创建临时目录"""
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir)
-
-    @pytest.fixture
-    def storyline_manager(self, temp_dir):
-        """创建故事线管理器"""
-        storage = FileStorage(temp_dir)
-        repository = FileStorylineRepository(storage)
-        return StorylineManager(repository)
 
     def test_create_and_retrieve_storyline(self, storyline_manager):
         """测试创建和检索故事线"""
