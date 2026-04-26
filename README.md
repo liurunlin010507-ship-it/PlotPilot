@@ -19,7 +19,7 @@
 - **伏笔台账**：追踪并自动闭合叙事钩子。
 - **风格分析**：作者声音漂移检测与文体指纹。
 - **节拍表与故事结构**：三幕式、章节节拍规划。
-- **DDD 四层架构**：`domain` / `application` / `infrastructure` / `interfaces`。
+- **DDD 四层架构**：`domain` / `application` / `infrastructure` / `interfaces`
 
 ---
 
@@ -50,7 +50,6 @@
 
 ## 桌面安装版（Windows · Tauri）
 
-- **当前版本**：[v1.0.2](https://github.com/shenminglinyi/PlotPilot/releases/tag/v1.0.2) · 安装包：[`PlotPilot_1.0.2_x64-setup.exe`](https://github.com/shenminglinyi/PlotPilot/releases/download/v1.0.2/PlotPilot_1.0.2_x64-setup.exe)（NSIS）
 - **全部发行版**：[GitHub Releases](https://github.com/shenminglinyi/PlotPilot/releases)
 - **说明**：安装包内含冻结后端，无需单独装 Python；构建流程见 [docs/BUILD_INSTALLER.md](docs/BUILD_INSTALLER.md)。
 

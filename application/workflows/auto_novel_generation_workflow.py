@@ -819,8 +819,9 @@ class AutoNovelGenerationWorkflow:
 
         beat_mode = bool((beat_prompt or "").strip())
         prior_in_chapter = format_prior_draft_for_prompt(chapter_draft_so_far)
+        # 字数控制：硬性上限，超出将被截断
         length_rule = (
-            f"7. 本段约 {beat_target_words} 字（本章分多节输出之一，勿写章节标题）"
+            f"7. 【硬性字数上限】本段最多 {beat_target_words} 字，超出将被截断，请精炼叙述。"
             if beat_target_words
             else ("7. 章节长度：3000-4000字" if not beat_mode else "7. 按下方节拍说明控制篇幅，勿写章节标题")
         )
@@ -856,6 +857,9 @@ class AutoNovelGenerationWorkflow:
             except Exception as e:
                 logger.warning(f"MemoryEngine fact_lock 构建失败: {e}")
 
+        # ⚡ 提示词集中管理说明：
+        # 此模板对应 prompts_defaults.json 中的 id=workflow-chapter-generation
+        # 如需修改提示词内容，请编辑 JSON 文件而非此代码文件
         system_message = f"""你是一位专业的网络小说作家。根据以下上下文撰写章节内容。
 
 {planning_section}{voice_block}{context}
